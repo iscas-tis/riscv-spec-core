@@ -1,4 +1,4 @@
-package core.tool
+package rvspeccore.core.tool
 
 import chisel3._
 import chisel3.util._

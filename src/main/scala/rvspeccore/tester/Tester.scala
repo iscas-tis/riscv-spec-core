@@ -1,9 +1,9 @@
-package tester
+package rvspeccore.tester
 
 import chisel3._
 import chisel3.util._
 
-import core._
+import rvspeccore.core._
 
 class Tester[T <: RiscvCore](gen: => T = { new RiscvCore }) extends Module {
   val io = IO(new Bundle {
