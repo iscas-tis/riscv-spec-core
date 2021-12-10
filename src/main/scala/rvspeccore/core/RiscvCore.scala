@@ -98,9 +98,31 @@ class RiscvCore extends Module with Decode {
       is(OpcodeMap("OP-IMM")) {
         iTypeDecode
         switch(funct3) {
+          // ADDI/SLTI[U]
           is(Funct3Map("ADDI")) { next.reg(rd) := now.reg(rs1) + imm }
+          is(Funct3Map("SLTI")) { next.reg(rd) := Mux(now.reg(rs1).asSInt < imm.asSInt, 1.U, 0.U) }
+          is(Funct3Map("SLTU")) { next.reg(rd) := Mux(now.reg(rs1) < imm, 1.U, 0.U) }
+          // ANDI/ORI/XORI
           is(Funct3Map("ANDI")) { next.reg(rd) := now.reg(rs1) & imm }
+          is(Funct3Map("ORI"))  { next.reg(rd) := now.reg(rs1) | imm }
+          is(Funct3Map("XORI")) { next.reg(rd) := now.reg(rs1) ^ imm }
         }
+        switch(Cat(imm(11, 5), funct3)) {
+          // SLLI/SRLI/SRAI
+          is(Cat("b000_0000".U(7.W), Funct3Map("SLLI"))) { next.reg(rd) := now.reg(rs1) << imm(4, 0) }
+          is(Cat("b000_0000".U(7.W), Funct3Map("SRLI"))) { next.reg(rd) := now.reg(rs1) >> imm(4, 0) }
+          is(Cat("b010_0000".U(7.W), Funct3Map("SRAI"))) { next.reg(rd) := (now.reg(rs1).asSInt >> imm(4, 0)).asUInt }
+        }
+      }
+      is(OpcodeMap("LUI")) {
+        uTypeDecode
+        // LUI
+        next.reg(rd) := imm
+      }
+      is(OpcodeMap("AUIPC")) {
+        uTypeDecode
+        // AUIPC
+        next.reg(rd) := now.pc + imm
       }
     }
 
