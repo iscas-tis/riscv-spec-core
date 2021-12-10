@@ -1,11 +1,11 @@
-package rvspeccore.tester
+package rvspeccore.checker
 
 import chisel3._
 import chisel3.util._
 
 import rvspeccore.core._
 
-class Tester[T <: RiscvCore](gen: => T = { new RiscvCore }) extends Module {
+class Checker[T <: RiscvCore](gen: => T = { new RiscvCore }) extends Module {
   val io = IO(new Bundle {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
