@@ -50,7 +50,8 @@ class State extends Bundle {
 }
 
 object State {
-  def apply(reg: UInt = 0.U(64.W), pc: UInt = "h8000_0000".U(64.W)): State = {
+  def apply(): State = new State
+  def init(reg: UInt = 0.U(64.W), pc: UInt = "h8000_0000".U(64.W)): State = {
     val state = Wire(new State)
     state.reg := Seq.fill(32)(reg)
     state.pc  := pc
@@ -63,12 +64,12 @@ class RiscvCore extends Module with Decode {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
 
-    val now  = Output(new State)
-    val next = Output(new State)
+    val now  = Output(State())
+    val next = Output(State())
   })
 
-  val now  = RegInit(State())
-  val next = Wire(new State)
+  val now  = RegInit(State.init())
+  val next = Wire(State())
 
   // should keep the value in the next clock
   // if there no changes below
