@@ -5,23 +5,17 @@ import chisel3.util._
 
 import rvspeccore.core._
 
-class Checker[T <: RiscvCore](gen: => T = { new RiscvCore }) extends Module {
+abstract class Checker extends Module
+
+class CheckerWithState[T <: RiscvCore](gen: => T) extends Checker {
   val io = IO(new Bundle {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
 
-    val state = Input(new State)
+    val state = Input(State())
   })
 
-  // link to core
-  val core = Module(gen)
-
-  core.io.inst  := io.inst
-  core.io.valid := io.valid
-
-  // assert
-  for (i <- 0 until 32) {
-    assert(core.io.now.reg(i.U) === io.state.reg(i.U))
-  }
-  assert(core.io.now.pc === io.state.pc)
+  // link to checkerCore
+  val checkerCore = Module(new CheckerCore(gen))
+  checkerCore.io <> io
 }
