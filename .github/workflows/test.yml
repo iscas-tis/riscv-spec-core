@@ -21,6 +21,8 @@ jobs:
           mill-version: 0.9.7
       - name: Cache Scala
         uses: coursier/cache-action@v5
+      - name: Install z3
+        run: sudo apt update && sudo apt install z3
       - name: SBT Test
         run: sbt test
       - name: mill Test
