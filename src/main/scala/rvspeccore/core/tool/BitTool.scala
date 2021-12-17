@@ -21,4 +21,23 @@ object BitTool {
       Cat(0.U((width - len).W), a)
     }
   }
+  def unpack(dest: Seq[UInt], source: UInt): Unit = {
+    if (dest.nonEmpty) {
+      val left        = dest.head
+      val leftWidth   = left.getWidth
+      val sourceWidth = source.getWidth
+
+      if (leftWidth < sourceWidth) {
+        left := source(sourceWidth - 1, sourceWidth - leftWidth)
+        unpack(dest.tail, source(sourceWidth - leftWidth - 1, 0))
+      } else {
+        if (leftWidth == sourceWidth) {
+          left := source
+        } else {
+          left := Cat(source, 0.U((leftWidth - sourceWidth).W))
+        }
+        dest.tail.foreach(x => x := 0.U)
+      }
+    }
+  }
 }
