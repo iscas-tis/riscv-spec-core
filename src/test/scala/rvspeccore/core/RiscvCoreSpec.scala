@@ -8,6 +8,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "RiscvCore"
   it should "pass ADDI test" in {
+    (new chisel3.stage.ChiselStage)
+      .emitFirrtl(new RiscvCore, Array("--target-dir", "test_run_dir/" + getTestName))
     test(new RiscvCore) { c =>
       c.io.inst.poke("b0000_0000_0001__00001__000__00010__0010011".U(32.W)) // ADDI R2 = R1 + 1
       c.io.valid.poke(true.B)
