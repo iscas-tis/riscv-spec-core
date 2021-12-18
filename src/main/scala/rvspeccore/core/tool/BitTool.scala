@@ -40,4 +40,16 @@ object BitTool {
       }
     }
   }
+
+  /** Working like `Cat`, but only with literal value. Specifically for the
+    * situation need literal, like is condition in switch-is.
+    */
+  def catLit[T <: Bits](a: T, r: T*): UInt = catLit(a :: r.toList)
+  def catLit[T <: Bits](r: Seq[T]): UInt = {
+    require(r.length >= 1)
+    val a = r
+      .map(x => (x.litValue, x.getWidth))
+      .foldLeft((BigInt(0), 0))((x, y) => ((x._1 << y._2) + y._1, x._2 + y._2))
+    a._1.U(a._2.W)
+  }
 }

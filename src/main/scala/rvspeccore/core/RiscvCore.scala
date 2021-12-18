@@ -90,6 +90,7 @@ class RiscvCore extends Module with Decode {
   // ID & EXE
   when(io.valid) {
     inst := io.inst
+    // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
       // riscv-spec-20191213
       // Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
@@ -109,9 +110,9 @@ class RiscvCore extends Module with Decode {
         }
         switch(Cat(imm(11, 5), funct3)) {
           // SLLI/SRLI/SRAI
-          is(Cat("b000_0000".U(7.W), Funct3Map("SLLI"))) { next.reg(rd) := now.reg(rs1) << imm(4, 0) }
-          is(Cat("b000_0000".U(7.W), Funct3Map("SRLI"))) { next.reg(rd) := now.reg(rs1) >> imm(4, 0) }
-          is(Cat("b010_0000".U(7.W), Funct3Map("SRAI"))) { next.reg(rd) := (now.reg(rs1).asSInt >> imm(4, 0)).asUInt }
+          is(catLit("b000_0000".U(7.W), Funct3Map("SLLI"))) { next.reg(rd) := now.reg(rs1) << imm(4, 0) }
+          is(catLit("b000_0000".U(7.W), Funct3Map("SRLI"))) { next.reg(rd) := now.reg(rs1) >> imm(4, 0) }
+          is(catLit("b010_0000".U(7.W), Funct3Map("SRAI"))) { next.reg(rd) := (now.reg(rs1).asSInt >> imm(4, 0)).asUInt }
         }
       }
       is(OpcodeMap("LUI")) {
@@ -125,6 +126,7 @@ class RiscvCore extends Module with Decode {
         next.reg(rd) := now.pc + imm
       }
     }
+    // scalafmt: { maxColumn = 120 } (back to defaults)
 
     next.pc := now.pc + 4.U
   }
