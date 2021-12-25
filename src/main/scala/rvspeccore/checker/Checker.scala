@@ -7,58 +7,80 @@ import rvspeccore.core._
 
 abstract class Checker extends Module
 
-/** Checker with state port.
+class InstCommit extends Bundle {
+  val valid = Bool()
+  val inst  = UInt(32.W)
+  val pc    = UInt(64.W)
+}
+object InstCommit {
+  def apply() = new InstCommit
+}
+
+/** Checker with result port.
   *
-  * Link to the `CheckerCore` directly.
+  * Check pc of commited instruction, all register and next pc.
   *
   * @param gen
   */
-class CheckerWithState[T <: RiscvCore](gen: => T) extends Checker {
+class CheckerWithResult(gen: => RiscvCore) extends Checker {
   val io = IO(new Bundle {
-    val inst  = Input(UInt(32.W))
-    val valid = Input(Bool())
-
-    val state = Input(State())
+    val instCommit = Input(InstCommit())
+    val result     = Input(State())
   })
 
-  // link to checkerCore
-  val checkerCore = Module(new CheckerCore(gen))
-  checkerCore.io <> io
+  // link to spec core
+  val specCore = Module(gen)
+  specCore.io.valid := io.instCommit.valid
+  specCore.io.inst  := io.instCommit.inst
+
+  // assert in current clock
+  when(io.instCommit.valid) {
+    // now pc
+    assert(io.instCommit.pc === specCore.io.now.pc)
+    // next reg
+    for (i <- 0 until 32) {
+      assert(io.result.reg(i.U) === specCore.io.next.reg(i.U))
+    }
+    // next pc
+    assert(io.result.pc === specCore.io.next.pc)
+  }
 }
 
 class WriteBack extends Bundle {
   val valid = Bool()
-  val dest  = UInt(8.W)
+  val dest  = UInt(5.W)
   val data  = UInt(64.W)
+}
+object WriteBack {
+  def apply() = new WriteBack
 }
 
 /** Checker with write back port.
   *
-  * Write back will work when `io.wb.valid` is true, But only check assert after
-  * commit instruction with `io.valid`.
+  * Check pc of commited instruction and the register been write back.
   *
   * @param gen
   *   Generator of a spec core
   */
-class CheckerWithWB[T <: RiscvCore](gen: => T) extends Checker {
+class CheckerWithWB(gen: => RiscvCore) extends Checker {
   val io = IO(new Bundle {
-    val inst  = Input(UInt(32.W))
-    val valid = Input(Bool())
-
-    val pc = Input(UInt(64.W))
-    val wb = Input(new WriteBack)
+    val instCommit = Input(InstCommit())
+    val wb         = Input(WriteBack())
   })
 
-  val reg = RegInit(VecInit(Seq.fill(32)(0.U(64.W))))
+  // link to spec core
+  val specCore = Module(gen)
+  specCore.io.valid := io.instCommit.valid
+  specCore.io.inst  := io.instCommit.inst
 
-  when(io.wb.valid) {
-    reg(io.wb.dest) := io.wb.data
+  // assert in current clock
+  when(io.instCommit.valid) {
+    // now pc
+    assert(io.instCommit.pc === specCore.io.now.pc)
+    // next reg
+    when(io.wb.valid) {
+      assert(io.wb.data === specCore.io.next.reg(io.wb.dest))
+    }
+    // next pc: no next pc signal in this case
   }
-
-  // link to checkerCore
-  val checkerCore = Module(new CheckerCore(gen))
-  checkerCore.io.inst      := io.inst
-  checkerCore.io.valid     := io.valid
-  checkerCore.io.state.reg := reg
-  checkerCore.io.state.pc  := io.pc
 }

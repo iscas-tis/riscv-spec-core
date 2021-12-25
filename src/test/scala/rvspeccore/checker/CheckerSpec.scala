@@ -7,14 +7,16 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import rvspeccore.core._
 
-class CheckerWithStateSpec extends AnyFlatSpec with ChiselScalatestTester {
-  behavior of "CheckerWithState"
+class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
+  behavior of "CheckerWithResult"
   it should "pass RiscvCoreTest" in {
     class TestCore extends RiscvCore {
-      val checker = Module(new CheckerWithState(new RiscvCore))
-      checker.io.inst  := io.inst
-      checker.io.valid := io.valid
-      checker.io.state := now
+      val checker = Module(new CheckerWithResult(new RiscvCore))
+      checker.io.instCommit.valid := io.valid
+      checker.io.instCommit.inst  := io.inst
+      checker.io.instCommit.pc    := now.pc
+
+      checker.io.result := next
     }
     test(new TestCore) { c =>
       RiscvCoreTest(c)
@@ -40,10 +42,11 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
       }
 
       val checker = Module(new CheckerWithWB(new RiscvCore))
-      checker.io.inst  := io.inst
-      checker.io.valid := io.valid
-      checker.io.pc    := now.pc
-      checker.io.wb    := wb
+      checker.io.instCommit.valid := io.valid
+      checker.io.instCommit.inst  := io.inst
+      checker.io.instCommit.pc    := now.pc
+
+      checker.io.wb := wb
     }
     test(new TestCore) { c =>
       RiscvCoreTest(c)
