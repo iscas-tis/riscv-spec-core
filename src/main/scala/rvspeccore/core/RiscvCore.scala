@@ -6,13 +6,17 @@ import chisel3.util._
 import spec._
 import tool.BitTool._
 
-/** Decode path
+abstract class BaseCore()(implicit config: RVConfig) extends Module {
+  implicit val width: Int = config.width
+}
+
+/** Decode part
   *
   *   - riscv-spec-20191213
   *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
   *   - 2.3 Immediate Encoding Variants
   */
-trait Decode extends Module {
+trait Decode extends BaseCore {
   val inst = WireInit(0.U(32.W))
 
   val opcode = WireInit(0.U(7.W))
@@ -21,7 +25,7 @@ trait Decode extends Module {
   val rs1    = WireInit(0.U(5.W))
   val rs2    = WireInit(0.U(5.W))
   val funct7 = WireInit(0.U(7.W))
-  val imm    = WireInit(0.U(64.W))
+  val imm    = WireInit(0.U(width.W))
 
   // Figure 2.3: RISC-V base instruction formats showing immediate variants
   //   31                   25 | 24        20 | 19 15 | 14    12 | 11                   7 | 6      0
@@ -46,32 +50,33 @@ trait Decode extends Module {
 
   // format: off
   //                             / 31           25 | 24    20 | 19 15 | 14 12 | 11           7 | 6    0 \
-  def rTypeDecode = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                         }
-  def iTypeDecode = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , 64) }
-  def sTypeDecode = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , 64) }
-  def bTypeDecode = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , 64) }
-  def uTypeDecode = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , 64) }
-  def jTypeDecode = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), 64) }
+  def rTypeDecode = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                            }
+  def iTypeDecode = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , width) }
+  def sTypeDecode = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , width) }
+  def bTypeDecode = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , width) }
+  def uTypeDecode = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , width) }
+  def jTypeDecode = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), width) }
   //                             \ 31 31 | 30      21 | 20 20 | 19         12 | 11   8 | 7   7 | 6    0 /
   // format: on
 }
 
-class State extends Bundle {
-  val reg = Vec(32, UInt(64.W))
-  val pc  = UInt(64.W)
-}
+class State()(implicit width: Int) extends Bundle {
+  val reg = Vec(32, UInt(width.W))
+  val pc  = UInt(width.W)
 
-object State {
-  def apply(): State = new State
-  def init(reg: UInt = 0.U(64.W), pc: UInt = "h8000_0000".U(64.W)): State = {
-    val state = Wire(new State)
+  def init(reg: UInt = 0.U(width.W), pc: UInt = "h8000_0000".U(width.W)): State = {
+    val state = Wire(this)
     state.reg := Seq.fill(32)(reg)
     state.pc  := pc
     state
   }
 }
 
-class RiscvCore extends Module with Decode {
+object State {
+  def apply()(implicit width: Int): State = new State
+}
+
+class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode {
   val io = IO(new Bundle {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
@@ -80,7 +85,7 @@ class RiscvCore extends Module with Decode {
     val next = Output(State())
   })
 
-  val now  = RegInit(State.init())
+  val now  = RegInit(State().init())
   val next = Wire(State())
 
   // should keep the value in the next clock

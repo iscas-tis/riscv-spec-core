@@ -35,14 +35,24 @@ object RiscvCoreTest {
     tests.foreach(_(c))
   }
 }
+object TestConfigs {
+  val configs: Seq[RVConfig] = Seq(
+    RV32Config(),
+    RV64Config()
+  )
+  def apply() = configs
+}
 
 class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
-  behavior of "RiscvCore"
-  it should "pass RiscvCoreTest" in {
+  "RiscvCore" should "pass RV64Config firrtl emit" in {
     (new chisel3.stage.ChiselStage)
-      .emitFirrtl(new RiscvCore, Array("--target-dir", "test_run_dir/" + getTestName))
-    test(new RiscvCore) { c =>
-      RiscvCoreTest(c)
-    }
+      .emitFirrtl(new RiscvCore()(RV64Config()), Array("--target-dir", "test_run_dir/" + getTestName))
   }
+  TestConfigs().foreach(config =>
+    s"RiscvCore with ${config.getClass.getSimpleName}" should "pass RiscvCoreTest" in {
+      test(new RiscvCore()(config)) { c =>
+        RiscvCoreTest(c)
+      }
+    }
+  )
 }

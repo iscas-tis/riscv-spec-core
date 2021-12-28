@@ -10,8 +10,10 @@ import rvspeccore.core._
 class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithResult"
   it should "pass RiscvCoreTest" in {
+    implicit val config = RV64Config()
+
     class TestCore extends RiscvCore {
-      val checker = Module(new CheckerWithResult(new RiscvCore))
+      val checker = Module(new CheckerWithResult)
       checker.io.instCommit.valid := io.valid
       checker.io.instCommit.inst  := io.inst
       checker.io.instCommit.pc    := now.pc
@@ -27,6 +29,8 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
 class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithWB"
   it should "pass RiscvCoreTest" in {
+    implicit val config = RV64Config()
+
     class TestCore extends RiscvCore {
       val wb = Wire(new WriteBack)
       wb.valid := false.B
@@ -41,7 +45,7 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
         }
       }
 
-      val checker = Module(new CheckerWithWB(new RiscvCore))
+      val checker = Module(new CheckerWithWB)
       checker.io.instCommit.valid := io.valid
       checker.io.instCommit.inst  := io.inst
       checker.io.instCommit.pc    := now.pc

@@ -5,15 +5,17 @@ import chisel3.util._
 
 import rvspeccore.core._
 
-abstract class Checker extends Module
+abstract class Checker()(implicit config: RVConfig) extends Module {
+  implicit val width: Int = config.width
+}
 
-class InstCommit extends Bundle {
+class InstCommit()(implicit width: Int) extends Bundle {
   val valid = Bool()
   val inst  = UInt(32.W)
-  val pc    = UInt(64.W)
+  val pc    = UInt(width.W)
 }
 object InstCommit {
-  def apply() = new InstCommit
+  def apply()(implicit width: Int) = new InstCommit
 }
 
 /** Checker with result port.
@@ -22,14 +24,14 @@ object InstCommit {
   *
   * @param gen
   */
-class CheckerWithResult(gen: => RiscvCore) extends Checker {
+class CheckerWithResult()(implicit config: RVConfig) extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val result     = Input(State())
   })
 
   // link to spec core
-  val specCore = Module(gen)
+  val specCore = Module(new RiscvCore)
   specCore.io.valid := io.instCommit.valid
   specCore.io.inst  := io.instCommit.inst
 
@@ -46,13 +48,13 @@ class CheckerWithResult(gen: => RiscvCore) extends Checker {
   }
 }
 
-class WriteBack extends Bundle {
+class WriteBack()(implicit width: Int) extends Bundle {
   val valid = Bool()
   val dest  = UInt(5.W)
-  val data  = UInt(64.W)
+  val data  = UInt(width.W)
 }
 object WriteBack {
-  def apply() = new WriteBack
+  def apply()(implicit width: Int) = new WriteBack
 }
 
 /** Checker with write back port.
@@ -62,14 +64,14 @@ object WriteBack {
   * @param gen
   *   Generator of a spec core
   */
-class CheckerWithWB(gen: => RiscvCore) extends Checker {
+class CheckerWithWB()(implicit config: RVConfig) extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val wb         = Input(WriteBack())
   })
 
   // link to spec core
-  val specCore = Module(gen)
+  val specCore = Module(new RiscvCore)
   specCore.io.valid := io.instCommit.valid
   specCore.io.inst  := io.instCommit.inst
 
