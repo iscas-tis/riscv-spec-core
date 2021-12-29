@@ -134,6 +134,11 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode {
     // scalafmt: { maxColumn = 120 } (back to defaults)
 
     next.pc := now.pc + 4.U
+
+    // riscv-spec-20191213
+    // Register x0 is hardwired with all bits equal to 0.
+    // Register x0 can be used as the destination if the result is not required.
+    next.reg(0) := 0.U(width.W)
   }
 
   // update
