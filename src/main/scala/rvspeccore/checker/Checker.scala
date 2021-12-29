@@ -6,16 +6,16 @@ import chisel3.util._
 import rvspeccore.core._
 
 abstract class Checker()(implicit config: RVConfig) extends Module {
-  implicit val width: Int = config.width
+  implicit val XLEN: Int = config.XLEN
 }
 
-class InstCommit()(implicit width: Int) extends Bundle {
+class InstCommit()(implicit XLEN: Int) extends Bundle {
   val valid = Bool()
   val inst  = UInt(32.W)
-  val pc    = UInt(width.W)
+  val pc    = UInt(XLEN.W)
 }
 object InstCommit {
-  def apply()(implicit width: Int) = new InstCommit
+  def apply()(implicit XLEN: Int) = new InstCommit
 }
 
 /** Checker with result port.
@@ -48,13 +48,13 @@ class CheckerWithResult()(implicit config: RVConfig) extends Checker {
   }
 }
 
-class WriteBack()(implicit width: Int) extends Bundle {
+class WriteBack()(implicit XLEN: Int) extends Bundle {
   val valid = Bool()
   val dest  = UInt(5.W)
-  val data  = UInt(width.W)
+  val data  = UInt(XLEN.W)
 }
 object WriteBack {
-  def apply()(implicit width: Int) = new WriteBack
+  def apply()(implicit XLEN: Int) = new WriteBack
 }
 
 /** Checker with write back port.

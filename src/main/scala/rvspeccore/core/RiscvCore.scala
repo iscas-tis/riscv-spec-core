@@ -7,7 +7,7 @@ import spec._
 import tool.BitTool._
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
-  implicit val width: Int = config.width
+  implicit val XLEN: Int = config.XLEN
 }
 
 /** Decode part
@@ -25,7 +25,7 @@ trait Decode extends BaseCore {
   val rs1    = WireInit(0.U(5.W))
   val rs2    = WireInit(0.U(5.W))
   val funct7 = WireInit(0.U(7.W))
-  val imm    = WireInit(0.U(width.W))
+  val imm    = WireInit(0.U(XLEN.W))
 
   // Figure 2.3: RISC-V base instruction formats showing immediate variants
   //   31                   25 | 24        20 | 19 15 | 14    12 | 11                   7 | 6      0
@@ -50,21 +50,21 @@ trait Decode extends BaseCore {
 
   // format: off
   //                             / 31           25 | 24    20 | 19 15 | 14 12 | 11           7 | 6    0 \
-  def rTypeDecode = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                            }
-  def iTypeDecode = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , width) }
-  def sTypeDecode = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , width) }
-  def bTypeDecode = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , width) }
-  def uTypeDecode = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , width) }
-  def jTypeDecode = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), width) }
+  def rTypeDecode = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                           }
+  def iTypeDecode = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , XLEN) }
+  def sTypeDecode = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , XLEN) }
+  def bTypeDecode = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , XLEN) }
+  def uTypeDecode = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , XLEN) }
+  def jTypeDecode = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), XLEN) }
   //                             \ 31 31 | 30      21 | 20 20 | 19         12 | 11   8 | 7   7 | 6    0 /
   // format: on
 }
 
-class State()(implicit width: Int) extends Bundle {
-  val reg = Vec(32, UInt(width.W))
-  val pc  = UInt(width.W)
+class State()(implicit XLEN: Int) extends Bundle {
+  val reg = Vec(32, UInt(XLEN.W))
+  val pc  = UInt(XLEN.W)
 
-  def init(reg: UInt = 0.U(width.W), pc: UInt = "h8000_0000".U(width.W)): State = {
+  def init(reg: UInt = 0.U(XLEN.W), pc: UInt = "h8000_0000".U(XLEN.W)): State = {
     val state = Wire(this)
     state.reg := Seq.fill(32)(reg)
     state.pc  := pc
@@ -73,7 +73,7 @@ class State()(implicit width: Int) extends Bundle {
 }
 
 object State {
-  def apply()(implicit width: Int): State = new State
+  def apply()(implicit XLEN: Int): State = new State
 }
 
 class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode {
@@ -138,7 +138,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode {
     // riscv-spec-20191213
     // Register x0 is hardwired with all bits equal to 0.
     // Register x0 can be used as the destination if the result is not required.
-    next.reg(0) := 0.U(width.W)
+    next.reg(0) := 0.U(XLEN.W)
   }
 
   // update
