@@ -44,6 +44,58 @@ trait Execute extends BaseCore { this: Decode =>
         // AUIPC
         next.reg(rd) := now.pc + imm
       }
+      // Integer Register-Register Operations
+      is(OpcodeMap("OP")) {
+        rTypeDecode
+        switch(Cat(funct7, funct3)) {
+          // ADD/SLT/SLTU
+          is(catLit(Funct7Map("ADD"), Funct3Map("ADD")))   { next.reg(rd) := now.reg(rs1) + now.reg(rs2) }
+          is(catLit(Funct7Map("SLT"), Funct3Map("SLT")))   { next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, 1.U, 0.U) }
+          is(catLit(Funct7Map("SLTU"), Funct3Map("SLTU"))) { next.reg(rd) := Mux(now.reg(rs1) < now.reg(rs2), 1.U, 0.U) }
+          // AND/OR/XOR
+          is(catLit(Funct7Map("AND"), Funct3Map("AND"))) { next.reg(rd) := now.reg(rs1) & now.reg(rs2) }
+          is(catLit(Funct7Map("OR"), Funct3Map("OR")))   { next.reg(rd) := now.reg(rs1) | now.reg(rs2) }
+          is(catLit(Funct7Map("XOR"), Funct3Map("XOR"))) { next.reg(rd) := now.reg(rs1) ^ now.reg(rs2) }
+          // SLL/SRL
+          is(catLit(Funct7Map("SLL"), Funct3Map("SLL"))) { next.reg(rd) := now.reg(rs1) << now.reg(rs2)(4, 0) }
+          is(catLit(Funct7Map("SRL"), Funct3Map("SRL"))) { next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(4, 0) }
+          // SUB/SRA
+          is(catLit(Funct7Map("SUB"), Funct3Map("SUB"))) { next.reg(rd) := now.reg(rs1) - now.reg(rs2) }
+          is(catLit(Funct7Map("SRA"), Funct3Map("SRA"))) { next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(4, 0)).asUInt }
+        }
+      }
+      // NOP Instruction
+      // NOP is encoded as ADDI x0, x0, 0.
+
+      // 2.5 Control Transfer Instructions
+      // Unconditional Jumps
+      is(OpcodeMap("JAL")) {
+        jTypeDecode
+        // JAL
+        next.pc      := now.pc + imm
+        next.reg(rd) := now.pc + 4.U
+      }
+      is(OpcodeMap("JALR")) {
+        iTypeDecode
+        // JALR
+        next.pc      := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
+        next.reg(rd) := now.pc + 4.U
+      }
+      // Conditional Branches
+      is(OpcodeMap("BRANCH")) {
+        bTypeDecode
+        switch(funct3) {
+          // BEQ/BNE
+          is(Funct3Map("BEQ")) { when(now.reg(rs1) === now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BNE")) { when(now.reg(rs1) =/= now.reg(rs2)) { next.pc := now.pc + imm } }
+          // BLT[U]
+          is(Funct3Map("BLT"))  { when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { next.pc := now.pc + imm } }
+          is(Funct3Map("BLTU")) { when(now.reg(rs1) < now.reg(rs2)) { next.pc := now.pc + imm } }
+          // BGE[U]
+          is(Funct3Map("BGE"))  { when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { next.pc := now.pc + imm } }
+          is(Funct3Map("BGEU")) { when(now.reg(rs1) >= now.reg(rs2)) { next.pc := now.pc + imm } }
+        }
+      }
     }
     // scalafmt: { maxColumn = 120 } (back to defaults)
   }
