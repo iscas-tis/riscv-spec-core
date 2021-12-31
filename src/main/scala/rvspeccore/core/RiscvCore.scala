@@ -10,6 +10,21 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
 
   val now  = RegInit(State().init())
   val next = Wire(State())
+
+  val rmem = Wire(new ReadMemIO())
+  val wmem = Wire(new WriteMemIO())
+}
+
+class ReadMemIO()(implicit XLEN: Int) extends Bundle {
+  val valid = Output(Bool())
+  val addr  = Output(UInt(XLEN.W))
+  val data  = Input(UInt(XLEN.W))
+}
+
+class WriteMemIO()(implicit XLEN: Int) extends Bundle {
+  val valid = Output(Bool())
+  val addr  = Output(UInt(XLEN.W))
+  val data  = Output(UInt(XLEN.W))
 }
 
 class State()(implicit XLEN: Int) extends Bundle {
@@ -33,6 +48,9 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
 
+    val rmem = new ReadMemIO()
+    val wmem = new WriteMemIO()
+
     val now  = Output(State())
     val next = Output(State())
   })
@@ -40,6 +58,14 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
   // should keep the value in the next clock
   // if there no changes below
   next := now
+
+  // dont read or write mem
+  // if there no LOAD/STORE below
+  rmem.valid := false.B
+  rmem.addr  := 0.U
+  wmem.valid := false.B
+  wmem.addr  := 0.U
+  wmem.data  := 0.U
 
   // ID & EXE
   when(io.valid) {
@@ -63,6 +89,13 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
     // Register x0 can be used as the destination if the result is not required.
     next.reg(0) := 0.U(XLEN.W)
   }
+
+  // mem port
+  io.rmem.valid := rmem.valid
+  io.rmem.addr  := rmem.addr
+  rmem.data     := io.rmem.data
+
+  io.wmem := wmem
 
   // update
   now := next

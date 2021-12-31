@@ -96,6 +96,24 @@ trait Execute extends BaseCore { this: Decode =>
           is(Funct3Map("BGEU")) { when(now.reg(rs1) >= now.reg(rs2)) { next.pc := now.pc + imm } }
         }
       }
+      // 2.6 Load and Store Instructions
+      is(OpcodeMap("LOAD")) {
+        iTypeDecode
+        // LOAD
+        rmem.valid   := true.B
+        rmem.addr    := now.reg(rs1) + imm
+        next.reg(rd) := rmem.data
+        // TODO:
+        // Loads with a destination of x0 must still raise any exceptions and
+        // cause any other side effects even though the load value is discarded.
+      }
+      is(OpcodeMap("STORE")) {
+        sTypeDecode
+        // STORE
+        wmem.valid := true.B
+        wmem.addr  := now.reg(rs1) + imm
+        wmem.data  := now.reg(rs2)
+      }
     }
     // scalafmt: { maxColumn = 120 } (back to defaults)
   }
