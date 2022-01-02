@@ -103,6 +103,7 @@ trait Execute extends BaseCore { this: Decode =>
         rmem.valid   := true.B
         rmem.addr    := now.reg(rs1) + imm
         next.reg(rd) := rmem.data
+        // FIXME: width
         // TODO:
         // Loads with a destination of x0 must still raise any exceptions and
         // cause any other side effects even though the load value is discarded.
@@ -113,12 +114,85 @@ trait Execute extends BaseCore { this: Decode =>
         wmem.valid := true.B
         wmem.addr  := now.reg(rs1) + imm
         wmem.data  := now.reg(rs2)
+        // FIXME: width
       }
     }
     // scalafmt: { maxColumn = 120 } (back to defaults)
   }
   def deRV64I: Unit = {
     deRV32I
-    // TODO: do more
+    // RV64I will override same inst in RV32I
+    // scalafmt: { maxColumn = 200 }
+    switch(inst(6, 0)) {
+      // riscv-spec-20191213
+      // RV64I Base Integer Instruction Set, Version 2.1
+      // 5.2 Integer Computational Instructions
+      // Integer Register-Immediate Instructions
+      is(OpcodeMap("OP-IMM-32")) {
+        iTypeDecode
+        switch(funct3) {
+          // ADDIW
+          is(Funct3Map("ADDIW")) { next.reg(rd) := signExt((now.reg(rs1) + imm)(31, 0), XLEN) }
+        }
+        switch(Cat(imm(11, 5), funct3)) {
+          // SLLIW/SRLIW/SRAIW
+          is(catLit("b000_0000".U(7.W), Funct3Map("SLLIW"))) { next.reg(rd) := signExt(now.reg(rs1)(31, 0) << imm(4, 0), XLEN) }
+          is(catLit("b000_0000".U(7.W), Funct3Map("SRLIW"))) { next.reg(rd) := signExt(now.reg(rs1)(31, 0) >> imm(4, 0), XLEN) }
+          is(catLit("b010_0000".U(7.W), Funct3Map("SRAIW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> imm(4, 0)).asUInt, XLEN) }
+        }
+      }
+      is(OpcodeMap("OP-IMM")) {
+        iTypeDecode
+        switch(Cat(imm(11, 6), funct3)) {
+          // SLLI/SRLI/SRAI
+          is(catLit("b00_0000".U(6.W), Funct3Map("SLLI"))) { next.reg(rd) := now.reg(rs1) << imm(5, 0) }
+          is(catLit("b00_0000".U(6.W), Funct3Map("SRLI"))) { next.reg(rd) := now.reg(rs1) >> imm(5, 0) }
+          is(catLit("b01_0000".U(6.W), Funct3Map("SRAI"))) { next.reg(rd) := (now.reg(rs1).asSInt >> imm(5, 0)).asUInt }
+        }
+      }
+      // LUI/AUIPC not changed
+      // Integer Register-Register Operations
+      is(OpcodeMap("OP")) {
+        rTypeDecode
+        switch(Cat(funct7, funct3)) {
+          // SLL/SRL
+          is(catLit(Funct7Map("SLL"), Funct3Map("SLL"))) { next.reg(rd) := now.reg(rs1) << now.reg(rs2)(5, 0) }
+          is(catLit(Funct7Map("SRL"), Funct3Map("SRL"))) { next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(5, 0) }
+          // SRA
+          is(catLit(Funct7Map("SRA"), Funct3Map("SRA"))) { next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(5, 0)).asUInt }
+        }
+      }
+      is(OpcodeMap("OP-32")) {
+        rTypeDecode
+        switch(Cat(funct7, funct3)) {
+          // TODO: ADDW
+          is(catLit(Funct7Map("ADDW"), Funct3Map("ADDW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN) }
+          // TODO: SLLW/SRLW
+          is(catLit(Funct7Map("SLLW"), Funct3Map("SLLW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) << now.reg(rs2)(4, 0))(31, 0), XLEN) }
+          is(catLit(Funct7Map("SRLW"), Funct3Map("SRLW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> now.reg(rs2)(4, 0))(31, 0), XLEN) }
+          // TODO: SUBW/SRAW
+          is(catLit(Funct7Map("SUBW"), Funct3Map("SUBW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN) }
+          is(catLit(Funct7Map("SRAW"), Funct3Map("SRAW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN) }
+        }
+      }
+      // 5.3 Load and Store Instructions
+      is(OpcodeMap("LOAD")) {
+        iTypeDecode
+        // LOAD
+        rmem.valid   := true.B
+        rmem.addr    := now.reg(rs1) + imm
+        next.reg(rd) := rmem.data
+        // FIXME: LD
+      }
+      is(OpcodeMap("STORE")) {
+        sTypeDecode
+        // STORE
+        wmem.valid := true.B
+        wmem.addr  := now.reg(rs1) + imm
+        wmem.data  := now.reg(rs2)
+        // FIXME: SD
+      }
+    }
+    // scalafmt: { maxColumn = 120 } (back to defaults)
   }
 }
