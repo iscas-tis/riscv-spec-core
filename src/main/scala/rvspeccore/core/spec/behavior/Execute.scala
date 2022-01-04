@@ -100,21 +100,22 @@ trait Execute extends BaseCore { this: Decode =>
       is(OpcodeMap("LOAD")) {
         iTypeDecode
         // LOAD
-        rmem.valid   := true.B
-        rmem.addr    := now.reg(rs1) + imm
-        next.reg(rd) := rmem.data
-        // FIXME: width
-        // TODO:
-        // Loads with a destination of x0 must still raise any exceptions and
-        // cause any other side effects even though the load value is discarded.
+        switch(funct3) {
+          is(Funct3Map("LB"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := signExt(rmem.data, XLEN) }
+          is(Funct3Map("LH"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := signExt(rmem.data, XLEN) }
+          is(Funct3Map("LW"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := signExt(rmem.data, XLEN) }
+          is(Funct3Map("LBU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
+          is(Funct3Map("LHU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
+        }
       }
       is(OpcodeMap("STORE")) {
         sTypeDecode
         // STORE
-        wmem.valid := true.B
-        wmem.addr  := now.reg(rs1) + imm
-        wmem.data  := now.reg(rs2)
-        // FIXME: width
+        switch(funct3) {
+          is(Funct3Map("SB")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 8.U; wmem.data := now.reg(rs2)(7, 0) }
+          is(Funct3Map("SH")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 16.U; wmem.data := now.reg(rs2)(15, 0) }
+          is(Funct3Map("SW")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 32.U; wmem.data := now.reg(rs2)(31, 0) }
+        }
       }
     }
     // scalafmt: { maxColumn = 120 } (back to defaults)
@@ -165,12 +166,12 @@ trait Execute extends BaseCore { this: Decode =>
       is(OpcodeMap("OP-32")) {
         rTypeDecode
         switch(Cat(funct7, funct3)) {
-          // TODO: ADDW
+          // ADDW
           is(catLit(Funct7Map("ADDW"), Funct3Map("ADDW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN) }
-          // TODO: SLLW/SRLW
+          // SLLW/SRLW
           is(catLit(Funct7Map("SLLW"), Funct3Map("SLLW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) << now.reg(rs2)(4, 0))(31, 0), XLEN) }
           is(catLit(Funct7Map("SRLW"), Funct3Map("SRLW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> now.reg(rs2)(4, 0))(31, 0), XLEN) }
-          // TODO: SUBW/SRAW
+          // SUBW/SRAW
           is(catLit(Funct7Map("SUBW"), Funct3Map("SUBW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN) }
           is(catLit(Funct7Map("SRAW"), Funct3Map("SRAW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN) }
         }
@@ -179,18 +180,17 @@ trait Execute extends BaseCore { this: Decode =>
       is(OpcodeMap("LOAD")) {
         iTypeDecode
         // LOAD
-        rmem.valid   := true.B
-        rmem.addr    := now.reg(rs1) + imm
-        next.reg(rd) := rmem.data
-        // FIXME: LD
+        switch(funct3) {
+          is(Funct3Map("LWU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
+          is(Funct3Map("LD"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 64.U; next.reg(rd) := signExt(rmem.data, XLEN) }
+        }
       }
       is(OpcodeMap("STORE")) {
         sTypeDecode
         // STORE
-        wmem.valid := true.B
-        wmem.addr  := now.reg(rs1) + imm
-        wmem.data  := now.reg(rs2)
-        // FIXME: SD
+        switch(funct3) {
+          is(Funct3Map("SD")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 64.U; wmem.data := now.reg(rs2)(63, 0) }
+        }
       }
     }
     // scalafmt: { maxColumn = 120 } (back to defaults)

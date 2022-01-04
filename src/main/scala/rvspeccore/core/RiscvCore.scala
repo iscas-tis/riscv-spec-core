@@ -16,15 +16,17 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
 }
 
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
-  val valid = Output(Bool())
-  val addr  = Output(UInt(XLEN.W))
-  val data  = Input(UInt(XLEN.W))
+  val valid    = Output(Bool())
+  val addr     = Output(UInt(XLEN.W))
+  val memWidth = Output(UInt(log2Ceil(XLEN + 1).W))
+  val data     = Input(UInt(XLEN.W))
 }
 
 class WriteMemIO()(implicit XLEN: Int) extends Bundle {
-  val valid = Output(Bool())
-  val addr  = Output(UInt(XLEN.W))
-  val data  = Output(UInt(XLEN.W))
+  val valid    = Output(Bool())
+  val addr     = Output(UInt(XLEN.W))
+  val memWidth = Output(UInt(log2Ceil(XLEN + 1).W))
+  val data     = Output(UInt(XLEN.W))
 }
 
 class State()(implicit XLEN: Int) extends Bundle {
@@ -61,11 +63,13 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
 
   // dont read or write mem
   // if there no LOAD/STORE below
-  rmem.valid := false.B
-  rmem.addr  := 0.U
-  wmem.valid := false.B
-  wmem.addr  := 0.U
-  wmem.data  := 0.U
+  rmem.valid    := false.B
+  rmem.addr     := 0.U
+  rmem.memWidth := 0.U
+  wmem.valid    := false.B
+  wmem.addr     := 0.U
+  wmem.memWidth := 0.U
+  wmem.data     := 0.U
 
   // ID & EXE
   when(io.valid) {
