@@ -95,9 +95,10 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
   }
 
   // mem port
-  io.rmem.valid := rmem.valid
-  io.rmem.addr  := rmem.addr
-  rmem.data     := io.rmem.data
+  io.rmem.valid    := rmem.valid
+  io.rmem.addr     := rmem.addr
+  io.rmem.memWidth := rmem.memWidth
+  rmem.data        := io.rmem.data
 
   io.wmem := wmem
 
