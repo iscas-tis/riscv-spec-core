@@ -1,4 +1,4 @@
-package rvspeccore.core.spec
+package rvspeccore.core.spec.code
 
 import chisel3._
 import chisel3.util._
