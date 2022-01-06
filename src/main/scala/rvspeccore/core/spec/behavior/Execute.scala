@@ -8,6 +8,8 @@ import rvspeccore.core.spec.code._
 import rvspeccore.core.tool.BitTool._
 
 trait Execute extends BaseCore { this: Decode =>
+  val setPc = WireInit(false.B)
+
   def deRV32I: Unit = {
     // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
@@ -72,12 +74,14 @@ trait Execute extends BaseCore { this: Decode =>
       is(OpcodeMap("JAL")) {
         jTypeDecode
         // JAL
+        setPc        := true.B
         next.pc      := now.pc + imm
         next.reg(rd) := now.pc + 4.U
       }
       is(OpcodeMap("JALR")) {
         iTypeDecode
         // JALR
+        setPc        := true.B
         next.pc      := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
         next.reg(rd) := now.pc + 4.U
       }
@@ -86,14 +90,14 @@ trait Execute extends BaseCore { this: Decode =>
         bTypeDecode
         switch(funct3) {
           // BEQ/BNE
-          is(Funct3Map("BEQ")) { when(now.reg(rs1) === now.reg(rs2)) { next.pc := now.pc + imm } }
-          is(Funct3Map("BNE")) { when(now.reg(rs1) =/= now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BEQ")) { when(now.reg(rs1) === now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
+          is(Funct3Map("BNE")) { when(now.reg(rs1) =/= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
           // BLT[U]
-          is(Funct3Map("BLT"))  { when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { next.pc := now.pc + imm } }
-          is(Funct3Map("BLTU")) { when(now.reg(rs1) < now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BLT"))  { when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
+          is(Funct3Map("BLTU")) { when(now.reg(rs1) < now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
           // BGE[U]
-          is(Funct3Map("BGE"))  { when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { next.pc := now.pc + imm } }
-          is(Funct3Map("BGEU")) { when(now.reg(rs1) >= now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BGE"))  { when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
+          is(Funct3Map("BGEU")) { when(now.reg(rs1) >= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
         }
       }
       // 2.6 Load and Store Instructions

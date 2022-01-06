@@ -86,7 +86,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
       }
     }
 
-    next.pc := now.pc + 4.U
+    when(!setPc) { next.pc := now.pc + 4.U }
 
     // riscv-spec-20191213
     // Register x0 is hardwired with all bits equal to 0.
