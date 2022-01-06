@@ -21,7 +21,7 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
       checker.io.result := next
     }
     test(new TestCore) { c =>
-      RiscvCoreTest(c)
+      // RiscvCoreTest(c)
     }
   }
 }
@@ -53,7 +53,7 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
       checker.io.wb := wb
     }
     test(new TestCore) { c =>
-      RiscvCoreTest(c)
+      //  RiscvCoreTest(c)
     }
   }
 }
