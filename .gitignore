@@ -348,3 +348,5 @@ hs_err_pid*
 .metals/
 .bloop/
 metals.sbt
+
+!testcase/riscv-tests-hex/*/*.hex
