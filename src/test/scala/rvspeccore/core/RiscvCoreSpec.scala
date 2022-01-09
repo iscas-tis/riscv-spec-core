@@ -123,7 +123,7 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
       test(
         new CoreTester(f.getCanonicalPath())(RV64Config())
       ).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-        stepTest(c, 500)
+        stepTest(c, 600)
         c.io.inst.expect("h0000006f".U(32.W)) // j halt
         c.io.now.reg(10).expect(0.U)          // li	a0,0
       }
