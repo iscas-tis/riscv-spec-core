@@ -105,11 +105,11 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LB"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := signExt(rmem.data, XLEN) }
-          is(Funct3Map("LH"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := signExt(rmem.data, XLEN) }
-          is(Funct3Map("LW"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := signExt(rmem.data, XLEN) }
-          is(Funct3Map("LBU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
-          is(Funct3Map("LHU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
+          is(Funct3Map("LB"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := signExt(rmem.data(7, 0), XLEN) }
+          is(Funct3Map("LH"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := signExt(rmem.data(15, 0), XLEN) }
+          is(Funct3Map("LW"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := signExt(rmem.data(31, 0), XLEN) }
+          is(Funct3Map("LBU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := zeroExt(rmem.data(7, 0), XLEN) }
+          is(Funct3Map("LHU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := zeroExt(rmem.data(16, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
@@ -185,8 +185,8 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LWU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
-          is(Funct3Map("LD"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 64.U; next.reg(rd) := signExt(rmem.data, XLEN) }
+          is(Funct3Map("LWU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := zeroExt(rmem.data(31, 0), XLEN) }
+          is(Funct3Map("LD"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 64.U; next.reg(rd) := signExt(rmem.data(63, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {

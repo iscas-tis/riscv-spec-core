@@ -20,7 +20,7 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
     val now  = Output(State())
   })
 
-  val mem  = Mem(1000, UInt(XLEN.W))
+  val mem  = Mem(1500, UInt(XLEN.W))
   val core = Module(new RiscvCore)
 
   loadMemoryFromFile(mem, memFile)
@@ -69,11 +69,12 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
   // write mem
   val wIdx  = core.io.wmem.addr >> bytesWidth           // addr / bytes
   val wOff  = core.io.wmem.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val wMask = width2Mask(core.io.wmem.memWidth) << wOff
+  val wMask = (width2Mask(core.io.wmem.memWidth) << wOff)(XLEN - 1, 0)
   val mData = mem.read(wIdx)
+  // simulate write mask
+  val wData = ((core.io.wmem.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
   when(core.io.wmem.valid) {
-    // simulate write mask
-    mem.write(wIdx, ((core.io.wmem.data << wOff) & wMask) | (mData & !wMask))
+    mem.write(wIdx, wData)
   }
 
   io.inst := inst
@@ -116,8 +117,9 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   // test rv32
   // TODO: add rv32ui test
   // test rv64
+  // NOTE: funce.i shows passed test, but RiscvCore not support it.
+  //       Because RiscvCore is too simple.
   behavior of "RiscvCore with RV64Config test by riscv-tests"
-  // FIXME: fix bug in RiscvCore
   RiscvTests("rv64ui").foreach(f =>
     it should s"pass ${f.getName}" in {
       test(
