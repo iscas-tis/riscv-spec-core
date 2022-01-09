@@ -38,7 +38,7 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
     }
     case RV64Config() => {
       val instMem = mem.read(pc >> 3)
-      inst := Mux(pc(2), instMem(61, 32), instMem(31, 0))
+      inst := Mux(pc(2), instMem(63, 32), instMem(31, 0))
     }
   }
   core.io.inst := inst
