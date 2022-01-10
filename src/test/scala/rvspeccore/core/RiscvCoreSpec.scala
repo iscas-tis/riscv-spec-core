@@ -20,7 +20,7 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
     val now  = Output(State())
   })
 
-  val mem  = Mem(1500, UInt(XLEN.W))
+  val mem  = Mem(3000, UInt(XLEN.W))
   val core = Module(new RiscvCore)
 
   loadMemoryFromFile(mem, memFile)
@@ -114,21 +114,27 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
       stepTest(dut, restClock - 1)
     }
   }
-  // test rv32
-  // TODO: add rv32ui test
-  // test rv64
+
+  val tests = Seq(
+    (RV32Config(), Seq("rv32ui")),
+    (RV64Config(), Seq("rv64ui"))
+  )
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
-  behavior of "RiscvCore with RV64Config test by riscv-tests"
-  RiscvTests("rv64ui").foreach(f =>
-    it should s"pass ${f.getName}" in {
-      test(
-        new CoreTester(f.getCanonicalPath())(RV64Config())
-      ).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-        stepTest(c, 600)
-        c.io.inst.expect("h0000006f".U(32.W)) // j halt
-        c.io.now.reg(10).expect(0.U)          // li	a0,0
-      }
+  tests.foreach { testInfo =>
+    behavior of s"RiscvCore with ${testInfo._1.getClass().getSimpleName()}"
+    testInfo._2.foreach { testCase =>
+      RiscvTests(testCase).foreach(f =>
+        it should s"pass ${f.getName}" in {
+          test(
+            new CoreTester(f.getCanonicalPath())(testInfo._1)
+          ).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+            stepTest(c, 600)
+            c.io.inst.expect("h0000006f".U(32.W)) // j halt
+            c.io.now.reg(10).expect(0.U)          // li	a0,0
+          }
+        }
+      )
     }
-  )
+  }
 }
