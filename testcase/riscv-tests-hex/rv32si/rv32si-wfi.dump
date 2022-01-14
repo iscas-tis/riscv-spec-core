@@ -1,0 +1,35 @@
+
+rv32si-p-wfi:     file format elf32-littleriscv
+
+
+Disassembly of section .text.init:
+
+80000000 <_start>:
+80000000:	10017073          	csrci	sstatus,2
+80000004:	10416073          	csrsi	sie,2
+80000008:	14416073          	csrsi	sip,2
+8000000c:	10500073          	wfi
+80000010:	00000513          	li	a0,0
+80000014:	0180006f          	j	8000002c <halt>
+80000018:	00301663          	bne	zero,gp,80000024 <pass>
+
+8000001c <fail>:
+8000001c:	00100513          	li	a0,1
+80000020:	00c0006f          	j	8000002c <halt>
+
+80000024 <pass>:
+80000024:	00000513          	li	a0,0
+80000028:	0040006f          	j	8000002c <halt>
+
+8000002c <halt>:
+8000002c:	0000006f          	j	8000002c <halt>
+80000030:	0000                	unimp
+80000032:	0000                	unimp
+80000034:	0000                	unimp
+80000036:	0000                	unimp
+80000038:	0000                	unimp
+8000003a:	0000                	unimp
+8000003c:	0000                	unimp
+8000003e:	0000                	unimp
+80000040:	0000                	unimp
+80000042:	0000                	unimp

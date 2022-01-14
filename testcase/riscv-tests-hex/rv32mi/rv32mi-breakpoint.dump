@@ -1,0 +1,118 @@
+
+rv32mi-p-breakpoint:     file format elf32-littleriscv
+
+
+Disassembly of section .text.init:
+
+80000000 <_start>:
+80000000:	00200193          	li	gp,2
+80000004:	7a001073          	csrw	tselect,zero
+80000008:	7a0025f3          	csrr	a1,tselect
+8000000c:	0eb01463          	bne	zero,a1,800000f4 <pass>
+80000010:	00000617          	auipc	a2,0x0
+80000014:	02060613          	addi	a2,a2,32 # 80000030 <_start+0x30>
+80000018:	7a261073          	csrw	tdata2,a2
+8000001c:	20000537          	lui	a0,0x20000
+80000020:	04450513          	addi	a0,a0,68 # 20000044 <_start-0x5fffffbc>
+80000024:	7a151073          	csrw	tdata1,a0
+80000028:	7a1025f3          	csrr	a1,tdata1
+8000002c:	00b51863          	bne	a0,a1,8000003c <_start+0x3c>
+80000030:	0a000e63          	beqz	zero,800000ec <fail>
+80000034:	00300193          	li	gp,3
+80000038:	00062503          	lw	a0,0(a2)
+8000003c:	00400193          	li	gp,4
+80000040:	20000537          	lui	a0,0x20000
+80000044:	04150513          	addi	a0,a0,65 # 20000041 <_start-0x5fffffbf>
+80000048:	7a151073          	csrw	tdata1,a0
+8000004c:	7a1025f3          	csrr	a1,tdata1
+80000050:	02b51063          	bne	a0,a1,80000070 <_start+0x70>
+80000054:	00002617          	auipc	a2,0x2
+80000058:	fac60613          	addi	a2,a2,-84 # 80002000 <begin_signature>
+8000005c:	7a261073          	csrw	tdata2,a2
+80000060:	00062603          	lw	a2,0(a2)
+80000064:	08060463          	beqz	a2,800000ec <fail>
+80000068:	00500193          	li	gp,5
+8000006c:	00062023          	sw	zero,0(a2)
+80000070:	00600193          	li	gp,6
+80000074:	20000537          	lui	a0,0x20000
+80000078:	04250513          	addi	a0,a0,66 # 20000042 <_start-0x5fffffbe>
+8000007c:	7a151073          	csrw	tdata1,a0
+80000080:	7a1025f3          	csrr	a1,tdata1
+80000084:	06b51263          	bne	a0,a1,800000e8 <_start+0xe8>
+80000088:	00c62023          	sw	a2,0(a2)
+8000008c:	00700193          	li	gp,7
+80000090:	00062603          	lw	a2,0(a2)
+80000094:	04061c63          	bnez	a2,800000ec <fail>
+80000098:	00100513          	li	a0,1
+8000009c:	7a051073          	csrw	tselect,a0
+800000a0:	7a0025f3          	csrr	a1,tselect
+800000a4:	04b51863          	bne	a0,a1,800000f4 <pass>
+800000a8:	20000537          	lui	a0,0x20000
+800000ac:	04150513          	addi	a0,a0,65 # 20000041 <_start-0x5fffffbf>
+800000b0:	7a151073          	csrw	tdata1,a0
+800000b4:	00002697          	auipc	a3,0x2
+800000b8:	f5068693          	addi	a3,a3,-176 # 80002004 <data2>
+800000bc:	7a269073          	csrw	tdata2,a3
+800000c0:	00800193          	li	gp,8
+800000c4:	0006a683          	lw	a3,0(a3)
+800000c8:	02068263          	beqz	a3,800000ec <fail>
+800000cc:	00a00193          	li	gp,10
+800000d0:	00002617          	auipc	a2,0x2
+800000d4:	f3060613          	addi	a2,a2,-208 # 80002000 <begin_signature>
+800000d8:	00c62023          	sw	a2,0(a2)
+800000dc:	00b00193          	li	gp,11
+800000e0:	00062603          	lw	a2,0(a2)
+800000e4:	00061463          	bnez	a2,800000ec <fail>
+800000e8:	00301663          	bne	zero,gp,800000f4 <pass>
+
+800000ec <fail>:
+800000ec:	00100513          	li	a0,1
+800000f0:	0300006f          	j	80000120 <halt>
+
+800000f4 <pass>:
+800000f4:	00000513          	li	a0,0
+800000f8:	0280006f          	j	80000120 <halt>
+
+800000fc <mtvec_handler>:
+800000fc:	0011f293          	andi	t0,gp,1
+80000100:	fe0296e3          	bnez	t0,800000ec <fail>
+80000104:	00300293          	li	t0,3
+80000108:	34202373          	csrr	t1,mcause
+8000010c:	fe6290e3          	bne	t0,t1,800000ec <fail>
+80000110:	341022f3          	csrr	t0,mepc
+80000114:	00428293          	addi	t0,t0,4
+80000118:	34129073          	csrw	mepc,t0
+8000011c:	30200073          	mret
+
+80000120 <halt>:
+80000120:	0000006f          	j	80000120 <halt>
+80000124:	0000                	unimp
+80000126:	0000                	unimp
+80000128:	0000                	unimp
+8000012a:	0000                	unimp
+8000012c:	0000                	unimp
+8000012e:	0000                	unimp
+80000130:	0000                	unimp
+80000132:	0000                	unimp
+80000134:	0000                	unimp
+80000136:	0000                	unimp
+80000138:	0000                	unimp
+8000013a:	0000                	unimp
+8000013c:	0000                	unimp
+8000013e:	0000                	unimp
+80000140:	0000                	unimp
+80000142:	0000                	unimp
+
+Disassembly of section .data:
+
+80002000 <begin_signature>:
+80002000:	0000                	unimp
+80002002:	0000                	unimp
+
+80002004 <data2>:
+80002004:	0000                	unimp
+80002006:	0000                	unimp
+80002008:	0000                	unimp
+8000200a:	0000                	unimp
+8000200c:	0000                	unimp
+8000200e:	0000                	unimp

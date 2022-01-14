@@ -1,0 +1,40 @@
+
+rv64ui-p-simple:     file format elf64-littleriscv
+
+
+Disassembly of section .text.init:
+
+0000000080000000 <_start>:
+    80000000:	00000513          	li	a0,0
+    80000004:	0040006f          	j	80000008 <halt>
+
+0000000080000008 <halt>:
+    80000008:	0000006f          	j	80000008 <halt>
+    8000000c:	0000                	unimp
+    8000000e:	0000                	unimp
+    80000010:	0000                	unimp
+    80000012:	0000                	unimp
+    80000014:	0000                	unimp
+    80000016:	0000                	unimp
+    80000018:	0000                	unimp
+    8000001a:	0000                	unimp
+    8000001c:	0000                	unimp
+    8000001e:	0000                	unimp
+    80000020:	0000                	unimp
+    80000022:	0000                	unimp
+    80000024:	0000                	unimp
+    80000026:	0000                	unimp
+    80000028:	0000                	unimp
+    8000002a:	0000                	unimp
+    8000002c:	0000                	unimp
+    8000002e:	0000                	unimp
+    80000030:	0000                	unimp
+    80000032:	0000                	unimp
+    80000034:	0000                	unimp
+    80000036:	0000                	unimp
+    80000038:	0000                	unimp
+    8000003a:	0000                	unimp
+    8000003c:	0000                	unimp
+    8000003e:	0000                	unimp
+    80000040:	0000                	unimp
+    80000042:	0000                	unimp

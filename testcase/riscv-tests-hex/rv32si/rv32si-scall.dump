@@ -1,0 +1,57 @@
+
+rv32si-p-scall:     file format elf32-littleriscv
+
+
+Disassembly of section .text.init:
+
+80000000 <_start>:
+80000000:	00200193          	li	gp,2
+80000004:	00800313          	li	t1,8
+80000008:	10000293          	li	t0,256
+8000000c:	1002b073          	csrc	sstatus,t0
+80000010:	00000297          	auipc	t0,0x0
+80000014:	01028293          	addi	t0,t0,16 # 80000020 <_start+0x20>
+80000018:	14129073          	csrw	sepc,t0
+8000001c:	10200073          	sret
+80000020:	00100193          	li	gp,1
+
+80000024 <do_scall>:
+80000024:	00000073          	ecall
+80000028:	0080006f          	j	80000030 <fail>
+8000002c:	00301663          	bne	zero,gp,80000038 <pass>
+
+80000030 <fail>:
+80000030:	00100513          	li	a0,1
+80000034:	0380006f          	j	8000006c <halt>
+
+80000038 <pass>:
+80000038:	00000513          	li	a0,0
+8000003c:	0300006f          	j	8000006c <halt>
+
+80000040 <stvec_handler>:
+80000040:	142022f3          	csrr	t0,scause
+80000044:	105023f3          	csrr	t2,stvec
+80000048:	0023f393          	andi	t2,t2,2
+8000004c:	00038463          	beqz	t2,80000054 <skip_mask>
+80000050:	0ff2f293          	zext.b	t0,t0
+
+80000054 <skip_mask>:
+80000054:	fc629ee3          	bne	t0,t1,80000030 <fail>
+80000058:	00000397          	auipc	t2,0x0
+8000005c:	fcc38393          	addi	t2,t2,-52 # 80000024 <do_scall>
+80000060:	141022f3          	csrr	t0,sepc
+80000064:	fc7296e3          	bne	t0,t2,80000030 <fail>
+80000068:	fd1ff06f          	j	80000038 <pass>
+
+8000006c <halt>:
+8000006c:	0000006f          	j	8000006c <halt>
+80000070:	0000                	unimp
+80000072:	0000                	unimp
+80000074:	0000                	unimp
+80000076:	0000                	unimp
+80000078:	0000                	unimp
+8000007a:	0000                	unimp
+8000007c:	0000                	unimp
+8000007e:	0000                	unimp
+80000080:	0000                	unimp
+80000082:	0000                	unimp

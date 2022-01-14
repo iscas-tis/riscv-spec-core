@@ -1,0 +1,78 @@
+
+rv32uf-p-ldst:     file format elf32-littleriscv
+
+
+Disassembly of section .text.init:
+
+80000000 <_start>:
+80000000:	00002597          	auipc	a1,0x2
+80000004:	00058593          	mv	a1,a1
+80000008:	0045a087          	flw	ft1,4(a1) # 80002004 <begin_signature+0x4>
+8000000c:	0015aa27          	fsw	ft1,20(a1)
+80000010:	0145a503          	lw	a0,20(a1)
+80000014:	400003b7          	lui	t2,0x40000
+80000018:	00200193          	li	gp,2
+8000001c:	02751463          	bne	a0,t2,80000044 <fail>
+
+80000020 <test_3>:
+80000020:	00002597          	auipc	a1,0x2
+80000024:	fe058593          	addi	a1,a1,-32 # 80002000 <begin_signature>
+80000028:	0005a087          	flw	ft1,0(a1)
+8000002c:	0015ac27          	fsw	ft1,24(a1)
+80000030:	0185a503          	lw	a0,24(a1)
+80000034:	bf8003b7          	lui	t2,0xbf800
+80000038:	00300193          	li	gp,3
+8000003c:	00751463          	bne	a0,t2,80000044 <fail>
+80000040:	00301663          	bne	zero,gp,8000004c <pass>
+
+80000044 <fail>:
+80000044:	00100513          	li	a0,1
+80000048:	00c0006f          	j	80000054 <halt>
+
+8000004c <pass>:
+8000004c:	00000513          	li	a0,0
+80000050:	0040006f          	j	80000054 <halt>
+
+80000054 <halt>:
+80000054:	0000006f          	j	80000054 <halt>
+80000058:	0000                	unimp
+8000005a:	0000                	unimp
+8000005c:	0000                	unimp
+8000005e:	0000                	unimp
+80000060:	0000                	unimp
+80000062:	0000                	unimp
+80000064:	0000                	unimp
+80000066:	0000                	unimp
+80000068:	0000                	unimp
+8000006a:	0000                	unimp
+8000006c:	0000                	unimp
+8000006e:	0000                	unimp
+80000070:	0000                	unimp
+80000072:	0000                	unimp
+80000074:	0000                	unimp
+80000076:	0000                	unimp
+80000078:	0000                	unimp
+8000007a:	0000                	unimp
+8000007c:	0000                	unimp
+8000007e:	0000                	unimp
+80000080:	0000                	unimp
+80000082:	0000                	unimp
+
+Disassembly of section .data:
+
+80002000 <begin_signature>:
+80002000:	0000                	unimp
+80002002:	bf80                	fsd	fs0,56(a5)
+80002004:	0000                	unimp
+80002006:	4000                	lw	s0,0(s0)
+80002008:	0000                	unimp
+8000200a:	4040                	lw	s0,4(s0)
+8000200c:	0000                	unimp
+8000200e:	c080                	sw	s0,0(s1)
+80002010:	deadbeef          	jal	t4,7ffdd5fa <_start-0x22a06>
+80002014:	babe                	fsd	fa5,368(sp)
+80002016:	cafe                	sw	t6,84(sp)
+80002018:	1dea                	slli	s11,s11,0x3a
+8000201a:	abad                	j	80002594 <_end+0x574>
+8000201c:	d00d                	beqz	s0,80001f3e <fromhost+0xefe>
+8000201e:	          	lui	t1,0x1

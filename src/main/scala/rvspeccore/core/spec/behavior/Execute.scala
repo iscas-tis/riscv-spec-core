@@ -8,6 +8,8 @@ import rvspeccore.core.spec.code._
 import rvspeccore.core.tool.BitTool._
 
 trait Execute extends BaseCore { this: Decode =>
+  val setPc = WireInit(false.B)
+
   def deRV32I: Unit = {
     // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
@@ -72,12 +74,14 @@ trait Execute extends BaseCore { this: Decode =>
       is(OpcodeMap("JAL")) {
         jTypeDecode
         // JAL
+        setPc        := true.B
         next.pc      := now.pc + imm
         next.reg(rd) := now.pc + 4.U
       }
       is(OpcodeMap("JALR")) {
         iTypeDecode
         // JALR
+        setPc        := true.B
         next.pc      := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
         next.reg(rd) := now.pc + 4.U
       }
@@ -86,14 +90,14 @@ trait Execute extends BaseCore { this: Decode =>
         bTypeDecode
         switch(funct3) {
           // BEQ/BNE
-          is(Funct3Map("BEQ")) { when(now.reg(rs1) === now.reg(rs2)) { next.pc := now.pc + imm } }
-          is(Funct3Map("BNE")) { when(now.reg(rs1) =/= now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BEQ")) { when(now.reg(rs1) === now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
+          is(Funct3Map("BNE")) { when(now.reg(rs1) =/= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
           // BLT[U]
-          is(Funct3Map("BLT"))  { when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { next.pc := now.pc + imm } }
-          is(Funct3Map("BLTU")) { when(now.reg(rs1) < now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BLT"))  { when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
+          is(Funct3Map("BLTU")) { when(now.reg(rs1) < now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
           // BGE[U]
-          is(Funct3Map("BGE"))  { when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { next.pc := now.pc + imm } }
-          is(Funct3Map("BGEU")) { when(now.reg(rs1) >= now.reg(rs2)) { next.pc := now.pc + imm } }
+          is(Funct3Map("BGE"))  { when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
+          is(Funct3Map("BGEU")) { when(now.reg(rs1) >= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
         }
       }
       // 2.6 Load and Store Instructions
@@ -101,11 +105,11 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LB"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := signExt(rmem.data, XLEN) }
-          is(Funct3Map("LH"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := signExt(rmem.data, XLEN) }
-          is(Funct3Map("LW"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := signExt(rmem.data, XLEN) }
-          is(Funct3Map("LBU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
-          is(Funct3Map("LHU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
+          is(Funct3Map("LB"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := signExt(rmem.data(7, 0), XLEN) }
+          is(Funct3Map("LH"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := signExt(rmem.data(15, 0), XLEN) }
+          is(Funct3Map("LW"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := signExt(rmem.data(31, 0), XLEN) }
+          is(Funct3Map("LBU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := zeroExt(rmem.data(7, 0), XLEN) }
+          is(Funct3Map("LHU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := zeroExt(rmem.data(16, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
@@ -137,7 +141,7 @@ trait Execute extends BaseCore { this: Decode =>
         }
         switch(Cat(imm(11, 5), funct3)) {
           // SLLIW/SRLIW/SRAIW
-          is(catLit("b000_0000".U(7.W), Funct3Map("SLLIW"))) { next.reg(rd) := signExt(now.reg(rs1)(31, 0) << imm(4, 0), XLEN) }
+          is(catLit("b000_0000".U(7.W), Funct3Map("SLLIW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) << imm(4, 0))(31, 0), XLEN) }
           is(catLit("b000_0000".U(7.W), Funct3Map("SRLIW"))) { next.reg(rd) := signExt(now.reg(rs1)(31, 0) >> imm(4, 0), XLEN) }
           is(catLit("b010_0000".U(7.W), Funct3Map("SRAIW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> imm(4, 0)).asUInt, XLEN) }
         }
@@ -181,8 +185,8 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LWU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := zeroExt(rmem.data, XLEN) }
-          is(Funct3Map("LD"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 64.U; next.reg(rd) := signExt(rmem.data, XLEN) }
+          is(Funct3Map("LWU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := zeroExt(rmem.data(31, 0), XLEN) }
+          is(Funct3Map("LD"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 64.U; next.reg(rd) := signExt(rmem.data(63, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
