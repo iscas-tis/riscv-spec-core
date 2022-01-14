@@ -19,9 +19,19 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
       checker.io.instCommit.pc    := now.pc
 
       checker.io.result := next
+
+      checker.io.mem.get := mem
     }
-    test(new TestCore) { c =>
-      // RiscvCoreTest(c)
+
+    val tests = Seq(
+      RiscvTests("rv64ui", "rv64ui-addi.hex"),
+      RiscvTests("rv64ui", "rv64ui-lb.hex")
+    )
+    tests.foreach { testFile =>
+      test(new CoreTester(new TestCore, testFile.getCanonicalPath())) { c =>
+        RiscvTests.stepTest(c, RiscvTests.maxStep)
+        RiscvTests.checkReturn(c)
+      }
     }
   }
 }
@@ -51,9 +61,20 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
       checker.io.instCommit.pc    := now.pc
 
       checker.io.wb := wb
+
+      checker.io.mem.get := mem
     }
-    test(new TestCore) { c =>
-      //  RiscvCoreTest(c)
+
+    // val tests = Seq(RiscvTests("rv64ui", "rv64ui-addi.hex"))
+    val tests = Seq(
+      RiscvTests("rv64ui", "rv64ui-addi.hex"),
+      RiscvTests("rv64ui", "rv64ui-lb.hex")
+    )
+    tests.foreach { testFile =>
+      test(new CoreTester(new TestCore, testFile.getCanonicalPath())) { c =>
+        RiscvTests.stepTest(c, RiscvTests.maxStep)
+        RiscvTests.checkReturn(c)
+      }
     }
   }
 }

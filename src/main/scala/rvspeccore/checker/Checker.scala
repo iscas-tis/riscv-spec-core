@@ -24,16 +24,19 @@ object InstCommit {
   *
   * @param gen
   */
-class CheckerWithResult()(implicit config: RVConfig) extends Checker {
+class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val result     = Input(State())
+    val mem        = if (checkMem) Some(Input(new MemIO)) else None
   })
 
   // link to spec core
   val specCore = Module(new RiscvCore)
   specCore.io.valid := io.instCommit.valid
   specCore.io.inst  := io.instCommit.inst
+
+  specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
 
   // assert in current clock
   when(io.instCommit.valid) {
@@ -45,6 +48,17 @@ class CheckerWithResult()(implicit config: RVConfig) extends Checker {
     }
     // next pc
     assert(io.result.pc === specCore.io.next.pc)
+
+    if (checkMem) {
+      assert(io.mem.get.read.valid === specCore.io.mem.read.valid)
+      assert(io.mem.get.read.addr === specCore.io.mem.read.addr)
+      assert(io.mem.get.read.memWidth === specCore.io.mem.read.memWidth)
+
+      assert(io.mem.get.write.valid === specCore.io.mem.write.valid)
+      assert(io.mem.get.write.addr === specCore.io.mem.write.addr)
+      assert(io.mem.get.write.memWidth === specCore.io.mem.write.memWidth)
+      assert(io.mem.get.write.data === specCore.io.mem.write.data)
+    }
   }
 }
 
@@ -64,16 +78,19 @@ object WriteBack {
   * @param gen
   *   Generator of a spec core
   */
-class CheckerWithWB()(implicit config: RVConfig) extends Checker {
+class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val wb         = Input(WriteBack())
+    val mem        = if (checkMem) Some(Input(new MemIO)) else None
   })
 
   // link to spec core
   val specCore = Module(new RiscvCore)
   specCore.io.valid := io.instCommit.valid
   specCore.io.inst  := io.instCommit.inst
+
+  specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
 
   // assert in current clock
   when(io.instCommit.valid) {
@@ -84,5 +101,15 @@ class CheckerWithWB()(implicit config: RVConfig) extends Checker {
       assert(io.wb.data === specCore.io.next.reg(io.wb.dest))
     }
     // next pc: no next pc signal in this case
+    if (checkMem) {
+      assert(io.mem.get.read.valid === specCore.io.mem.read.valid)
+      assert(io.mem.get.read.addr === specCore.io.mem.read.addr)
+      assert(io.mem.get.read.memWidth === specCore.io.mem.read.memWidth)
+
+      assert(io.mem.get.write.valid === specCore.io.mem.write.valid)
+      assert(io.mem.get.write.addr === specCore.io.mem.write.addr)
+      assert(io.mem.get.write.memWidth === specCore.io.mem.write.memWidth)
+      assert(io.mem.get.write.data === specCore.io.mem.write.data)
+    }
   }
 }
