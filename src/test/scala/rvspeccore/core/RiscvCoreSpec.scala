@@ -123,28 +123,46 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
       c.io.next.pc.expect("h8000_0000".U)
     }
   }
+}
 
-  val tests = Seq(
-    (RV32Config(), Seq("rv32ui")),
-    (RV64Config(), Seq("rv64ui"))
-  )
+class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
+  implicit val config = RV64Config()
+
+  val tests = Seq("rv64ui")
+
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
-  tests.foreach { testInfo =>
-    implicit val config = testInfo._1
+  behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"
 
-    behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"
-    testInfo._2.foreach { testCase =>
-      RiscvTests(testCase).foreach(f =>
-        it should s"pass ${f.getName}" in {
-          test(
-            new CoreTester(new RiscvCore, f.getCanonicalPath())
-          ).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-            RiscvTests.stepTest(c, RiscvTests.maxStep)
-            RiscvTests.checkReturn(c)
-          }
+  tests.foreach { testCase =>
+    RiscvTests(testCase).foreach(f =>
+      it should s"pass ${f.getName}" in {
+        test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
+          RiscvTests.stepTest(c, RiscvTests.maxStep)
+          RiscvTests.checkReturn(c)
         }
-      )
-    }
+      }
+    )
+  }
+}
+
+class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
+  implicit val config = RV32Config()
+
+  val tests = Seq("rv32ui")
+
+  // NOTE: funce.i shows passed test, but RiscvCore not support it.
+  //       Because RiscvCore is too simple.
+  behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"
+
+  tests.foreach { testCase =>
+    RiscvTests(testCase).foreach(f =>
+      it should s"pass ${f.getName}" in {
+        test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
+          RiscvTests.stepTest(c, RiscvTests.maxStep)
+          RiscvTests.checkReturn(c)
+        }
+      }
+    )
   }
 }
