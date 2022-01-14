@@ -10,6 +10,19 @@ import rvspeccore.core.tool.BitTool._
 trait Execute extends BaseCore { this: Decode =>
   val setPc = WireInit(false.B)
 
+  def memRead(addr: UInt, memWidth: UInt): UInt = {
+    mem.read.valid    := true.B
+    mem.read.addr     := addr
+    mem.read.memWidth := memWidth
+    mem.read.data
+  }
+  def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
+    mem.write.valid    := true.B
+    mem.write.addr     := addr
+    mem.write.memWidth := memWidth
+    mem.write.data     := data
+  }
+
   def deRV32I: Unit = {
     // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
@@ -105,20 +118,20 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LB"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 8.U; next.reg(rd) := signExt(mem.read.data(7, 0), XLEN) }
-          is(Funct3Map("LH"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 16.U; next.reg(rd) := signExt(mem.read.data(15, 0), XLEN) }
-          is(Funct3Map("LW"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 32.U; next.reg(rd) := signExt(mem.read.data(31, 0), XLEN) }
-          is(Funct3Map("LBU")) { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 8.U; next.reg(rd) := zeroExt(mem.read.data(7, 0), XLEN) }
-          is(Funct3Map("LHU")) { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 16.U; next.reg(rd) := zeroExt(mem.read.data(16, 0), XLEN) }
+          is(Funct3Map("LB"))  { next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
+          is(Funct3Map("LH"))  { next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
+          is(Funct3Map("LW"))  { next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
+          is(Funct3Map("LBU")) { next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
+          is(Funct3Map("LHU")) { next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
         sTypeDecode
         // STORE
         switch(funct3) {
-          is(Funct3Map("SB")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 8.U; mem.write.data := now.reg(rs2)(7, 0) }
-          is(Funct3Map("SH")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 16.U; mem.write.data := now.reg(rs2)(15, 0) }
-          is(Funct3Map("SW")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 32.U; mem.write.data := now.reg(rs2)(31, 0) }
+          is(Funct3Map("SB")) { memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
+          is(Funct3Map("SH")) { memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) }
+          is(Funct3Map("SW")) { memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) }
         }
       }
     }
@@ -185,15 +198,15 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LWU")) { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 32.U; next.reg(rd) := zeroExt(mem.read.data(31, 0), XLEN) }
-          is(Funct3Map("LD"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 64.U; next.reg(rd) := signExt(mem.read.data(63, 0), XLEN) }
+          is(Funct3Map("LWU")) { next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
+          is(Funct3Map("LD"))  { next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
         sTypeDecode
         // STORE
         switch(funct3) {
-          is(Funct3Map("SD")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 64.U; mem.write.data := now.reg(rs2)(63, 0) }
+          is(Funct3Map("SD")) { memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) }
         }
       }
     }
