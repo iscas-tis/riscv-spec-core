@@ -105,20 +105,20 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LB"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := signExt(rmem.data(7, 0), XLEN) }
-          is(Funct3Map("LH"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := signExt(rmem.data(15, 0), XLEN) }
-          is(Funct3Map("LW"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := signExt(rmem.data(31, 0), XLEN) }
-          is(Funct3Map("LBU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 8.U; next.reg(rd) := zeroExt(rmem.data(7, 0), XLEN) }
-          is(Funct3Map("LHU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 16.U; next.reg(rd) := zeroExt(rmem.data(16, 0), XLEN) }
+          is(Funct3Map("LB"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 8.U; next.reg(rd) := signExt(mem.read.data(7, 0), XLEN) }
+          is(Funct3Map("LH"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 16.U; next.reg(rd) := signExt(mem.read.data(15, 0), XLEN) }
+          is(Funct3Map("LW"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 32.U; next.reg(rd) := signExt(mem.read.data(31, 0), XLEN) }
+          is(Funct3Map("LBU")) { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 8.U; next.reg(rd) := zeroExt(mem.read.data(7, 0), XLEN) }
+          is(Funct3Map("LHU")) { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 16.U; next.reg(rd) := zeroExt(mem.read.data(16, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
         sTypeDecode
         // STORE
         switch(funct3) {
-          is(Funct3Map("SB")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 8.U; wmem.data := now.reg(rs2)(7, 0) }
-          is(Funct3Map("SH")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 16.U; wmem.data := now.reg(rs2)(15, 0) }
-          is(Funct3Map("SW")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 32.U; wmem.data := now.reg(rs2)(31, 0) }
+          is(Funct3Map("SB")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 8.U; mem.write.data := now.reg(rs2)(7, 0) }
+          is(Funct3Map("SH")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 16.U; mem.write.data := now.reg(rs2)(15, 0) }
+          is(Funct3Map("SW")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 32.U; mem.write.data := now.reg(rs2)(31, 0) }
         }
       }
     }
@@ -185,15 +185,15 @@ trait Execute extends BaseCore { this: Decode =>
         iTypeDecode
         // LOAD
         switch(funct3) {
-          is(Funct3Map("LWU")) { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 32.U; next.reg(rd) := zeroExt(rmem.data(31, 0), XLEN) }
-          is(Funct3Map("LD"))  { rmem.valid := true.B; rmem.addr := now.reg(rs1) + imm; rmem.memWidth := 64.U; next.reg(rd) := signExt(rmem.data(63, 0), XLEN) }
+          is(Funct3Map("LWU")) { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 32.U; next.reg(rd) := zeroExt(mem.read.data(31, 0), XLEN) }
+          is(Funct3Map("LD"))  { mem.read.valid := true.B; mem.read.addr := now.reg(rs1) + imm; mem.read.memWidth := 64.U; next.reg(rd) := signExt(mem.read.data(63, 0), XLEN) }
         }
       }
       is(OpcodeMap("STORE")) {
         sTypeDecode
         // STORE
         switch(funct3) {
-          is(Funct3Map("SD")) { wmem.valid := true.B; wmem.addr := now.reg(rs1) + imm; wmem.memWidth := 64.U; wmem.data := now.reg(rs2)(63, 0) }
+          is(Funct3Map("SD")) { mem.write.valid := true.B; mem.write.addr := now.reg(rs1) + imm; mem.write.memWidth := 64.U; mem.write.data := now.reg(rs2)(63, 0) }
         }
       }
     }

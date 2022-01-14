@@ -9,7 +9,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import chisel3.util.experimental.loadMemoryFromFile
 import java.io.File
 
-class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
+class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConfig) extends Module {
   implicit val XLEN = config.XLEN
 
   val bytes      = XLEN / 8
@@ -21,7 +21,7 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
   })
 
   val mem  = Mem(3000, UInt(XLEN.W))
-  val core = Module(new RiscvCore)
+  val core = Module(genCore)
 
   loadMemoryFromFile(mem, memFile)
 
@@ -57,23 +57,23 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
   }
 
   // read mem
-  val rIdx  = core.io.rmem.addr >> bytesWidth           // addr / (XLEN/8)
-  val rOff  = core.io.rmem.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val rMask = width2Mask(core.io.rmem.memWidth)
-  when(core.io.rmem.valid) {
-    core.io.rmem.data := (mem.read(rIdx) >> rOff) & rMask
+  val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
+  val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  val rMask = width2Mask(core.io.mem.read.memWidth)
+  when(core.io.mem.read.valid) {
+    core.io.mem.read.data := (mem.read(rIdx) >> rOff) & rMask
   } otherwise {
-    core.io.rmem.data := 0.U
+    core.io.mem.read.data := 0.U
   }
 
   // write mem
-  val wIdx  = core.io.wmem.addr >> bytesWidth           // addr / bytes
-  val wOff  = core.io.wmem.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val wMask = (width2Mask(core.io.wmem.memWidth) << wOff)(XLEN - 1, 0)
+  val wIdx  = core.io.mem.write.addr >> bytesWidth           // addr / bytes
+  val wOff  = core.io.mem.write.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  val wMask = (width2Mask(core.io.mem.write.memWidth) << wOff)(XLEN - 1, 0)
   val mData = mem.read(wIdx)
   // simulate write mask
-  val wData = ((core.io.wmem.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
-  when(core.io.wmem.valid) {
+  val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
+  when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }
 
@@ -86,6 +86,26 @@ object RiscvTests {
   def apply(instSet: String) = {
     val set = new File(root + "/" + instSet)
     set.listFiles().filter(_.getName().endsWith(".hex")).sorted
+  }
+  def apply(instSet: String, instTest: String) = {
+    require(instTest.endsWith(".hex"))
+    new File(s"$root/$instSet/$instTest")
+  }
+
+  val maxStep = 600
+  def stepTest(dut: CoreTester, restClock: Int): Int = {
+    dut.clock.step(1)
+    if (dut.io.inst.peek().litValue == "h0000006f".U.litValue) { // end
+      restClock
+    } else if (restClock <= 0) { // some thing wrong
+      restClock
+    } else { // next step
+      stepTest(dut, restClock - 1)
+    }
+  }
+  def checkReturn(dut: CoreTester): Unit = {
+    dut.io.inst.expect("h0000006f".U(32.W)) // j halt
+    dut.io.now.reg(10).expect(0.U)          // li	a0,0
   }
 }
 
@@ -104,17 +124,6 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-  def stepTest(dut: CoreTester, restClock: Int): Int = {
-    dut.clock.step(1)
-    if (dut.io.inst.peek().litValue == "h0000006f".U.litValue) { // end
-      restClock
-    } else if (restClock <= 0) { // some thing wrong
-      restClock
-    } else { // next step
-      stepTest(dut, restClock - 1)
-    }
-  }
-
   val tests = Seq(
     (RV32Config(), Seq("rv32ui")),
     (RV64Config(), Seq("rv64ui"))
@@ -122,16 +131,17 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
   tests.foreach { testInfo =>
-    behavior of s"RiscvCore with ${testInfo._1.getClass().getSimpleName()}"
+    implicit val config = testInfo._1
+
+    behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"
     testInfo._2.foreach { testCase =>
       RiscvTests(testCase).foreach(f =>
         it should s"pass ${f.getName}" in {
           test(
-            new CoreTester(f.getCanonicalPath())(testInfo._1)
+            new CoreTester(new RiscvCore, f.getCanonicalPath())
           ).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-            stepTest(c, 600)
-            c.io.inst.expect("h0000006f".U(32.W)) // j halt
-            c.io.now.reg(10).expect(0.U)          // li	a0,0
+            RiscvTests.stepTest(c, RiscvTests.maxStep)
+            RiscvTests.checkReturn(c)
           }
         }
       )

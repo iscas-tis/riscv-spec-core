@@ -11,8 +11,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val now  = RegInit(State().init())
   val next = Wire(State())
 
-  val rmem = Wire(new ReadMemIO())
-  val wmem = Wire(new WriteMemIO())
+  val mem = Wire(new MemIO)
 }
 
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
@@ -27,6 +26,11 @@ class WriteMemIO()(implicit XLEN: Int) extends Bundle {
   val addr     = Output(UInt(XLEN.W))
   val memWidth = Output(UInt(log2Ceil(XLEN + 1).W))
   val data     = Output(UInt(XLEN.W))
+}
+
+class MemIO()(implicit XLEN: Int) extends Bundle {
+  val read  = new ReadMemIO
+  val write = new WriteMemIO
 }
 
 class State()(implicit XLEN: Int) extends Bundle {
@@ -50,8 +54,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
 
-    val rmem = new ReadMemIO()
-    val wmem = new WriteMemIO()
+    val mem = new MemIO
 
     val now  = Output(State())
     val next = Output(State())
@@ -63,13 +66,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
 
   // dont read or write mem
   // if there no LOAD/STORE below
-  rmem.valid    := false.B
-  rmem.addr     := 0.U
-  rmem.memWidth := 0.U
-  wmem.valid    := false.B
-  wmem.addr     := 0.U
-  wmem.memWidth := 0.U
-  wmem.data     := 0.U
+  mem := 0.U.asTypeOf(new MemIO)
 
   // ID & EXE
   when(io.valid) {
@@ -95,12 +92,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
   }
 
   // mem port
-  io.rmem.valid    := rmem.valid
-  io.rmem.addr     := rmem.addr
-  io.rmem.memWidth := rmem.memWidth
-  rmem.data        := io.rmem.data
-
-  io.wmem := wmem
+  io.mem <> mem
 
   // update
   now := next
