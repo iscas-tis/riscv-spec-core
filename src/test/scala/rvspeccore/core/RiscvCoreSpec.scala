@@ -57,23 +57,23 @@ class CoreTester(memFile: String)(implicit config: RVConfig) extends Module {
   }
 
   // read mem
-  val rIdx  = core.io.rmem.addr >> bytesWidth           // addr / (XLEN/8)
-  val rOff  = core.io.rmem.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val rMask = width2Mask(core.io.rmem.memWidth)
-  when(core.io.rmem.valid) {
-    core.io.rmem.data := (mem.read(rIdx) >> rOff) & rMask
+  val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
+  val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  val rMask = width2Mask(core.io.mem.read.memWidth)
+  when(core.io.mem.read.valid) {
+    core.io.mem.read.data := (mem.read(rIdx) >> rOff) & rMask
   } otherwise {
-    core.io.rmem.data := 0.U
+    core.io.mem.read.data := 0.U
   }
 
   // write mem
-  val wIdx  = core.io.wmem.addr >> bytesWidth           // addr / bytes
-  val wOff  = core.io.wmem.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val wMask = (width2Mask(core.io.wmem.memWidth) << wOff)(XLEN - 1, 0)
+  val wIdx  = core.io.mem.write.addr >> bytesWidth           // addr / bytes
+  val wOff  = core.io.mem.write.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  val wMask = (width2Mask(core.io.mem.write.memWidth) << wOff)(XLEN - 1, 0)
   val mData = mem.read(wIdx)
   // simulate write mask
-  val wData = ((core.io.wmem.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
-  when(core.io.wmem.valid) {
+  val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
+  when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }
 
