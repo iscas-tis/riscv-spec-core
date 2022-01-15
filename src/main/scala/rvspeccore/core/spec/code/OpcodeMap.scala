@@ -38,3 +38,41 @@ object OpcodeMap {
     opcodeMap(opcodeName)
   }
 }
+
+object InstOpcodeMap {
+  private val rawTable: List[(String, List[String])] = List(
+    // RV32I
+    ("OP-IMM", List("ADDI", "SLTI", "SLTIU", "ANDI", "ORI", "XORI", "SLLI", "SRLI", "SRAI")),
+    ("LUI", List("LUI")),
+    ("AUIPC", List("AUIPC")),
+    ("OP", List("ADD", "SLT", "SLTU", "AND", "OR", "XOR", "SLL", "SRL", "SUB", "SRA")),
+    ("JAL", List("JAL")),
+    ("JALR", List("JALR")),
+    ("BRANCH", List("BEQ", "BNE", "BLT", "BLTU", "BGE", "BGEU")),
+    ("LOAD", List("LB", "LH", "LW", "LBU", "LHU")),
+    ("STORE", List("SB", "SH", "SW")),
+    // RV64I
+    ("OP-IMM-32", List("ADDIW")),
+    ("OP-IMM", List("SLLI", "SRLI", "SRAI")),
+    ("OP", List("SLL", "SRL", "SRA")),
+    ("OP-32", List("ADDW", "SLLW", "SRLW", "SUBW", "SRAW")),
+    ("LOAD", List("LWU", "LD")),
+    ("STORE", List("SD"))
+  )
+
+  // map instName to it's opcode
+  val instOpcodeMap: Map[String, UInt] = rawTable
+    .map { case (opcodeName: String, instList: List[String]) =>
+      instList.map(instName => (instName, OpcodeMap(opcodeName)))
+    }
+    .flatten
+    .toMap
+
+  def contains(instName: String): Boolean = {
+    instOpcodeMap.contains(instName)
+  }
+
+  def apply(instName: String): UInt = {
+    instOpcodeMap(instName)
+  }
+}

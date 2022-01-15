@@ -77,6 +77,10 @@ object Funct3Map {
     "SRAW"  -> "b101"
   ).map(x => (x._1 -> x._2.U(3.W)))
 
+  def contains(instName: String): Boolean = {
+    funct3Map.contains(instName)
+  }
+
   def apply(instName: String): UInt = {
     funct3Map(instName)
   }

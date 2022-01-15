@@ -42,6 +42,10 @@ object Funct7Map {
     "SRAW"  -> "b0100000"
   ).map(x => (x._1 -> x._2.U(7.W)))
 
+  def contains(instName: String): Boolean = {
+    funct7Map.contains(instName)
+  }
+
   def apply(instName: String): UInt = {
     funct7Map(instName)
   }
