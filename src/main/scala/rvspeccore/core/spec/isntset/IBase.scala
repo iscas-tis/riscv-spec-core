@@ -1,13 +1,15 @@
-package rvspeccore.core.spec.behavior
+package rvspeccore.core.spec.instset
 
 import chisel3._
 import chisel3.util._
 
-import rvspeccore.core._
+import rvspeccore.core.BaseCore
 import rvspeccore.core.spec.code._
 import rvspeccore.core.tool.BitTool._
 
-trait Execute extends BaseCore with MExtension { this: Decode =>
+// scalafmt: { maxColumn = 200 }
+
+trait IBase extends BaseCore with CommonDecode {
   val setPc = WireInit(false.B)
 
   def memRead(addr: UInt, memWidth: UInt): UInt = {
@@ -24,7 +26,6 @@ trait Execute extends BaseCore with MExtension { this: Decode =>
   }
 
   def deRV32I: Unit = {
-    // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
       // riscv-spec-20191213
       // Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
@@ -135,12 +136,10 @@ trait Execute extends BaseCore with MExtension { this: Decode =>
         }
       }
     }
-    // scalafmt: { maxColumn = 120 } (back to defaults)
   }
   def deRV64I: Unit = {
     deRV32I
     // RV64I will override same inst in RV32I
-    // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
       // riscv-spec-20191213
       // Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
@@ -210,6 +209,7 @@ trait Execute extends BaseCore with MExtension { this: Decode =>
         }
       }
     }
-    // scalafmt: { maxColumn = 120 } (back to defaults)
   }
 }
+
+// scalafmt: { maxColumn = 120 } (back to defaults)

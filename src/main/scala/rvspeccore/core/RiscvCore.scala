@@ -3,7 +3,7 @@ package rvspeccore.core
 import chisel3._
 import chisel3.util._
 
-import spec.behavior._
+import spec._
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
@@ -49,7 +49,7 @@ object State {
   def apply()(implicit XLEN: Int): State = new State
 }
 
-class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with Execute {
+class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   val io = IO(new Bundle {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())

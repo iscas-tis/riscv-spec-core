@@ -1,9 +1,9 @@
-package rvspeccore.core.spec.behavior
+package rvspeccore.core.spec.instset
 
 import chisel3._
 import chisel3.util._
 
-import rvspeccore.core._
+import rvspeccore.core.BaseCore
 import rvspeccore.core.spec.code._
 import rvspeccore.core.tool.BitTool._
 
@@ -15,7 +15,7 @@ import rvspeccore.core.tool.BitTool._
   *   - Chapter 7: “M” Standard Extension for Integer Multiplication and
   *     Division, Version 2.0
   */
-trait MExtension extends BaseCore { this: Decode =>
+trait MExtension extends BaseCore with CommonDecode {
   // Table 7.1: Semantics for division by zero and division overflow.
   // L is the width of the operation in bits:
   // XLEN for DIV[U] and REM[U], or 32 for DIV[U]W and REM[U]W.

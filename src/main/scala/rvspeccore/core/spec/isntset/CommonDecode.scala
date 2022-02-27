@@ -1,9 +1,9 @@
-package rvspeccore.core.spec.behavior
+package rvspeccore.core.spec.instset
 
 import chisel3._
 import chisel3.util._
 
-import rvspeccore.core._
+import rvspeccore.core.BaseCore
 import rvspeccore.core.tool.BitTool._
 
 /** Decode part
@@ -12,7 +12,7 @@ import rvspeccore.core.tool.BitTool._
   *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
   *   - 2.3 Immediate Encoding Variants
   */
-trait Decode extends BaseCore {
+trait CommonDecode extends BaseCore {
   val inst = WireInit(0.U(32.W))
 
   val opcode = WireInit(0.U(7.W))
