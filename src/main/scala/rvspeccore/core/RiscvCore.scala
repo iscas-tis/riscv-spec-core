@@ -74,12 +74,13 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with Decode with E
 
     // Decode and Excute
     config match {
-      case RV32Config() => {
+      case RV32Config(_) => {
         deRV32I
+        if (config.M) { deRV32M }
       }
-      case RV64Config() => {
+      case RV64Config(_) => {
         deRV64I
-        // do more if with extension
+        if (config.M) { deRV64M }
       }
     }
 

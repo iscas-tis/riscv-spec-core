@@ -10,8 +10,6 @@ object Funct7Map {
     *   - riscv-spec-20191213
     *   - Chapter 24: RV32/64G Instruction Set Listings
     *   - Table 24.2: Instruction listing for RISC-V
-    *   - RV32I Base Instruction Set, RV64I Base Instruction Set (in addition to
-    *     RV32I)
     */
   val funct7Map: Map[String, UInt] = Map(
     // RV32I Base Instruction Set
@@ -39,7 +37,10 @@ object Funct7Map {
     "SUBW"  -> "b0100000",
     "SLLW"  -> "b0000000",
     "SRLW"  -> "b0000000",
-    "SRAW"  -> "b0100000"
+    "SRAW"  -> "b0100000",
+
+    // RV32/64M Standard Extension
+    "MULDIV" -> "b0000001"
   ).map(x => (x._1 -> x._2.U(7.W)))
 
   def contains(instName: String): Boolean = {

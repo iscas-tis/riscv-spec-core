@@ -7,7 +7,7 @@ import rvspeccore.core._
 import rvspeccore.core.spec.code._
 import rvspeccore.core.tool.BitTool._
 
-trait Execute extends BaseCore { this: Decode =>
+trait Execute extends BaseCore with MExtension { this: Decode =>
   val setPc = WireInit(false.B)
 
   def memRead(addr: UInt, memWidth: UInt): UInt = {
@@ -143,7 +143,7 @@ trait Execute extends BaseCore { this: Decode =>
     // scalafmt: { maxColumn = 200 }
     switch(inst(6, 0)) {
       // riscv-spec-20191213
-      // RV64I Base Integer Instruction Set, Version 2.1
+      // Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
       // 5.2 Integer Computational Instructions
       // Integer Register-Immediate Instructions
       is(OpcodeMap("OP-IMM-32")) {
