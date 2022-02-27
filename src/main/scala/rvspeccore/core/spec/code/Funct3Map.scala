@@ -10,8 +10,6 @@ object Funct3Map {
     *   - riscv-spec-20191213
     *   - Chapter 24: RV32/64G Instruction Set Listings
     *   - Table 24.2: Instruction listing for RISC-V
-    *   - RV32I Base Instruction Set, RV64I Base Instruction Set (in addition to
-    *     RV32I)
     */
   val funct3Map: Map[String, UInt] = Map(
     // RV32I Base Instruction Set
@@ -74,7 +72,24 @@ object Funct3Map {
     "SUBW"  -> "b000",
     "SLLW"  -> "b001",
     "SRLW"  -> "b101",
-    "SRAW"  -> "b101"
+    "SRAW"  -> "b101",
+
+    // RV32M Standard Extension
+    "MUL"    -> "b000",
+    "MULH"   -> "b001",
+    "MULHSU" -> "b010",
+    "MULHU"  -> "b011",
+    "DIV"    -> "b100",
+    "DIVU"   -> "b101",
+    "REM"    -> "b110",
+    "REMU"   -> "b111",
+
+    // RV32M Standard Extension
+    "MULW"  -> "b000",
+    "DIVW"  -> "b100",
+    "DIVUW" -> "b101",
+    "REMW"  -> "b110",
+    "REMUW" -> "b111"
   ).map(x => (x._1 -> x._2.U(3.W)))
 
   def contains(instName: String): Boolean = {

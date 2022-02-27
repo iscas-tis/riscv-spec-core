@@ -32,11 +32,11 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // inst
   core.io.valid := !reset.asBool
   config match {
-    case RV32Config() => {
+    case RV32Config(_) => {
       val instMem = mem.read(pc >> 2)
       inst := instMem
     }
-    case RV64Config() => {
+    case RV64Config(_) => {
       val instMem = mem.read(pc >> 3)
       inst := Mux(pc(2), instMem(63, 32), instMem(31, 0))
     }
@@ -122,13 +122,19 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
       c.io.now.pc.expect("h8000_0000".U)
       c.io.next.pc.expect("h8000_0000".U)
     }
+    implicit val config = RV64Config("M")
+    test(new CoreTester(new RiscvCore, "./testcase/riscv-tests-hex/rv64um/rv64um-divw.hex"))
+      .withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+        RiscvTests.stepTest(c, RiscvTests.maxStep)
+        RiscvTests.checkReturn(c)
+      }
   }
 }
 
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RV64Config()
+  implicit val config = RV64Config("M")
 
-  val tests = Seq("rv64ui")
+  val tests = Seq("rv64ui", "rv64um")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
