@@ -4,8 +4,86 @@ import chisel3._
 import chisel3.util._
 
 import rvspeccore.core.BaseCore
-import rvspeccore.core.spec.code._
+import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
+
+/** Base Integer Instructions
+  *
+  *   - riscv-spec-20191213
+  *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
+  *   - Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
+  *   - Chapter 24: RV32/64G Instruction Set Listings
+  *     - Table 24.2: Instruction listing for RISC-V
+  */
+object IBaseInsts extends Insts {
+  val table = List(
+    // RV32I Base Instruction Set
+    InstInfo(None, None, "LUI",   "LUI"),   // 0110111
+    InstInfo(None, None, "AUIPC", "AUIPC"), // 0010111
+    // Jump
+    InstInfo(None, None,  "JAL",  "JAL"),  // 1101111
+    InstInfo(None, "000", "JALR", "JALR"), // 1100111
+    // Logic
+    InstInfo(None, "000", "BEQ",  "BRANCH"), // 1100011
+    InstInfo(None, "001", "BNE",  "BRANCH"),
+    InstInfo(None, "100", "BLT",  "BRANCH"),
+    InstInfo(None, "101", "BGE",  "BRANCH"),
+    InstInfo(None, "110", "BLTU", "BRANCH"),
+    InstInfo(None, "111", "BGEU", "BRANCH"),
+    // Load Store
+    InstInfo(None, "000", "LB",  "LOAD"),  // 0000011
+    InstInfo(None, "001", "LH",  "LOAD"),
+    InstInfo(None, "010", "LW",  "LOAD"),
+    InstInfo(None, "100", "LBU", "LOAD"),
+    InstInfo(None, "101", "LHU", "LOAD"),
+    InstInfo(None, "000", "SB",  "STORE"), // 0100011
+    InstInfo(None, "001", "SH",  "STORE"),
+    InstInfo(None, "010", "SW",  "STORE"),
+    // Arith with imm
+    InstInfo(None, "000", "ADDI",  "OP-IMM"), // 0010011
+    InstInfo(None, "010", "SLTI",  "OP-IMM"),
+    InstInfo(None, "011", "SLTIU", "OP-IMM"),
+    InstInfo(None, "100", "XORI",  "OP-IMM"),
+    InstInfo(None, "110", "ORI",   "OP-IMM"),
+    InstInfo(None, "111", "ANDI",  "OP-IMM"),
+    InstInfo(None, "001", "SLLI",  "OP-IMM"),
+    InstInfo(None, "101", "SRLI",  "OP-IMM"),
+    InstInfo(None, "101", "SRAI",  "OP-IMM"),
+    // Arith without imm
+    InstInfo("0000000", "000", "ADD",  "OP"), // 0110011
+    InstInfo("0100000", "000", "SUB",  "OP"),
+    InstInfo("0000000", "001", "SLL",  "OP"),
+    InstInfo("0000000", "010", "SLT",  "OP"),
+    InstInfo("0000000", "011", "SLTU", "OP"),
+    InstInfo("0000000", "100", "XOR",  "OP"),
+    InstInfo("0000000", "101", "SRL",  "OP"),
+    InstInfo("0100000", "101", "SRA",  "OP"),
+    InstInfo("0000000", "110", "OR",   "OP"),
+    InstInfo("0000000", "111", "AND",  "OP"),
+    // Other
+    InstInfo(None, "000", "FENCE",  "MISC-MEM"), // 0001111
+    InstInfo(None, "001", "ECALL",  "SYSTEM"),   // 1110011
+    InstInfo(None, "000", "EBREAK", "SYSTEM"),
+
+    // RV64I Base Instruction Set (in addition to RV32I)
+    InstInfo(None, "110", "LWU",  "LOAD"),   // 0000011
+    InstInfo(None, "011", "LD",   "LOAD"),
+    InstInfo(None, "011", "SD",   "STORE"),  // 0100011
+    InstInfo(None, "001", "SLLI", "OP-IMM"), // 0010011
+    InstInfo(None, "101", "SRLI", "OP-IMM"),
+    InstInfo(None, "101", "SRAI", "OP-IMM"),
+    // 32-bits
+    InstInfo(None,      "000", "ADDIW", "OP-IMM-32"), // 0011011
+    InstInfo(None,      "001", "SLLIW", "OP-IMM-32"),
+    InstInfo(None,      "101", "SRLIW", "OP-IMM-32"),
+    InstInfo(None,      "101", "SRAIW", "OP-IMM-32"),
+    InstInfo("0000000", "000", "ADDW",  "OP-32"),     // 0111011
+    InstInfo("0100000", "000", "SUBW",  "OP-32"),
+    InstInfo("0000000", "001", "SLLW",  "OP-32"),
+    InstInfo("0000000", "101", "SRLW",  "OP-32"),
+    InstInfo("0100000", "101", "SRAW",  "OP-32")
+  )
+}
 
 // scalafmt: { maxColumn = 200 }
 
@@ -25,10 +103,13 @@ trait IBase extends BaseCore with CommonDecode {
     mem.write.data     := data
   }
 
+  /** RV32I Base Integer Instruction Set
+    *
+    *   - riscv-spec-20191213
+    *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
+    */
   def deRV32I: Unit = {
     switch(inst(6, 0)) {
-      // riscv-spec-20191213
-      // Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
       // 2.4 Integer Computational Instructions
       // Integer Register-Immediate Instructions
       is(OpcodeMap("OP-IMM")) {
@@ -137,12 +218,16 @@ trait IBase extends BaseCore with CommonDecode {
       }
     }
   }
+
+  /** RV64I Base Integer Instruction Set
+    *
+    *   - riscv-spec-20191213
+    *   - Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
+    */
   def deRV64I: Unit = {
     deRV32I
     // RV64I will override same inst in RV32I
     switch(inst(6, 0)) {
-      // riscv-spec-20191213
-      // Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
       // 5.2 Integer Computational Instructions
       // Integer Register-Immediate Instructions
       is(OpcodeMap("OP-IMM-32")) {

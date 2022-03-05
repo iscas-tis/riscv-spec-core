@@ -3,8 +3,7 @@ package rvspeccore.checker
 import chisel3._
 import chisel3.util._
 
-import rvspeccore.core.spec.code._
-import chisel3.internal.instantiableMacro
+import rvspeccore.core.spec._
 
 object IsInst {
   def apply(instName: String, inst: UInt): Bool = {

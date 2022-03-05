@@ -4,8 +4,42 @@ import chisel3._
 import chisel3.util._
 
 import rvspeccore.core.BaseCore
-import rvspeccore.core.spec.code._
+import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
+
+/** “M” Standard Extension Instructions
+  *
+  *   - riscv-spec-20191213
+  *   - Chapter 7: “M” Standard Extension for Integer Multiplication and
+  *     Division, Version 2.0
+  *   - Chapter 24: RV32/64G Instruction Set Listings
+  *     - Table 24.2: Instruction listing for RISC-V
+  */
+object MExtensionInsts extends Insts {
+  override val exFunct7 = Map("MULDIV" -> "0000001")
+
+  val table = List(
+    // RV32M Standard Extension
+    // MUL
+    InstInfo(exFunct7("MULDIV"), "000", "MUL",    "OP"), // 0110011
+    InstInfo(exFunct7("MULDIV"), "001", "MULH",   "OP"),
+    InstInfo(exFunct7("MULDIV"), "010", "MULHSU", "OP"),
+    InstInfo(exFunct7("MULDIV"), "011", "MULHU",  "OP"),
+    // DIV
+    InstInfo(exFunct7("MULDIV"), "100", "DIV",  "OP"),
+    InstInfo(exFunct7("MULDIV"), "101", "DIVU", "OP"),
+    InstInfo(exFunct7("MULDIV"), "110", "REM",  "OP"),
+    InstInfo(exFunct7("MULDIV"), "111", "REMU", "OP"),
+
+    // RV64M Standard Extension (in addition to RV32M)
+    // 32-bits
+    InstInfo(exFunct7("MULDIV"), "000", "MULW",  "OP-32"), // 0111011
+    InstInfo(exFunct7("MULDIV"), "100", "DIVW",  "OP-32"),
+    InstInfo(exFunct7("MULDIV"), "101", "DIVUW", "OP-32"),
+    InstInfo(exFunct7("MULDIV"), "110", "REMW",  "OP-32"),
+    InstInfo(exFunct7("MULDIV"), "111", "REMUW", "OP-32")
+  )
+}
 
 // scalafmt: { maxColumn = 200 }
 
@@ -54,6 +88,7 @@ trait MExtension extends BaseCore with CommonDecode {
     )
   }
 
+  // RV32M Standard Extension
   def deRV32M: Unit = {
     switch(inst(6, 0)) {
       is(OpcodeMap("OP")) {
@@ -75,6 +110,8 @@ trait MExtension extends BaseCore with CommonDecode {
       }
     }
   }
+
+  // RV64M Standard Extension
   def deRV64M: Unit = {
     deRV32M
     switch(inst(6, 0)) {
