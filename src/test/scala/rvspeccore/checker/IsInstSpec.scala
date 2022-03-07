@@ -10,7 +10,7 @@ class IsInstSpec extends AnyFlatSpec with ChiselScalatestTester {
   it should "pass test" in {
     class testDUT(instName: String, inst: UInt) extends Module {
       val out = IO(Output(Bool()))
-      out := IsInst(instName, inst)
+      out := IsInst(instName, inst)(32)
     }
 
     // opcode
