@@ -79,7 +79,7 @@ trait MExtension extends BaseCore with CommonDecode with RVM {
     )
   }
 
-  def deRV32M: Unit = {
+  def doRV32M: Unit = {
     // - 7.1 Multiplication Operations
     // - MUL/MULH[[S]U]
     when(MUL(inst))    { decodeR; next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN - 1, 0) }
@@ -94,8 +94,8 @@ trait MExtension extends BaseCore with CommonDecode with RVM {
     when(REMU(inst)) { decodeR; next.reg(rd) := opREMU(now.reg(rs1), now.reg(rs2), XLEN) }
   }
 
-  def deRV64M: Unit = {
-    deRV32M
+  def doRV64M: Unit = {
+    doRV32M
 
     // - 7.1 Multiplication Operations
     // - MULW

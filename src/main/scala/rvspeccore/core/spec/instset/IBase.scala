@@ -119,7 +119,7 @@ trait IBase extends BaseCore with CommonDecode with RVI {
     *   - riscv-spec-20191213
     *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
     */
-  def deRV32I: Unit = {
+  def doRV32I: Unit = {
     // - 2.4 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
     // - ADDI/SLTI[U]
@@ -192,8 +192,8 @@ trait IBase extends BaseCore with CommonDecode with RVI {
     *   - riscv-spec-20191213
     *   - Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
     */
-  def deRV64I: Unit = {
-    deRV32I
+  def doRV64I: Unit = {
+    doRV32I
     // RV64I will override same inst in RV32I
 
     // - 5.2 Integer Computational Instructions
