@@ -45,13 +45,13 @@ trait CommonDecode extends BaseCore {
   // scalafmt: { maxColumn = 120 } (back to defaults)
 
   // format: off
-  //                             / 31           25 | 24    20 | 19 15 | 14 12 | 11           7 | 6    0 \
-  def rTypeDecode = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                           }
-  def iTypeDecode = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , XLEN) }
-  def sTypeDecode = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , XLEN) }
-  def bTypeDecode = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , XLEN) }
-  def uTypeDecode = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , XLEN) }
-  def jTypeDecode = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), XLEN) }
-  //                             \ 31 31 | 30      21 | 20 20 | 19         12 | 11   8 | 7   7 | 6    0 /
+  //                         / 31           25 | 24    20 | 19 15 | 14 12 | 11           7 | 6    0 \
+  def decodeR = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                           }
+  def decodeI = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , XLEN) }
+  def decodeS = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , XLEN) }
+  def decodeB = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , XLEN) }
+  def decodeU = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , XLEN) }
+  def decodeJ = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), XLEN) }
+  //                         \ 31 31 | 30      21 | 20 20 | 19         12 | 11   8 | 7   7 | 6    0 /
   // format: on
 }
