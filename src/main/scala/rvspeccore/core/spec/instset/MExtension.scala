@@ -92,7 +92,7 @@ trait MExtension extends BaseCore with CommonDecode {
   def deRV32M: Unit = {
     switch(inst(6, 0)) {
       is(OpcodeMap("OP")) {
-        rTypeDecode
+        decodeR
         switch(Cat(funct7, funct3)) {
           // 7.1 Multiplication Operations
           // MUL/MULH[[S]U]
@@ -116,7 +116,7 @@ trait MExtension extends BaseCore with CommonDecode {
     deRV32M
     switch(inst(6, 0)) {
       is(OpcodeMap("OP-32")) {
-        rTypeDecode
+        decodeR
         switch(Cat(funct7, funct3)) {
           // 7.1 Multiplication Operations
           // MULW

@@ -202,7 +202,7 @@ trait IBase extends BaseCore with CommonDecode {
       // 2.4 Integer Computational Instructions
       // Integer Register-Immediate Instructions
       is(OpcodeMap("OP-IMM")) {
-        iTypeDecode
+        decodeI
         switch(funct3) {
           // ADDI/SLTI[U]
           is(Funct3Map("ADDI"))  { next.reg(rd) := now.reg(rs1) + imm }
@@ -221,18 +221,18 @@ trait IBase extends BaseCore with CommonDecode {
         }
       }
       is(OpcodeMap("LUI")) {
-        uTypeDecode
+        decodeU
         // LUI
         next.reg(rd) := imm
       }
       is(OpcodeMap("AUIPC")) {
-        uTypeDecode
+        decodeU
         // AUIPC
         next.reg(rd) := now.pc + imm
       }
       // Integer Register-Register Operations
       is(OpcodeMap("OP")) {
-        rTypeDecode
+        decodeR
         switch(Cat(funct7, funct3)) {
           // ADD/SLT/SLTU
           is(catLit(Funct7Map("ADD"), Funct3Map("ADD")))   { next.reg(rd) := now.reg(rs1) + now.reg(rs2) }
@@ -256,14 +256,14 @@ trait IBase extends BaseCore with CommonDecode {
       // 2.5 Control Transfer Instructions
       // Unconditional Jumps
       is(OpcodeMap("JAL")) {
-        jTypeDecode
+        decodeJ
         // JAL
         setPc        := true.B
         next.pc      := now.pc + imm
         next.reg(rd) := now.pc + 4.U
       }
       is(OpcodeMap("JALR")) {
-        iTypeDecode
+        decodeI
         // JALR
         setPc        := true.B
         next.pc      := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
@@ -271,7 +271,7 @@ trait IBase extends BaseCore with CommonDecode {
       }
       // Conditional Branches
       is(OpcodeMap("BRANCH")) {
-        bTypeDecode
+        decodeB
         switch(funct3) {
           // BEQ/BNE
           is(Funct3Map("BEQ")) { when(now.reg(rs1) === now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
@@ -286,7 +286,7 @@ trait IBase extends BaseCore with CommonDecode {
       }
       // 2.6 Load and Store Instructions
       is(OpcodeMap("LOAD")) {
-        iTypeDecode
+        decodeI
         // LOAD
         switch(funct3) {
           is(Funct3Map("LB"))  { next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
@@ -297,7 +297,7 @@ trait IBase extends BaseCore with CommonDecode {
         }
       }
       is(OpcodeMap("STORE")) {
-        sTypeDecode
+        decodeS
         // STORE
         switch(funct3) {
           is(Funct3Map("SB")) { memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
@@ -320,7 +320,7 @@ trait IBase extends BaseCore with CommonDecode {
       // 5.2 Integer Computational Instructions
       // Integer Register-Immediate Instructions
       is(OpcodeMap("OP-IMM-32")) {
-        iTypeDecode
+        decodeI
         switch(funct3) {
           // ADDIW
           is(Funct3Map("ADDIW")) { next.reg(rd) := signExt((now.reg(rs1) + imm)(31, 0), XLEN) }
@@ -333,7 +333,7 @@ trait IBase extends BaseCore with CommonDecode {
         }
       }
       is(OpcodeMap("OP-IMM")) {
-        iTypeDecode
+        decodeI
         switch(Cat(imm(11, 6), funct3)) {
           // SLLI/SRLI/SRAI
           is(catLit("b00_0000".U(6.W), Funct3Map("SLLI"))) { next.reg(rd) := now.reg(rs1) << imm(5, 0) }
@@ -344,7 +344,7 @@ trait IBase extends BaseCore with CommonDecode {
       // LUI/AUIPC not changed
       // Integer Register-Register Operations
       is(OpcodeMap("OP")) {
-        rTypeDecode
+        decodeR
         switch(Cat(funct7, funct3)) {
           // SLL/SRL
           is(catLit(Funct7Map("SLL"), Funct3Map("SLL"))) { next.reg(rd) := now.reg(rs1) << now.reg(rs2)(5, 0) }
@@ -354,7 +354,7 @@ trait IBase extends BaseCore with CommonDecode {
         }
       }
       is(OpcodeMap("OP-32")) {
-        rTypeDecode
+        decodeR
         switch(Cat(funct7, funct3)) {
           // ADDW
           is(catLit(Funct7Map("ADDW"), Funct3Map("ADDW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN) }
@@ -368,7 +368,7 @@ trait IBase extends BaseCore with CommonDecode {
       }
       // 5.3 Load and Store Instructions
       is(OpcodeMap("LOAD")) {
-        iTypeDecode
+        decodeI
         // LOAD
         switch(funct3) {
           is(Funct3Map("LWU")) { next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
@@ -376,7 +376,7 @@ trait IBase extends BaseCore with CommonDecode {
         }
       }
       is(OpcodeMap("STORE")) {
-        sTypeDecode
+        decodeS
         // STORE
         switch(funct3) {
           is(Funct3Map("SD")) { memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) }
