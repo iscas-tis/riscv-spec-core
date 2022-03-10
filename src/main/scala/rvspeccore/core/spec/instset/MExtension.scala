@@ -13,7 +13,7 @@ import rvspeccore.core.tool.BitTool._
   *   - Chapter 24: RV32/64G Instruction Set Listings
   *     - Table 24.2: Instruction listing for RISC-V
   */
-trait RVM {
+trait MExtensionInsts {
   // - RV32M Standard Extension
   val MUL    = Inst("b0000001_?????_?????_000_?????_0110011")
   val MULH   = Inst("b0000001_?????_?????_001_?????_0110011")
@@ -40,7 +40,7 @@ trait RVM {
   *   - Chapter 7: “M” Standard Extension for Integer Multiplication and
   *     Division, Version 2.0
   */
-trait MExtension extends BaseCore with CommonDecode with RVM {
+trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
   // - Table 7.1: Semantics for division by zero and division overflow.
   // : L is the width of the operation in bits:
   // : XLEN for DIV[U] and REM[U], or 32 for DIV[U]W and REM[U]W.

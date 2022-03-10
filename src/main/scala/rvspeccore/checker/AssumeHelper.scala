@@ -46,10 +46,10 @@ object AssumeHelper {
 object RV extends AssumeHelper with spec.RVInsts {
   val partition: Seq[AssumeHelper] = List(RVG)
 }
-object RVG extends AssumeHelper with spec.RVG {
+object RVG extends AssumeHelper with spec.GSetInsts {
   val partition = List(RVI, RVM)
 }
-object RVI extends AssumeHelper with spec.instset.RVI {
+object RVI extends AssumeHelper with spec.instset.IBaseInsts {
   val regImm = AssumeHelper(
     List(ADDI,  SLTI,  SLTIU, ADDI,  ORI, XORI, SLLI, SRLI, SRAI, LUI, AUIPC),
     List(ADDIW, SLLIW, SRLIW, SRLIW, SRAIW)
@@ -70,7 +70,7 @@ object RVI extends AssumeHelper with spec.instset.RVI {
 
   val partition = List(regImm, regReg, control, loadStore, other)
 }
-object RVM extends AssumeHelper with spec.instset.RVM {
+object RVM extends AssumeHelper with spec.instset.MExtensionInsts {
   val mulOp = AssumeHelper(
     List(MUL, MULH, MULHSU, MULHU),
     List(MULW)

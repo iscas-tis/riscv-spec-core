@@ -23,6 +23,6 @@ object Inst {
   def apply(bits: String, checker: (UInt, Int) => Bool) = new Inst(Some(BitPat(bits)), Some(checker))
 }
 
-trait RVG extends RVI with RVM
+trait GSetInsts extends IBaseInsts with MExtensionInsts
 
-trait RVInsts extends RVG
+trait RVInsts extends GSetInsts

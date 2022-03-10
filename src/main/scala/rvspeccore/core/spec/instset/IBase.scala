@@ -13,7 +13,7 @@ import rvspeccore.core.tool.BitTool._
   *   - Chapter 24: RV32/64G Instruction Set Listings
   *     - Table 24.2: Instruction listing for RISC-V
   */
-trait RVI {
+trait IBaseInsts {
   // RV32I Base Instruction Set
   val LUI   = Inst("b????????????????????_?????_0110111")
   val AUIPC = Inst("b????????????????????_?????_0010111")
@@ -98,7 +98,7 @@ trait RVI {
 
 // scalafmt: { maxColumn = 200 }
 
-trait IBase extends BaseCore with CommonDecode with RVI {
+trait IBase extends BaseCore with CommonDecode with IBaseInsts {
   val setPc = WireInit(false.B)
 
   def memRead(addr: UInt, memWidth: UInt): UInt = {
