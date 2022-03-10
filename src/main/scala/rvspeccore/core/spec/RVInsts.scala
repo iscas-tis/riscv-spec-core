@@ -14,6 +14,7 @@ case class Inst(bitPat: Option[BitPat], checker: Option[(UInt, Int) => Bool]) {
       case (None, None)       => throw new Exception("bitPat or checker not defined")
     }
   }
+  def apply(inst: UInt)(implicit XLEN: Int): Bool = check(inst)(XLEN)
 }
 
 object Inst {
@@ -53,7 +54,7 @@ abstract class Insts {
 }
 
 object RVInsts extends Insts {
-  val instSets: Seq[Insts] = List(IBaseInsts, MExtensionInsts)
+  val instSets: Seq[Insts] = List(MExtensionInsts)
 
   val table = instSets.map(_.table).flatten
 
