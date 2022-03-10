@@ -54,7 +54,7 @@ abstract class Insts {
 }
 
 object RVInsts extends Insts {
-  val instSets: Seq[Insts] = List(MExtensionInsts)
+  val instSets: Seq[Insts] = List()
 
   val table = instSets.map(_.table).flatten
 

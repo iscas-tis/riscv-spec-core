@@ -4,5 +4,3 @@ import rvspeccore.core.BaseCore
 import instset._
 
 trait RVInstSet extends BaseCore with IBase with MExtension
-
-object RVInstss extends RVI with RVM

@@ -32,32 +32,6 @@ trait RVM {
   val REMUW = Inst("b0000001_?????_?????_111_?????_0111011")
 }
 
-object MExtensionInsts extends Insts {
-  override val exFunct7 = Map("MULDIV" -> "0000001")
-
-  val table = List(
-    // RV32M Standard Extension
-    // MUL
-    InstInfo(exFunct7("MULDIV"), "000", "MUL",    "OP"), // 0110011
-    InstInfo(exFunct7("MULDIV"), "001", "MULH",   "OP"),
-    InstInfo(exFunct7("MULDIV"), "010", "MULHSU", "OP"),
-    InstInfo(exFunct7("MULDIV"), "011", "MULHU",  "OP"),
-    // DIV
-    InstInfo(exFunct7("MULDIV"), "100", "DIV",  "OP"),
-    InstInfo(exFunct7("MULDIV"), "101", "DIVU", "OP"),
-    InstInfo(exFunct7("MULDIV"), "110", "REM",  "OP"),
-    InstInfo(exFunct7("MULDIV"), "111", "REMU", "OP"),
-
-    // RV64M Standard Extension (in addition to RV32M)
-    // 32-bits
-    InstInfo(exFunct7("MULDIV"), "000", "MULW",  "OP-32"), // 0111011
-    InstInfo(exFunct7("MULDIV"), "100", "DIVW",  "OP-32"),
-    InstInfo(exFunct7("MULDIV"), "101", "DIVUW", "OP-32"),
-    InstInfo(exFunct7("MULDIV"), "110", "REMW",  "OP-32"),
-    InstInfo(exFunct7("MULDIV"), "111", "REMUW", "OP-32")
-  )
-}
-
 // scalafmt: { maxColumn = 200 }
 
 /** “M” Standard Extension for Integer Multiplication and Division
@@ -66,10 +40,10 @@ object MExtensionInsts extends Insts {
   *   - Chapter 7: “M” Standard Extension for Integer Multiplication and
   *     Division, Version 2.0
   */
-trait MExtension extends BaseCore with CommonDecode {
-  // Table 7.1: Semantics for division by zero and division overflow.
-  // L is the width of the operation in bits:
-  // XLEN for DIV[U] and REM[U], or 32 for DIV[U]W and REM[U]W.
+trait MExtension extends BaseCore with CommonDecode with RVM {
+  // - Table 7.1: Semantics for division by zero and division overflow.
+  // : L is the width of the operation in bits:
+  // : XLEN for DIV[U] and REM[U], or 32 for DIV[U]W and REM[U]W.
   def opDIV(divisor: UInt, dividend: UInt, L: Int): UInt = {
     MuxCase(
       (divisor.asSInt / dividend.asSInt)(L - 1, 0).asUInt, // (L-1, 0) cut extra bit in double sign bit
@@ -105,48 +79,33 @@ trait MExtension extends BaseCore with CommonDecode {
     )
   }
 
-  // RV32M Standard Extension
   def deRV32M: Unit = {
-    switch(inst(6, 0)) {
-      is(OpcodeMap("OP")) {
-        decodeR
-        switch(Cat(funct7, funct3)) {
-          // 7.1 Multiplication Operations
-          // MUL/MULH[[S]U]
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("MUL")))    { next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN - 1, 0) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("MULH")))   { next.reg(rd) := (now.reg(rs1).asSInt * now.reg(rs2).asSInt).asUInt(XLEN * 2 - 1, XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("MULHU")))  { next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN * 2 - 1, XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("MULHSU"))) { next.reg(rd) := (now.reg(rs1).asSInt * now.reg(rs2)).asUInt(XLEN * 2 - 1, XLEN) }
-          // 7.2 Division Operations
-          // DIV[U]/REM[U]
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("DIV")))  { next.reg(rd) := opDIV(now.reg(rs1), now.reg(rs2), XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("DIVU"))) { next.reg(rd) := opDIVU(now.reg(rs1), now.reg(rs2), XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("REM")))  { next.reg(rd) := opREM(now.reg(rs1), now.reg(rs2), XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("REMU"))) { next.reg(rd) := opREMU(now.reg(rs1), now.reg(rs2), XLEN) }
-        }
-      }
-    }
+    // - 7.1 Multiplication Operations
+    // - MUL/MULH[[S]U]
+    when(MUL(inst))    { decodeR; next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN - 1, 0) }
+    when(MULH(inst))   { decodeR; next.reg(rd) := (now.reg(rs1).asSInt * now.reg(rs2).asSInt).asUInt(XLEN * 2 - 1, XLEN) }
+    when(MULHSU(inst)) { decodeR; next.reg(rd) := (now.reg(rs1).asSInt * now.reg(rs2)).asUInt(XLEN * 2 - 1, XLEN) }
+    when(MULHU(inst))  { decodeR; next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN * 2 - 1, XLEN) }
+    // - 7.2 Division Operations
+    // - DIV[U]/REM[U]
+    when(DIV(inst))  { decodeR; next.reg(rd) := opDIV(now.reg(rs1), now.reg(rs2), XLEN) }
+    when(DIVU(inst)) { decodeR; next.reg(rd) := opDIVU(now.reg(rs1), now.reg(rs2), XLEN) }
+    when(REM(inst))  { decodeR; next.reg(rd) := opREM(now.reg(rs1), now.reg(rs2), XLEN) }
+    when(REMU(inst)) { decodeR; next.reg(rd) := opREMU(now.reg(rs1), now.reg(rs2), XLEN) }
   }
 
-  // RV64M Standard Extension
   def deRV64M: Unit = {
     deRV32M
-    switch(inst(6, 0)) {
-      is(OpcodeMap("OP-32")) {
-        decodeR
-        switch(Cat(funct7, funct3)) {
-          // 7.1 Multiplication Operations
-          // MULW
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("MULW"))) { next.reg(rd) := signExt((now.reg(rs1)(31, 0) * now.reg(rs2)(31, 0))(31, 0), XLEN) }
-          // 7.2 Division Operations
-          // DIV[U]W/REM[U]W
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("DIVW")))  { next.reg(rd) := signExt(opDIV(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("DIVUW"))) { next.reg(rd) := signExt(opDIVU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("REMW")))  { next.reg(rd) := signExt(opREM(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
-          is(catLit(Funct7Map("MULDIV"), Funct3Map("REMUW"))) { next.reg(rd) := signExt(opREMU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
-        }
-      }
-    }
+
+    // - 7.1 Multiplication Operations
+    // - MULW
+    when(MULW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) * now.reg(rs2)(31, 0))(31, 0), XLEN) }
+    // - 7.2 Division Operations
+    // - DIV[U]W/REM[U]W
+    when(DIVW(inst))  { decodeR; next.reg(rd) := signExt(opDIV(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
+    when(DIVUW(inst)) { decodeR; next.reg(rd) := signExt(opDIVU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
+    when(REMW(inst))  { decodeR; next.reg(rd) := signExt(opREM(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
+    when(REMUW(inst)) { decodeR; next.reg(rd) := signExt(opREMU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
   }
 }
 
