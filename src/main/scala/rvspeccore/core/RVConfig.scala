@@ -10,7 +10,8 @@ sealed abstract class RVConfig(extensions: String) {
     *     bits.
     */
   val XLEN: Int
-  val M: Boolean = extensions.matches("M")
+  val M: Boolean = extensions.indexOf("M") != -1
+  val C: Boolean = extensions.indexOf("C") != -1
 }
 
 case class RV32Config(extensions: String = "") extends RVConfig(extensions) {

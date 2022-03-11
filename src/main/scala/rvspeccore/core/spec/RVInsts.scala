@@ -25,4 +25,4 @@ object Inst {
 
 trait GSetInsts extends IBaseInsts with MExtensionInsts
 
-trait RVInsts extends GSetInsts
+trait RVInsts extends GSetInsts with CExtensionInsts

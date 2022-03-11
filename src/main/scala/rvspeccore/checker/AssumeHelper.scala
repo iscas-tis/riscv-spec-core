@@ -44,7 +44,7 @@ object AssumeHelper {
 }
 
 object RV extends AssumeHelper with spec.RVInsts {
-  val partition: Seq[AssumeHelper] = List(RVG)
+  val partition: Seq[AssumeHelper] = List(RVG, RVC)
 }
 object RVG extends AssumeHelper with spec.GSetInsts {
   val partition = List(RVI, RVM)
@@ -81,4 +81,25 @@ object RVM extends AssumeHelper with spec.instset.MExtensionInsts {
   )
 
   val partition: Seq[AssumeHelper] = List(mulOp, divOp)
+}
+object RVC extends AssumeHelper with spec.instset.CExtensionInsts {
+  // RV128C, RVFC not included
+
+  val loadStore = AssumeHelper(
+    List(C_LWSP, C_SWSP, C_LW, C_SW),
+    List(C_LDSP, C_SDSP, C_LD, C_SD)
+  )
+  val control = AssumeHelper(
+    List(C_J, C_JAL, C_JR, C_JALR, C_BEQZ, C_BNEZ)
+  )
+  val regImm = AssumeHelper(
+    List(C_LI, C_LUI, C_ADDI, C_ADDI16SP, C_ADDI4SPN, C_SLLI, C_SRLI, C_SRAI, C_ANDI),
+    List(C_ADDIW)
+  )
+  val regReg = AssumeHelper(
+    List(C_MV,   C_ADD, C_AND, C_OR, C_XOR, C_SUB),
+    List(C_ADDW, C_SUBW)
+  )
+
+  val partition: Seq[AssumeHelper] = List(loadStore, control, regImm, regReg)
 }
