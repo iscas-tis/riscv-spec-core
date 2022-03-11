@@ -11,6 +11,7 @@ sealed abstract class RVConfig(extensions: String) {
     */
   val XLEN: Int
   val M: Boolean = extensions.matches("M")
+  val C: Boolean = extensions.matches("C")
 }
 
 case class RV32Config(extensions: String = "") extends RVConfig(extensions) {

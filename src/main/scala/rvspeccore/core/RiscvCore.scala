@@ -77,14 +77,24 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
       case RV32Config(_) => {
         doRV32I
         if (config.M) { doRV32M }
+        if (config.C) { doRV32C }
       }
       case RV64Config(_) => {
         doRV64I
         if (config.M) { doRV64M }
+        if (config.C) { doRV64C }
       }
     }
 
-    when(!setPc) { next.pc := now.pc + 4.U }
+    when(!setPc) {
+      if (config.C) {
+        // + 4.U for 32 bits width inst
+        // + 2.U for 16 bits width inst in C extension
+        next.pc := now.pc + Mux(inst(1, 0) === "b11".U, 4.U, 2.U)
+      } else {
+        next.pc := now.pc + 4.U
+      }
+    }
 
     // riscv-spec-20191213
     // Register x0 is hardwired with all bits equal to 0.
