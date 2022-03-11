@@ -69,15 +69,21 @@ object BitTool {
         }
       }
     }
+
     val aList = a.toList.map(unfold(_)).flatten
     val bList = b.toList.map(unfold(_)).flatten
     require(aList.size == bList.size)
     require(aList.distinct.size == aList.size)
     require(bList.max < source.getWidth)
+
     val order = aList.zip(bList).sortBy(_._1)(Ordering.Int.reverse)
     require(order.head._1 - order.last._1 + 1 == order.size)
 
-    Cat(Cat(order.map(x => source(x._2))), 0.U(order.last._1.W))
+    if (order.last._1 == 0) {
+      Cat(order.map(x => source(x._2)))
+    } else {
+      Cat(Cat(order.map(x => source(x._2))), 0.U(order.last._1.W))
+    }
   }
 
   /** Working like `Cat`, but only with literal value. Specifically for the

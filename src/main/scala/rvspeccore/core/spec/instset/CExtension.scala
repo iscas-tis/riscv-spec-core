@@ -167,7 +167,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_LW(inst)) {
       decodeCL
       imm                  := zeroExt(reorder((5, 3), 2, (6, 6))(inst, (12, 10), (6, 5)), XLEN)
-      next.reg(cat01(rd_)) := memRead(now.reg(cat01(rs1_)) + imm, 32.U)
+      next.reg(cat01(rd_)) := signExt(memRead(now.reg(cat01(rs1_)) + imm, 32.U)(31, 0), XLEN)
     }
     when(C_SW(inst)) {
       decodeCS
@@ -248,7 +248,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_SLLI(inst)) {
       decodeCI
       imm          := reorder(5, (4, 0))(inst, 12, (6, 2))
-      next.reg(rd) := rd << imm(5, 0)
+      next.reg(rd) := now.reg(rd) << imm(5, 0)
     }
     when(C_SRLI(inst)) {
       decodeCB
@@ -295,7 +295,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_LD(inst)) {
       decodeCL
       imm                  := zeroExt(reorder((5, 3), (7, 6))(inst, (12, 10), (6, 5)), XLEN)
-      next.reg(cat01(rd_)) := memRead(now.reg(cat01(rs1_)) + imm, 64.U)
+      next.reg(cat01(rd_)) := signExt(memRead(now.reg(cat01(rs1_)) + imm, 64.U)(63, 0), XLEN)
     }
     when(C_SD(inst)) {
       decodeCS
