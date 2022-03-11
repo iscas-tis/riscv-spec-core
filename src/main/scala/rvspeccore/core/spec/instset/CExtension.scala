@@ -310,6 +310,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
       next.reg(rd) := signExt((now.reg(rd) + imm)(31, 0), XLEN)
     }
     // C_SLLI C_SRLI C_SRAI defined in RV32C
+    // - Integer Register-Register Operations
     when(C_ADDW(inst)) {
       decodeCA
       next.reg(cat01(rd_)) := signExt(now.reg(cat01(rd_))(31, 0) + now.reg(cat01(rs2_))(31, 0), XLEN)
