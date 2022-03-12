@@ -112,11 +112,11 @@ trait CDecode extends BaseCore with CommonDecode {
   def decodeCR  = { unpack(List(    funct4    ,  rs1   ,      rs2      , op  ), inst(15, 0)); rd := rs1   }
   def decodeCI  = { unpack(List( funct3 , ph1 ,  rs1   ,      ph5      , op  ), inst(15, 0)); rd := rs1   }
   def decodeCSS = { unpack(List( funct3 ,     ph6      ,      rs2      , op  ), inst(15, 0))              }
-  def decodeCIW = { unpack(List( funct3 ,         ph8           , rd_  , op  ), inst(15, 0));             }
-  def decodeCL  = { unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rd_  , op  ), inst(15, 0));             }
-  def decodeCS  = { unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rs2_ , op  ), inst(15, 0));             }
+  def decodeCIW = { unpack(List( funct3 ,         ph8           , rd_  , op  ), inst(15, 0))              }
+  def decodeCL  = { unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rd_  , op  ), inst(15, 0))              }
+  def decodeCS  = { unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rs2_ , op  ), inst(15, 0))              }
   def decodeCA  = { unpack(List(     funct6     , rs1_ , funct2 , rs2_ , op  ), inst(15, 0)); rd_ := rs1_ }
-  def decodeCB  = { unpack(List( funct3 ,  ph3  , rs1_ ,      ph5      , op  ), inst(15, 0));             }
+  def decodeCB  = { unpack(List( funct3 ,  ph3  , rs1_ ,      ph5      , op  ), inst(15, 0)); rd_ := rs1_ } // rd_ := rs1_ described in C.SRLI
   def decodeCJ  = { unpack(List( funct3 ,             ph11             , op  ), inst(15, 0))              }
   //                           \ 15  13 | 12 10 | 9  7 | 6    5 | 4  2 | 1 0 /
   // format: on

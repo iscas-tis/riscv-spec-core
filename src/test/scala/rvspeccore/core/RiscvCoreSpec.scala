@@ -133,11 +133,14 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
       .emitFirrtl(new RiscvCore()(RV64Config()), Array("--target-dir", "test_run_dir/" + getTestName))
   }
   it should "pass manual test" in {
-    test(new RiscvCore()(RV64Config())).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+    test(new RiscvCore()(RV64Config("MC"))).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
       c.io.valid.poke(true.B)
-      c.io.inst.poke("h0000006f".U)
-      c.io.now.pc.expect("h8000_0000".U)
-      c.io.next.pc.expect("h8000_0000".U)
+      c.io.inst.poke("h8391_4441".U)
+      c.clock.step()
+      c.io.inst.poke("h0000_8391".U)
+      c.clock.step()
+      c.io.inst.poke("h0000_0000".U)
+      c.clock.step()
     }
     implicit val config = RV64Config("MC")
     test(new CoreTester(new RiscvCore, "./testcase/riscv-tests-hex/rv64uc/rv64uc-rvc.hex"))
