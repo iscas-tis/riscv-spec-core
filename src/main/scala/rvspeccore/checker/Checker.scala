@@ -92,13 +92,30 @@ class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends
 
   specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
 
+  val specCoreWBValid = WireInit(false.B)
+  val specCoreWBDest  = WireInit(0.U(5.W))
+  for (i <- 0 until 32) {
+    when(specCore.io.now.reg(i) =/= specCore.io.next.reg(i)) {
+      specCoreWBValid := true.B
+      specCoreWBDest  := i.U
+    }
+  }
+
   // assert in current clock
   when(io.instCommit.valid) {
     // now pc
     assert(io.instCommit.pc === specCore.io.now.pc)
     // next reg
-    when(io.wb.valid) {
+    when(specCoreWBValid) {
+      // prevent DUT not rise a write back
+      assert(io.wb.dest === specCoreWBDest)
       assert(io.wb.data === specCore.io.next.reg(io.wb.dest))
+    }.otherwise {
+      // DUT may try to write back to x0, but it should not take effect
+      // if DUT dose write in x0, it will be check out at next instruction
+      when(io.wb.valid && io.wb.dest =/= 0.U) {
+        assert(io.wb.data === specCore.io.next.reg(io.wb.dest))
+      }
     }
     // next pc: no next pc signal in this case
     if (checkMem) {
