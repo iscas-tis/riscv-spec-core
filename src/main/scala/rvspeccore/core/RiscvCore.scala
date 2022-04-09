@@ -8,7 +8,7 @@ import spec._
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 
-  val now  = RegInit(State().init())
+  val now  = RegInit(State.wireInit())
   val next = Wire(State())
 
   val mem = Wire(new MemIO)
@@ -36,17 +36,16 @@ class MemIO()(implicit XLEN: Int) extends Bundle {
 class State()(implicit XLEN: Int) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
-
-  def init(reg: UInt = 0.U(XLEN.W), pc: UInt = "h8000_0000".U(XLEN.W)): State = {
-    val state = Wire(this)
-    state.reg := Seq.fill(32)(reg)
-    state.pc  := pc
-    state
-  }
 }
 
 object State {
   def apply()(implicit XLEN: Int): State = new State
+  def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int): State = {
+    val state = Wire(new State)
+    state.reg := Seq.fill(32)(0.U(XLEN.W))
+    state.pc  := pcStr.U(XLEN.W)
+    state
+  }
 }
 
 class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
