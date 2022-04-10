@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 
 import spec._
+import spec.instset.csr.CSR
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
@@ -36,6 +37,7 @@ class MemIO()(implicit XLEN: Int) extends Bundle {
 class State()(implicit XLEN: Int) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
+  val csr = CSR()
 }
 
 object State {
