@@ -95,8 +95,6 @@ class CSR()(implicit XLEN: Int) extends Bundle {
   val misa  = CSRInfos.misa.makeUInt()
   val mtvec = UInt(XLEN.W)
 
-  val MXLEN = UInt(8.W) // 128 max
-
   val table = List(
     (CSRInfos.misa,  misa),
     (CSRInfos.mtvec, mtvec)
@@ -104,8 +102,9 @@ class CSR()(implicit XLEN: Int) extends Bundle {
 }
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR
-  def init()(implicit XLEN: Int): CSR = {
+  def wireInit()(implicit XLEN: Int): CSR = {
     val csr = Wire(new CSR)
+    csr.misa  := 0.U
     csr.mtvec := 0.U
     csr
   }

@@ -46,6 +46,7 @@ object State {
     val state = Wire(new State)
     state.reg := Seq.fill(32)(0.U(XLEN.W))
     state.pc  := pcStr.U(XLEN.W)
+    state.csr := CSR.wireInit()
     state
   }
 }
@@ -71,6 +72,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // ID & EXE
   when(io.valid) {
+    exceptionSupportInit()
+
     inst := io.inst
 
     // Decode and Excute
@@ -101,6 +104,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     // Register x0 is hardwired with all bits equal to 0.
     // Register x0 can be used as the destination if the result is not required.
     next.reg(0) := 0.U(XLEN.W)
+
+    tryRaiseException()
   }
 
   // mem port

@@ -11,6 +11,8 @@ import rvspeccore.core.tool.BitTool._
   *
   *   - riscv-privileged-20191213
   *   - Chapter 3: Machine-Level ISA, Version 1.12
+  *   - 3.1 Machine-Level CSRs
+  *   - 3.1.15 Machine Cause Register (mcause)
   *     - Table 3.6: Machine cause register (mcause) values after trap
   */
 object MExceptionCode {
@@ -54,6 +56,8 @@ object MExceptionCode {
   *
   *   - riscv-privileged-20191213
   *   - Chapter 4: Supervisor-Level ISA, Version 1.12
+  *   - 4.1 Supervisor CSRs
+  *   - 4.1.8 Supervisor Cause Register (scause)
   *     - Table 4.2: Supervisor cause register (scause) values after trap
   */
 object SExceptionCode {
@@ -84,4 +88,33 @@ object SExceptionCode {
   // reserved 14
   val storeOrAMOPageFault = 15
   // reserved or designted for platform use >= 16
+}
+
+trait ExceptionSupport extends BaseCore {
+  val illegalInstruction = WireInit(false.B)
+
+  def exceptionSupportInit() {
+    illegalInstruction := true.B
+  }
+  def legalInstruction(): Unit = {
+    illegalInstruction := false.B
+  }
+
+  def tryRaiseException(): Unit = {
+    // when M mode
+    when(illegalInstruction) {
+      raiseException(MExceptionCode.illegalInstruction)
+    }
+  }
+
+  def raiseException(exceptionCode: Int): Unit = {
+    exceptionCode match {
+      case MExceptionCode.illegalInstruction => {}
+    }
+    // do something
+  }
+
+  // TODO: def raise an Exception
+  // TODO: def raise an Interrupt
+  // may have Modifier
 }
