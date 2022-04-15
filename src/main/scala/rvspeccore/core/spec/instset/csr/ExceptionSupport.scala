@@ -9,7 +9,7 @@ import rvspeccore.core.tool.BitTool._
 
 /** Machine cause register (mcause) values after trap
   *
-  *   - riscv-privileged-20191213
+  *   - riscv-privileged-20211203
   *   - Chapter 3: Machine-Level ISA, Version 1.12
   *   - 3.1 Machine-Level CSRs
   *   - 3.1.15 Machine Cause Register (mcause)
@@ -108,13 +108,23 @@ trait ExceptionSupport extends BaseCore {
   }
 
   def raiseException(exceptionCode: Int): Unit = {
-    exceptionCode match {
-      case MExceptionCode.illegalInstruction => {}
+    def doRaiseException(MXLEN: Int): Unit = {
+      // common part
+      next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
+      next.csr.mepc   := now.pc
+
+      // special part
+      exceptionCode match {
+        case MExceptionCode.illegalInstruction => {}
+      }
     }
-    // do something
+
+    switch(now.csr.MXLEN) {
+      is(32.U(8.W)) { doRaiseException(32) }
+      is(64.U(8.W)) { doRaiseException(64) }
+    }
   }
 
-  // TODO: def raise an Exception
   // TODO: def raise an Interrupt
   // may have Modifier
 }

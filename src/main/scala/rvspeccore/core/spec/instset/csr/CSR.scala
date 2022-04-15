@@ -6,84 +6,96 @@ import chisel3.util._
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
+import rvspeccore.core.RVConfig
 
-case class CSRInfo(addr: UInt, width: Option[Int]) {
-  def makeUInt()(implicit XLEN: Int) = width match {
+case class CSRInfo(addr: UInt, width: Option[Int], softwareWritable: Boolean) {
+  def makeUInt(implicit XLEN: Int) = width match {
     case Some(value) => UInt(value.W)
-    case max_xlen    => UInt(XLEN.W)
+    case None        => UInt(XLEN.W)
   }
 }
 
 object CSRInfo {
-  def apply(addrStr: String, width: Int): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), Some(width))
-  }
-  def apply(addrStr: String, width: Option[Int] = None): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), width)
+  def apply(addrStr: String, width: Option[Int] = None, softwareWritable: Boolean = true): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), None, softwareWritable)
   }
 }
 
+/** All CSR informations
+  *
+  *   - riscv-privileged-20211203
+  *
+  * addr:
+  *
+  *   - Chapter 2: Control and Status Registers (CSRs)
+  *   - 2.2 CSR Listing
+  *     - Table 2.1 ~ 2.6
+  *
+  * width: The `xxx` CSR is a `xxx`-bit register
+  *
+  * softwareWritable: `xxx` is never written by the implementation, though it
+  * may be explicitly written by software
+  */
 object CSRInfos {
-  private val max_xlen = 64
   // - User Trap Setup ???????????
-  val ustatus  = CSRInfo("h000", max_xlen)
-  val utvec    = CSRInfo("h005", max_xlen)
-  val uip      = CSRInfo("h044", max_xlen)
-  val uie      = CSRInfo("h004", max_xlen)
-  val uscratch = CSRInfo("h040", max_xlen)
-  val uepc     = CSRInfo("h041", max_xlen)
-  val ucause   = CSRInfo("h042", max_xlen)
-  val utval    = CSRInfo("h043", max_xlen)
+  val ustatus  = CSRInfo("h000") // TODO
+  val utvec    = CSRInfo("h005") // TODO
+  val uip      = CSRInfo("h044") // TODO
+  val uie      = CSRInfo("h004") // TODO
+  val uscratch = CSRInfo("h040") // TODO
+  val uepc     = CSRInfo("h041") // TODO
+  val ucause   = CSRInfo("h042") // TODO
+  val utval    = CSRInfo("h043") // TODO
 
   // - Unprivileged Floating-Point CSRs
   // - Unprivileged Counter/Timers
 
   // - Supervisor Trap Setup
-  val sstatus    = CSRInfo("h100", max_xlen)
-  val sie        = CSRInfo("h104", max_xlen)
-  val stvec      = CSRInfo("h105", max_xlen)
-  val scounteren = CSRInfo("h106", max_xlen)
+  val sstatus    = CSRInfo("h100") // TODO
+  val sie        = CSRInfo("h104") // TODO
+  val stvec      = CSRInfo("h105") // TODO
+  val scounteren = CSRInfo("h106") // TODO
   // - Supervisor Configuration
   // senvcfg
   // - Supervisor Trap Handling
-  val sscratch = CSRInfo("h140", max_xlen)
-  val sepc     = CSRInfo("h141", max_xlen)
-  val scause   = CSRInfo("h142", max_xlen)
-  val stval    = CSRInfo("h143", max_xlen)
-  val sip      = CSRInfo("h144", max_xlen)
+  val sscratch = CSRInfo("h140") // TODO
+  val sepc     = CSRInfo("h141") // TODO
+  val scause   = CSRInfo("h142") // TODO
+  val stval    = CSRInfo("h143") // TODO
+  val sip      = CSRInfo("h144") // TODO
   // - Supervisor Trap Handling
-  val satp = CSRInfo("h180", max_xlen)
+  val satp = CSRInfo("h180") // TODO
   // - Debug/Trace Registers
   // scontext
   // what????????????????????????????????????????????
-  val sedeleg = CSRInfo("h102", max_xlen)
-  val sideleg = CSRInfo("h103", max_xlen)
+  val sedeleg = CSRInfo("h102") // TODO
+  val sideleg = CSRInfo("h103") // TODO
 
   // - Hypervisor Trap Setup
   // - ...
   // - Virtual Supervisor Registers
 
   // - Machine Information Registers
-  val mvendorid = CSRInfo("hf11", max_xlen)
-  val marchid   = CSRInfo("hf12", max_xlen)
-  val mimpid    = CSRInfo("hf13", max_xlen)
-  val mhartid   = CSRInfo("hf14", max_xlen)
+  val mvendorid = CSRInfo("hf11") // TODO
+  val marchid   = CSRInfo("hf12") // TODO
+  val mimpid    = CSRInfo("hf13") // TODO
+  val mhartid   = CSRInfo("hf14") // TODO
   // mconfigptr
   // - Machine Information Registers
-  val mstatus    = CSRInfo("h300", max_xlen)
-  val misa       = CSRInfo("h301", max_xlen)
-  val medeleg    = CSRInfo("h302", max_xlen)
-  val mideleg    = CSRInfo("h303", max_xlen)
-  val mie        = CSRInfo("h304", max_xlen)
-  val mtvec      = CSRInfo("h305", max_xlen)
-  val mcounteren = CSRInfo("h306", 32)
+  val mstatus    = CSRInfo("h300") // TODO
+  val misa       = CSRInfo("h301") // TODO
+  val medeleg    = CSRInfo("h302") // TODO
+  val mideleg    = CSRInfo("h303") // TODO
+  val mie        = CSRInfo("h304") // TODO
+  val mtvec      = CSRInfo("h305") // TODO
+  val mcounteren = CSRInfo("h306") // TODO
   // mstatush
   // - Machine Trap Handling
-  val mscratch = CSRInfo("h340", max_xlen)
-  val mepc     = CSRInfo("h341", max_xlen)
-  val mcause   = CSRInfo("h342", max_xlen)
-  val mtval    = CSRInfo("h343", max_xlen)
-  val mip      = CSRInfo("h344", max_xlen)
+  val mscratch = CSRInfo("h340") // TODO
+  val mepc     = CSRInfo("h341", None, false)
+  val mcause   = CSRInfo("h342") // TODO
+  val mtval    = CSRInfo("h343") // TODO
+  val mip      = CSRInfo("h344") // TODO
   // mtinst
   // mtval2
   // - Machine Trap Handling
@@ -92,20 +104,39 @@ object CSRInfos {
 }
 
 class CSR()(implicit XLEN: Int) extends Bundle {
-  val misa  = CSRInfos.misa.makeUInt()
-  val mtvec = UInt(XLEN.W)
+  // All CSR should be XLEN-bit physically
+  // but been used as MXLEN-bit or something like that.
+  // Except some CSR been specified the width.
+  val misa   = CSRInfos.misa.makeUInt
+  val mtvec  = CSRInfos.mtvec.makeUInt
+  val mcause = CSRInfos.mcause.makeUInt
+  val mepc   = CSRInfos.mepc.makeUInt
 
   val table = List(
-    (CSRInfos.misa,  misa),
-    (CSRInfos.mtvec, mtvec)
+    (CSRInfos.misa,   misa),
+    (CSRInfos.mtvec,  mtvec),
+    (CSRInfos.mcause, mcause),
+    (CSRInfos.mepc,   mepc)
   )
+
+  val MXLEN  = UInt(8.W)
+  val IALIGN = UInt(8.W)
 }
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR
-  def wireInit()(implicit XLEN: Int): CSR = {
+  def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
     val csr = Wire(new CSR)
-    csr.misa  := 0.U
-    csr.mtvec := 0.U
+    csr.misa   := 0.U
+    csr.mtvec  := 0.U
+    csr.mcause := 0.U
+    csr.mepc   := 0.U
+
+    csr.MXLEN := XLEN.U
+    csr.IALIGN := {
+      if (config.C) 16.U
+      else 32.U
+    }
+
     csr
   }
 }

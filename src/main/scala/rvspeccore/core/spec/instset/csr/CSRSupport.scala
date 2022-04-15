@@ -11,15 +11,36 @@ trait CSRSupport extends BaseCore {
   def csrRead(addr: UInt): UInt = {
     require(addr.getWidth == 12)
 
-    val has: Bool = MuxLookup(addr, false.B, now.csr.table.map { case (info, csr) => info.addr -> true.B })
-    val nowCSR    = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
+    val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { case (info, csr) => info.addr -> true.B })
+    val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
 
     val rData = Wire(UInt(XLEN.W))
 
-    when(has) {
-      rData := nowCSR
-    }.otherwise {
-      rData := 0.U(XLEN.W)
+    def doCSRRead(MXLEN: Int): Unit = {
+      // common read
+      when(has) {
+        rData := nowCSR(MXLEN - 1, 0)
+      }.otherwise {
+        rData := 0.U(MXLEN.W)
+      }
+
+      // special read
+      switch(addr) {
+        is(CSRInfos.mepc.addr) {
+          // - 3.1.14 Machine Exception Program Counter (mepc)
+          // : If an implementation allows IALIGN to be either 16 or 32 (by
+          // : changing CSR misa, for example), then, whenever IALIGN=32, bit
+          // : mepc[1] is masked on reads so that it appears to be 0.
+          when(now.csr.IALIGN === 32.U(8.W)) {
+            rData := Cat(Fill(MXLEN - 2, 1.U(1.W)), 0.U(2.W)) & now.csr.mepc(MXLEN - 1, 0)
+          }
+        }
+      }
+    }
+
+    switch(now.csr.MXLEN) {
+      is(32.U(8.W)) { doCSRRead(32) }
+      is(64.U(8.W)) { doCSRRead(64) }
     }
 
     rData
@@ -29,9 +50,15 @@ trait CSRSupport extends BaseCore {
     require(mask.getWidth == XLEN)
 
     // common wirte
-    val nowCSR  = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
-    val nextCSR = MuxLookup(addr, 0.U, next.csr.table.map { case (info, csr) => info.addr -> csr })
+    val writable: Bool =
+      MuxLookup(addr, false.B, now.csr.table.map { case (info, csr) => info.addr -> info.softwareWritable.B })
+    val nowCSR:  UInt = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
+    val nextCSR: UInt = MuxLookup(addr, 0.U, next.csr.table.map { case (info, csr) => info.addr -> csr })
 
-    nextCSR := (nowCSR & ~mask) | (data & mask)
+    when(writable) {
+      nextCSR := (nowCSR & ~mask) | (data & mask)
+    }.otherwise {
+      // TODO: might cause some exception?
+    }
   }
 }
