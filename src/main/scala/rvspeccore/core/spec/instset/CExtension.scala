@@ -256,6 +256,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_SUB(inst)) { decodeCA; next.reg(cat01(rd_)) := now.reg(cat01(rd_)) - now.reg(cat01(rs2_)) }
     // - Defined Illegal Instruction
     // - NOP Instruction
+    when(C_NOP(inst)) { decodeCI /* then do nothing */ }
     // - Breakpoint Instruction
   }
   def doRV64C: Unit = {
