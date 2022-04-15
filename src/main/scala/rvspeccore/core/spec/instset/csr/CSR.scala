@@ -94,7 +94,7 @@ object CSRInfos {
   val mscratch = CSRInfo("h340") // TODO
   val mepc     = CSRInfo("h341", None, false)
   val mcause   = CSRInfo("h342") // TODO
-  val mtval    = CSRInfo("h343") // TODO
+  val mtval    = CSRInfo("h343")
   val mip      = CSRInfo("h344") // TODO
   // mtinst
   // mtval2
@@ -104,23 +104,23 @@ object CSRInfos {
 }
 
 class CSR()(implicit XLEN: Int) extends Bundle {
-  // All CSR should be XLEN-bit physically
-  // but been used as MXLEN-bit or something like that.
-  // Except some CSR been specified the width.
   val misa   = CSRInfos.misa.makeUInt
   val mtvec  = CSRInfos.mtvec.makeUInt
-  val mcause = CSRInfos.mcause.makeUInt
   val mepc   = CSRInfos.mepc.makeUInt
+  val mcause = CSRInfos.mcause.makeUInt
+  val mtval  = CSRInfos.mtval.makeUInt
 
   val table = List(
     (CSRInfos.misa,   misa),
     (CSRInfos.mtvec,  mtvec),
+    (CSRInfos.mepc,   mepc),
     (CSRInfos.mcause, mcause),
-    (CSRInfos.mepc,   mepc)
+    (CSRInfos.mtval,  mtval)
   )
 
   val MXLEN  = UInt(8.W)
-  val IALIGN = UInt(8.W)
+  val IALIGN = UInt(8.W) // : the instruction-address alignment constraint the implementation enforces
+  val ILEN   = UInt(8.W) // : the maximum instruction length supported by an implementation
 }
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR
@@ -128,14 +128,16 @@ object CSR {
     val csr = Wire(new CSR)
     csr.misa   := 0.U
     csr.mtvec  := 0.U
-    csr.mcause := 0.U
     csr.mepc   := 0.U
+    csr.mcause := 0.U
+    csr.mtval  := 0.U
 
     csr.MXLEN := XLEN.U
     csr.IALIGN := {
       if (config.C) 16.U
       else 32.U
     }
+    csr.ILEN := 32.U
 
     csr
   }

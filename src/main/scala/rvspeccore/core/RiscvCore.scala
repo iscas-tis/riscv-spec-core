@@ -9,6 +9,16 @@ import spec.instset.csr.CSR
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 
+  val io = IO(new Bundle {
+    val inst  = Input(UInt(32.W))
+    val valid = Input(Bool())
+
+    val mem = new MemIO
+
+    val now  = Output(State())
+    val next = Output(State())
+  })
+
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
 
@@ -52,16 +62,6 @@ object State {
 }
 
 class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
-  val io = IO(new Bundle {
-    val inst  = Input(UInt(32.W))
-    val valid = Input(Bool())
-
-    val mem = new MemIO
-
-    val now  = Output(State())
-    val next = Output(State())
-  })
-
   // should keep the value in the next clock
   // if there no changes below
   next := now
@@ -90,6 +90,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
       }
     }
 
+    next.reg(0) := 0.U
+
     when(!setPc) {
       if (config.C) {
         // + 4.U for 32 bits width inst
@@ -99,11 +101,6 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
         next.pc := now.pc + 4.U
       }
     }
-
-    // riscv-spec-20191213
-    // Register x0 is hardwired with all bits equal to 0.
-    // Register x0 can be used as the destination if the result is not required.
-    next.reg(0) := 0.U(XLEN.W)
 
     tryRaiseException()
   }

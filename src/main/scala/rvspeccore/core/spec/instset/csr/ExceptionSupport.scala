@@ -112,10 +112,19 @@ trait ExceptionSupport extends BaseCore {
       // common part
       next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
       next.csr.mepc   := now.pc
+      next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
 
       // special part
       exceptionCode match {
-        case MExceptionCode.illegalInstruction => {}
+        case MExceptionCode.illegalInstruction => {
+          // : illegal-instruction exception occurs, then mtval will contain the shortest of:
+          // : * the actual faulting instruction
+          // : * the first ILEN bits of the faulting instruction
+          // : * the first MXLEN bits of the faulting instruction
+          // simply implement it for now
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
       }
     }
 
