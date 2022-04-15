@@ -14,7 +14,7 @@ trait CSRSupport extends BaseCore {
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { case (info, csr) => info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
 
-    val rData = Wire(UInt(XLEN.W))
+    val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
       // common read
@@ -40,7 +40,7 @@ trait CSRSupport extends BaseCore {
 
     switch(now.csr.MXLEN) {
       is(32.U(8.W)) { doCSRRead(32) }
-      is(64.U(8.W)) { doCSRRead(64) }
+      is(64.U(8.W)) { if (XLEN >= 64) { doCSRRead(64) } }
     }
 
     rData
@@ -50,15 +50,19 @@ trait CSRSupport extends BaseCore {
     require(mask.getWidth == XLEN)
 
     // common wirte
-    val writable: Bool =
-      MuxLookup(addr, false.B, now.csr.table.map { case (info, csr) => info.addr -> info.softwareWritable.B })
-    val nowCSR:  UInt = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
-    val nextCSR: UInt = MuxLookup(addr, 0.U, next.csr.table.map { case (info, csr) => info.addr -> csr })
+    val csrPairs = now.csr.table.zip(next.csr.table)
 
-    when(writable) {
-      nextCSR := (nowCSR & ~mask) | (data & mask)
-    }.otherwise {
-      // TODO: might cause some exception?
+    csrPairs.foreach { case ((info, nowCSR), (_, nextCSR)) =>
+      when(addr === info.addr) {
+        if (info.softwareWritable) {
+          nextCSR := (nowCSR & ~mask) | (data & mask)
+        } else {
+          // TODO: might cause some exception?
+        }
+      }
     }
+
+    // special wirte
+    // ...
   }
 }

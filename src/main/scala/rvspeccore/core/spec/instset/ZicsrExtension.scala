@@ -37,20 +37,20 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       when(rd =/= 0.U) {
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       }
-      csrWrite(imm, now.reg(rs1))
+      csrWrite(imm(11, 0), now.reg(rs1))
     }
     when(CSRRS(inst)) {
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        csrWrite(imm, Fill(XLEN, 1.U(1.W)), now.reg(rs1))
+        csrWrite(imm(11, 0), Fill(XLEN, 1.U(1.W)), now.reg(rs1))
       }
     }
     when(CSRRC(inst)) {
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        csrWrite(imm, 0.U(XLEN.W), now.reg(rs1))
+        csrWrite(imm(11, 0), 0.U(XLEN.W), now.reg(rs1))
       }
     }
     when(CSRRWI(inst)) {
@@ -58,20 +58,20 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       when(rd =/= 0.U) {
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       }
-      csrWrite(imm, zeroExt(rs1, XLEN))
+      csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
     }
     when(CSRRSI(inst)) {
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        csrWrite(imm, Fill(XLEN, 1.U(1.W)), zeroExt(rs1, XLEN))
+        csrWrite(imm(11, 0), Fill(XLEN, 1.U(1.W)), zeroExt(rs1, XLEN))
       }
     }
     when(CSRRCI(inst)) {
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        csrWrite(imm, 0.U(XLEN.W), zeroExt(rs1, XLEN))
+        csrWrite(imm(11, 0), 0.U(XLEN.W), zeroExt(rs1, XLEN))
       }
     }
   }
