@@ -120,24 +120,6 @@ trait CDecode extends BaseCore with CommonDecode {
   def decodeCJ  = { unpack(List( funct3 ,             ph11             , op  ), inst(15, 0))              }
   //                           \ 15  13 | 12 10 | 9  7 | 6    5 | 4  2 | 1 0 /
   // format: on
-
-  /** Decode all C format at ones.
-    *
-    * Because the same variable will not be used in two places, multiple
-    * decoding will not cause errors. And redundant code will be eliminated in
-    * optimization in FIRRTL.
-    */
-  def decodeC = {
-    decodeCR
-    decodeCI
-    decodeCSS
-    decodeCIW
-    decodeCL
-    decodeCS
-    decodeCA
-    decodeCB
-    decodeCJ
-  }
 }
 
 /** “C” Standard Extension for Compressed Instructions
