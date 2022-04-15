@@ -126,11 +126,18 @@ trait ExceptionSupport extends BaseCore {
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
       }
+
+      // jump
+      switch(now.csr.mtvec(1, 0)) {
+        is(0.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) }
+        is(1.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U }
+        // >= 2 reserved
+      }
     }
 
     switch(now.csr.MXLEN) {
       is(32.U(8.W)) { doRaiseException(32) }
-      is(64.U(8.W)) { doRaiseException(64) }
+      is(64.U(8.W)) { if (XLEN >= 64) { doRaiseException(64) } }
     }
   }
 

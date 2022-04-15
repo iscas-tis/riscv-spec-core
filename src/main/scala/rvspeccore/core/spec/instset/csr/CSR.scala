@@ -87,7 +87,7 @@ object CSRInfos {
   val medeleg    = CSRInfo("h302") // TODO
   val mideleg    = CSRInfo("h303") // TODO
   val mie        = CSRInfo("h304") // TODO
-  val mtvec      = CSRInfo("h305") // TODO
+  val mtvec      = CSRInfo("h305")
   val mcounteren = CSRInfo("h306") // TODO
   // mstatush
   // - Machine Trap Handling
