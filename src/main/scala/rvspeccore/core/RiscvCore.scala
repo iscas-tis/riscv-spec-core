@@ -89,6 +89,9 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
         if (config.C) { doRV64C }
       }
     }
+    // do without config for now
+    doRVZicsr
+    doRVZifencei
 
     next.reg(0) := 0.U
 
