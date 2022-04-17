@@ -20,9 +20,8 @@ object InstCommit {
 
 /** Checker with result port.
   *
-  * Check pc of commited instruction, all register and next pc.
-  *
-  * @param gen
+  * Check pc of commited instruction and next value of all register. Although
+  * `pc` in the result port, but it won't be checked.
   */
 class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) extends Checker {
   val io = IO(new Bundle {
@@ -46,8 +45,8 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     for (i <- 0 until 32) {
       assert(io.result.reg(i.U) === specCore.io.next.reg(i.U))
     }
-    // next pc
-    assert(io.result.pc === specCore.io.next.pc)
+    // next pc: hard to get next pc in a pipeline
+    // check it at next instruction
 
     if (checkMem) {
       assert(io.mem.get.read.valid === specCore.io.mem.read.valid)
@@ -74,9 +73,6 @@ object WriteBack {
 /** Checker with write back port.
   *
   * Check pc of commited instruction and the register been write back.
-  *
-  * @param gen
-  *   Generator of a spec core
   */
 class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends Checker {
   val io = IO(new Bundle {

@@ -7,9 +7,13 @@ import rvspeccore.core.spec
 
 abstract class AssumeHelper {
   val partition: Seq[AssumeHelper]
+
+  // these lists will be calculated automatically if not overrided
   lazy val list32: Seq[spec.Inst]   = partition.map(_.list32).flatten
   lazy val append64: Seq[spec.Inst] = partition.map(_.append64).flatten
 
+  /** Instruction number in this set
+    */
   def size(implicit XLEN: Int): Int = {
     require(XLEN == 32 || XLEN == 64)
     XLEN match {
@@ -18,6 +22,8 @@ abstract class AssumeHelper {
     }
   }
 
+  /** Check if `inst` is a legal instruction in this set
+    */
   def apply(inst: UInt)(implicit XLEN: Int): Bool = {
     require(XLEN == 32 || XLEN == 64)
     XLEN match {

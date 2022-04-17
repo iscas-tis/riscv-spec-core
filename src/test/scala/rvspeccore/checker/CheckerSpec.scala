@@ -14,13 +14,23 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   class TestCore(checkMem: Boolean = true) extends RiscvCore {
     val checker = Module(new CheckerWithResult(checkMem))
-    checker.io.instCommit.valid := io.valid
-    checker.io.instCommit.inst  := io.inst
-    checker.io.instCommit.pc    := now.pc
+    checker.io.instCommit.valid := RegNext(io.valid, false.B)
+    checker.io.instCommit.inst  := RegNext(io.inst)
+    checker.io.instCommit.pc    := RegNext(now.pc)
 
-    checker.io.result := next
+    checker.io.result := now
 
-    checker.io.mem.map(_ := mem)
+    checker.io.mem.map(cm => {
+      cm.read.addr     := RegNext(mem.read.addr)
+      cm.read.data     := RegNext(mem.read.data)
+      cm.read.memWidth := RegNext(mem.read.memWidth)
+      cm.read.valid    := RegNext(mem.read.valid)
+
+      cm.write.addr     := RegNext(mem.write.addr)
+      cm.write.data     := RegNext(mem.write.data)
+      cm.write.memWidth := RegNext(mem.write.memWidth)
+      cm.write.valid    := RegNext(mem.write.valid)
+    })
   }
 
   it should "pass RiscvTests" in {
