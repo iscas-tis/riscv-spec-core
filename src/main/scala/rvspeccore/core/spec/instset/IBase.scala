@@ -122,69 +122,71 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts {
   def doRV32I: Unit = {
     // - 2.4 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
-    // - ADDI/SLTI[U]
+    // ADDI/SLTI[U]
     when(ADDI(inst))  { decodeI; next.reg(rd) := now.reg(rs1) + imm }
     when(SLTI(inst))  { decodeI; next.reg(rd) := Mux(now.reg(rs1).asSInt < imm.asSInt, 1.U, 0.U) }
     when(SLTIU(inst)) { decodeI; next.reg(rd) := Mux(now.reg(rs1) < imm, 1.U, 0.U) }
-    // - ANDI/ORI/XORI
+    // ANDI/ORI/XORI
     when(ANDI(inst)) { decodeI; next.reg(rd) := now.reg(rs1) & imm }
     when(ORI(inst))  { decodeI; next.reg(rd) := now.reg(rs1) | imm }
     when(XORI(inst)) { decodeI; next.reg(rd) := now.reg(rs1) ^ imm }
-    // - SLLI/SRLI/SRAI
+    // SLLI/SRLI/SRAI
     when(SLLI(inst)) { decodeI; next.reg(rd) := now.reg(rs1) << imm(4, 0) }
     when(SRLI(inst)) { decodeI; next.reg(rd) := now.reg(rs1) >> imm(4, 0) }
     when(SRAI(inst)) { decodeI; next.reg(rd) := (now.reg(rs1).asSInt >> imm(4, 0)).asUInt }
-    // - LUI
+    // LUI
     when(LUI(inst)) { decodeU; next.reg(rd) := imm }
-    // - AUIPC
+    // AUIPC
     when(AUIPC(inst)) { decodeU; next.reg(rd) := now.pc + imm }
-
     // - Integer Register-Register Operations
-    // - ADD/SLT/SLTU
+    // ADD/SLT/SLTU
     when(ADD(inst))  { decodeR; next.reg(rd) := now.reg(rs1) + now.reg(rs2) }
     when(SLT(inst))  { decodeR; next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, 1.U, 0.U) }
     when(SLTU(inst)) { decodeR; next.reg(rd) := Mux(now.reg(rs1) < now.reg(rs2), 1.U, 0.U) }
-    // - AND/OR/XOR
+    // AND/OR/XOR
     when(AND(inst)) { decodeR; next.reg(rd) := now.reg(rs1) & now.reg(rs2) }
     when(OR(inst))  { decodeR; next.reg(rd) := now.reg(rs1) | now.reg(rs2) }
     when(XOR(inst)) { decodeR; next.reg(rd) := now.reg(rs1) ^ now.reg(rs2) }
-    // - SLL/SRL
+    // SLL/SRL
     when(SLL(inst)) { decodeR; next.reg(rd) := now.reg(rs1) << now.reg(rs2)(4, 0) }
     when(SRL(inst)) { decodeR; next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(4, 0) }
-    // - SUB/SRA
+    // SUB/SRA
     when(SUB(inst)) { decodeR; next.reg(rd) := now.reg(rs1) - now.reg(rs2) }
     when(SRA(inst)) { decodeR; next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(4, 0)).asUInt }
-
     // - NOP Instruction
     // NOP is encoded as ADDI x0, x0, 0.
 
     // - 2.5 Control Transfer Instructions
     // - Unconditional Jumps
-    // - JAL
+    // JAL
     when(JAL(inst)) { decodeJ; setPc := true.B; next.pc := now.pc + imm; next.reg(rd) := now.pc + 4.U; }
-    // - JALR
+    // JALR
     when(JALR(inst)) { decodeI; setPc := true.B; next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); next.reg(rd) := now.pc + 4.U; }
     // - Conditional Branches
-    // - BEQ/BNE
+    // BEQ/BNE
     when(BEQ(inst)) { decodeB; when(now.reg(rs1) === now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
     when(BNE(inst)) { decodeB; when(now.reg(rs1) =/= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
-    // - BLT[U]
+    // BLT[U]
     when(BLT(inst))  { decodeB; when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
     when(BLTU(inst)) { decodeB; when(now.reg(rs1) < now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
-    // - BGE[U]
+    // BGE[U]
     when(BGE(inst))  { decodeB; when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
     when(BGEU(inst)) { decodeB; when(now.reg(rs1) >= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
     // - 2.6 Load and Store Instructions
-    // - LOAD
+    // LOAD
     when(LB(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
     when(LH(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
     when(LW(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
     when(LBU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
     when(LHU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
-    // - STORE
+    // STORE
     when(SB(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
     when(SH(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) }
     when(SW(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) }
+
+    // - 2.7 Memory Ordering Instructions
+    // - 2.8 Environment Call and Breakpoints
+    // - 2.9 HINT Instructions
   }
 
   /** RV64I Base Integer Instruction Set
@@ -198,39 +200,40 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts {
 
     // - 5.2 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
-    // - ADDIW
+    // ADDIW
     when(ADDIW(inst)) { decodeI; next.reg(rd) := signExt((now.reg(rs1) + imm)(31, 0), XLEN) }
-    // - SLLI/SRLI/SRAI
+    // SLLI/SRLI/SRAI
     when(SLLI(inst)) { decodeI; next.reg(rd) := now.reg(rs1) << imm(5, 0) }                 // override RV32
     when(SRLI(inst)) { decodeI; next.reg(rd) := now.reg(rs1) >> imm(5, 0) }                 // override RV32
     when(SRAI(inst)) { decodeI; next.reg(rd) := (now.reg(rs1).asSInt >> imm(5, 0)).asUInt } // override RV32
-    // - SLLIW/SRLIW/SRAIW
+    // SLLIW/SRLIW/SRAIW
     when(SLLIW(inst)) { decodeI; next.reg(rd) := signExt((now.reg(rs1)(31, 0) << imm(4, 0))(31, 0), XLEN) }
     when(SRLIW(inst)) { decodeI; next.reg(rd) := signExt(now.reg(rs1)(31, 0) >> imm(4, 0), XLEN) }
     when(SRAIW(inst)) { decodeI; next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> imm(4, 0)).asUInt, XLEN) }
-    // - LUI/AUIPC
-    // not changed
-
+    // LUI/AUIPC not changed
     // - Integer Register-Register Operations
-    // - SLL/SRL
+    // SLL/SRL
     when(SLL(inst)) { decodeR; next.reg(rd) := now.reg(rs1) << now.reg(rs2)(5, 0) } // override RV32
     when(SRL(inst)) { decodeR; next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(5, 0) } // overried RV32
-    // - SRA
+    // SRA
     when(SRA(inst)) { decodeR; next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(5, 0)).asUInt }
-    // - ADDW
+    // ADDW
     when(ADDW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN) }
-    // - SLLW/SRLW
+    // SLLW/SRLW
     when(SLLW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) << now.reg(rs2)(4, 0))(31, 0), XLEN) }
     when(SRLW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> now.reg(rs2)(4, 0))(31, 0), XLEN) }
-    // - SUBW/SRAW
+    // SUBW/SRAW
     when(SUBW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN) }
     when(SRAW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN) }
+
     // - 5.3 Load and Store Instructions
     // - LOAD
     when(LWU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
     when(LD(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) }
     // - STORE
     when(SD(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) }
+
+    // - 5.4 HINT Instructions
   }
 }
 

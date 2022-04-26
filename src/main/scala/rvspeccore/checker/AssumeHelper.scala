@@ -53,11 +53,18 @@ object RV extends AssumeHelper with spec.RVInsts {
   val partition: Seq[AssumeHelper] = List(RVG, RVC)
 }
 object RVG extends AssumeHelper with spec.GSetInsts {
+  // : we use the abbreviation G for the IMAFDZicsr_Zifencei combination of
+  // : instruction-set extensions
   val partition = List(RVI, RVM)
 }
 object RVI extends AssumeHelper with spec.instset.IBaseInsts {
+  // classification by
+  // - riscv-spec-20191213
+  // - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
+  // - Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
+  // or refer to IBase.scala
   val regImm = AssumeHelper(
-    List(ADDI,  SLTI,  SLTIU, ADDI,  ORI, XORI, SLLI, SRLI, SRAI, LUI, AUIPC),
+    List(ADDI,  SLTI,  SLTIU, ANDI,  ORI, XORI, SLLI, SRLI, SRAI, LUI, AUIPC),
     List(ADDIW, SLLIW, SRLIW, SRLIW, SRAIW)
   )
   val regReg = AssumeHelper(
