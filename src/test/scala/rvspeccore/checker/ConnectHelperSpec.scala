@@ -19,6 +19,8 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
     checker.io.instCommit.pc    := RegNext(now.pc)
 
     ConnectCheckerResult.setRegSource(now.reg)
+    val csr = ConnectCheckerResult.makeCSRSource()
+    csr := now.csr
     ConnectCheckerResult.setChecker(checker)
   }
 
