@@ -11,8 +11,8 @@ trait CSRSupport extends BaseCore {
   def csrRead(addr: UInt): UInt = {
     require(addr.getWidth == 12)
 
-    val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { case (info, csr) => info.addr -> true.B })
-    val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { case (info, csr) => info.addr -> csr })
+    val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
+    val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
 
     val rData = WireInit(0.U(XLEN.W))
 
@@ -52,7 +52,7 @@ trait CSRSupport extends BaseCore {
     // common wirte
     val csrPairs = now.csr.table.zip(next.csr.table)
 
-    csrPairs.foreach { case ((info, nowCSR), (_, nextCSR)) =>
+    csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
       when(addr === info.addr) {
         if (info.softwareWritable) {
           nextCSR := (nowCSR & ~mask) | (data & mask)

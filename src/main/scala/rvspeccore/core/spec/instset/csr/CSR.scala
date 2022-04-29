@@ -103,24 +103,38 @@ object CSRInfos {
   // - Debug Mode Registers
 }
 
-class CSR()(implicit XLEN: Int) extends Bundle {
+case class CSRInfoSignal(info: CSRInfo, signal: UInt)
+
+class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val misa   = CSRInfos.misa.makeUInt
   val mtvec  = CSRInfos.mtvec.makeUInt
   val mepc   = CSRInfos.mepc.makeUInt
   val mcause = CSRInfos.mcause.makeUInt
   val mtval  = CSRInfos.mtval.makeUInt
 
+  /** Table for all CSR signals in this Bundle
+    */
   val table = List(
-    (CSRInfos.misa,   misa),
-    (CSRInfos.mtvec,  mtvec),
-    (CSRInfos.mepc,   mepc),
-    (CSRInfos.mcause, mcause),
-    (CSRInfos.mtval,  mtval)
+    CSRInfoSignal(CSRInfos.misa,   misa),
+    CSRInfoSignal(CSRInfos.mtvec,  mtvec),
+    CSRInfoSignal(CSRInfos.mepc,   mepc),
+    CSRInfoSignal(CSRInfos.mcause, mcause),
+    CSRInfoSignal(CSRInfos.mtval,  mtval)
   )
 
   val MXLEN  = UInt(8.W)
   val IALIGN = UInt(8.W) // : the instruction-address alignment constraint the implementation enforces
   val ILEN   = UInt(8.W) // : the maximum instruction length supported by an implementation
+
+  /** Table for all environment variable in this Bundle
+    *
+    * These environment variables may be changed when CSR changed.
+    */
+  val vTable = List(
+    MXLEN,
+    IALIGN,
+    ILEN
+  )
 }
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR
