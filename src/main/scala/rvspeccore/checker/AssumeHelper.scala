@@ -9,7 +9,7 @@ abstract class AssumeHelper {
   val partition: Seq[AssumeHelper]
 
   // these lists will be calculated automatically if not overrided
-  lazy val list32: Seq[spec.Inst]   = partition.map(_.list32).flatten
+  lazy val list32:   Seq[spec.Inst] = partition.map(_.list32).flatten
   lazy val append64: Seq[spec.Inst] = partition.map(_.append64).flatten
 
   /** Instruction number in this set
@@ -115,4 +115,21 @@ object RVC extends AssumeHelper with spec.instset.CExtensionInsts {
   )
 
   val partition: Seq[AssumeHelper] = List(loadStore, control, regImm, regReg)
+}
+object RVZicsr extends AssumeHelper with spec.instset.ZicsrExtensionInsts {
+  val reg = AssumeHelper(
+    List(CSRRW, CSRRS, CSRRC)
+  )
+  val imm = AssumeHelper(
+    List(CSRRWI, CSRRSI, CSRRCI)
+  )
+
+  val partition: Seq[AssumeHelper] = List(reg, imm)
+}
+object RVZifencei extends AssumeHelper with spec.instset.ZifenceiExtensionInsts {
+  val fence_i = AssumeHelper(
+    List(FENCE_I)
+  )
+
+  val partition: Seq[AssumeHelper] = List(fence_i)
 }
