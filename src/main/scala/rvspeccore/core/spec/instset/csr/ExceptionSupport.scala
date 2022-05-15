@@ -54,7 +54,7 @@ object MExceptionCode {
 
 /** Supervisor cause register (scause) values after trap
   *
-  *   - riscv-privileged-20191213
+  *   - riscv-privileged-20211203
   *   - Chapter 4: Supervisor-Level ISA, Version 1.12
   *   - 4.1 Supervisor CSRs
   *   - 4.1.8 Supervisor Cause Register (scause)

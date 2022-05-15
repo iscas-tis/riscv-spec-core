@@ -82,7 +82,7 @@ object CSRInfos {
   val mhartid   = CSRInfo("hf14") // TODO
   // mconfigptr
   // - Machine Information Registers
-  val mstatus    = CSRInfo("h300") // TODO
+  val mstatus    = CSRInfo("h300")
   val misa       = CSRInfo("h301") // TODO
   val medeleg    = CSRInfo("h302") // TODO
   val mideleg    = CSRInfo("h303") // TODO
@@ -106,11 +106,12 @@ object CSRInfos {
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
 class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
-  val misa   = CSRInfos.misa.makeUInt
-  val mtvec  = CSRInfos.mtvec.makeUInt
-  val mepc   = CSRInfos.mepc.makeUInt
-  val mcause = CSRInfos.mcause.makeUInt
-  val mtval  = CSRInfos.mtval.makeUInt
+  val mstatus = CSRInfos.mstatus.makeUInt
+  val misa    = CSRInfos.misa.makeUInt
+  val mtvec   = CSRInfos.mtvec.makeUInt
+  val mepc    = CSRInfos.mepc.makeUInt
+  val mcause  = CSRInfos.mcause.makeUInt
+  val mtval   = CSRInfos.mtval.makeUInt
 
   /** Table for all CSR signals in this Bundle
     */
@@ -123,8 +124,12 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   )
 
   val MXLEN  = UInt(8.W)
+  val SXLEN  = UInt(8.W)
+  val UXLEN  = UInt(8.W)
   val IALIGN = UInt(8.W) // : the instruction-address alignment constraint the implementation enforces
   val ILEN   = UInt(8.W) // : the maximum instruction length supported by an implementation
+
+  val privilegeLevel = UInt(2.W)
 
   /** Table for all environment variable in this Bundle
     *
@@ -132,27 +137,103 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     */
   val vTable = List(
     MXLEN,
+    SXLEN,
+    UXLEN,
     IALIGN,
-    ILEN
+    ILEN,
+    privilegeLevel
   )
+
+  // unpack mstatus
+  val unMstatus = new MstatusStruct(mstatus)
 }
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
     val csr = Wire(new CSR)
-    csr.misa   := 0.U
-    csr.mtvec  := 0.U
-    csr.mepc   := 0.U
-    csr.mcause := 0.U
-    csr.mtval  := 0.U
+    csr.mstatus := 0.U // TODO: set right init value
+    csr.misa    := 0.U
+    csr.mtvec   := 0.U
+    csr.mepc    := 0.U
+    csr.mcause  := 0.U
+    csr.mtval   := 0.U
 
     csr.MXLEN := XLEN.U
+    csr.SXLEN := XLEN.U
+    csr.UXLEN := XLEN.U
     csr.IALIGN := {
       if (config.C) 16.U
       else 32.U
     }
     csr.ILEN := 32.U
 
+    csr.privilegeLevel := PrivilegeLevel.M
+
     csr
   }
+}
+
+object PrivilegeLevel {
+  val U        = 0.U(2.W)
+  val S        = 1.U(2.W)
+  val Reserved = 2.U(2.W)
+  val M        = 3.U(2.W)
+}
+
+/** unpack mstatus with these method
+  *
+  * Some method with `require` means this field should be use under the
+  * requirement.
+  *
+  *   - riscv-privileged-20211203
+  *   - Chapter 3: Machine-Level ISA, Version 1.12
+  *   - 3.1 Machine-Level CSRs
+  *   - 3.1.6 Machine Status Registers (mstatus and mstatush)
+  *     - Figure 3.6: Machine-mode status register (mstatus) for RV32.
+  *     - Figure 3.7: Machine-mode status register (mstatus) for RV64.
+  */
+class MstatusStruct(mstatus: UInt) {
+  // common
+  // 31 or 63
+  def SD(MXLEN: Int) = MXLEN match {
+    case 32 => mstatus(31)
+    case 64 => mstatus(63)
+  }
+
+  // RV32
+  // 30 - 23
+  def WPRI_30_23(MXLEN: Int) = { if (MXLEN == 32) mstatus(30, 23) else 0.U }
+
+  // RV64
+  // 62 - 23
+  def WPRI_62_38(MXLEN: Int) = { if (MXLEN == 64) mstatus(62, 38) else 0.U }
+  def MBE(MXLEN: Int)        = { if (MXLEN == 64) mstatus(37) else 0.U }
+  def SBE(MXLEN: Int)        = { if (MXLEN == 64) mstatus(36) else 0.U }
+  def SXL(MXLEN: Int)        = { if (MXLEN == 64) mstatus(35, 34) else 0.U }
+  def UXL(MXLEN: Int)        = { if (MXLEN == 64) mstatus(33, 32) else 0.U }
+  def WPRI_31_23(MXLEN: Int) = { if (MXLEN == 64) mstatus(31, 23) else 0.U }
+
+  // common
+  // 22 - 17
+  def TSR  = mstatus(22)
+  def TW   = mstatus(21)
+  def TVM  = mstatus(20)
+  def MXR  = mstatus(19)
+  def SUM  = mstatus(18)
+  def MPRV = mstatus(17)
+  // 16 - 9
+  def XS  = mstatus(16, 15)
+  def FS  = mstatus(14, 13)
+  def MPP = mstatus(12, 11)
+  def VS  = mstatus(10, 9)
+  // 8 - 0
+  def SPP    = mstatus(8)
+  def MPIE   = mstatus(7)
+  def UBE    = mstatus(6)
+  def SPIE   = mstatus(5)
+  def WPRI_4 = mstatus(4)
+  def MIE    = mstatus(3)
+  def WPRI_2 = mstatus(2)
+  def SIE    = mstatus(1)
+  def WPRI_0 = mstatus(0)
 }
