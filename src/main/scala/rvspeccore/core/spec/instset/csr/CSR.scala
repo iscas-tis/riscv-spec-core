@@ -130,15 +130,21 @@ case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   // default XLEN UInt and softwareWritable is true
   // make default value for registers
-  val misa   = CSRInfos.misa.makeUInt
+  val misa      = CSRInfos.misa.makeUInt
   val mvendorid = CSRInfos.mvendorid.makeUInt
-  val marchid = CSRInfos.marchid.makeUInt
-  val mimpid = CSRInfos.mimpid.makeUInt
-  val mhartid = CSRInfos.mhartid.makeUInt
-  val mtvec  = CSRInfos.mtvec.makeUInt
-  val mepc   = CSRInfos.mepc.makeUInt
-  val mcause = CSRInfos.mcause.makeUInt
-  val mtval  = CSRInfos.mtval.makeUInt
+  val marchid   = CSRInfos.marchid.makeUInt
+  val mimpid    = CSRInfos.mimpid.makeUInt
+  val mhartid   = CSRInfos.mhartid.makeUInt
+  val mstatus   = CSRInfos.mstatus.makeUInt
+  val mstatush  = CSRInfos.mstatush.makeUInt
+  val mtvec     = CSRInfos.mtvec.makeUInt
+  val medeleg   = CSRInfos.medeleg.makeUInt
+  val mideleg   = CSRInfos.mideleg.makeUInt
+  val mip       = CSRInfos.mip.makeUInt
+  val mie       = CSRInfos.mie.makeUInt
+  val mepc      = CSRInfos.mepc.makeUInt
+  val mcause    = CSRInfos.mcause.makeUInt
+  val mtval     = CSRInfos.mtval.makeUInt
 
   /** Table for all CSR signals in this Bundle
    * CSRs in this table can be read or write
@@ -149,7 +155,13 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.marchid,   marchid),
     CSRInfoSignal(CSRInfos.mimpid,    mimpid),
     CSRInfoSignal(CSRInfos.mhartid,   mhartid),
+    CSRInfoSignal(CSRInfos.mstatus,   mstatus),
+    CSRInfoSignal(CSRInfos.mstatush,  mstatush),
     CSRInfoSignal(CSRInfos.mtvec,     mtvec),
+    CSRInfoSignal(CSRInfos.medeleg,   medeleg),
+    CSRInfoSignal(CSRInfos.mideleg,   mideleg),
+    CSRInfoSignal(CSRInfos.mip,       mip),
+    CSRInfoSignal(CSRInfos.mie,       mie),
     CSRInfoSignal(CSRInfos.mepc,      mepc),
     CSRInfoSignal(CSRInfos.mcause,    mcause),
     CSRInfoSignal(CSRInfos.mtval,     mtval)
@@ -175,19 +187,24 @@ object CSR {
     // Set initial value to CSRs
     val csr = Wire(new CSR)
     // TODO: same with data RVConfig
-    csr.misa   := 0.U
+    csr.misa      := 0.U
     // mvendorid value 0 means non-commercial implementation
     csr.mvendorid := 0.U
     // marchid allocated globally by RISC-V International 0 means not implementation
-    csr.marchid := 0.U
+    csr.marchid   := 0.U
     // mimpid 0 means not implementation
-    csr.mimpid := 0.U
-    csr.mhartid := 0.U
-    csr.mtvec  := 0.U
-    csr.mepc   := 0.U
-    csr.mcause := 0.U
-    csr.mtval  := 0.U
-
+    csr.mimpid    := 0.U
+    csr.mhartid   := 0.U
+    csr.mstatus   := 0.U //300
+    csr.mstatush  := 0.U //310
+    csr.mtvec     := 0.U
+    csr.medeleg   := 0.U  //302
+    csr.mideleg   := 0.U  //303
+    csr.mip       := 0.U  //344
+    csr.mie       := 0.U  //304
+    csr.mepc      := 0.U
+    csr.mcause    := 0.U
+    csr.mtval     := 0.U
 
     // // TODO: Need Merge
     // val mstatus = RegInit("ha00002000".U(XLEN.W))
