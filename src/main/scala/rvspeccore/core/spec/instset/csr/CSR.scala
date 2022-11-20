@@ -37,6 +37,7 @@ object CSRInfo {
   * may be explicitly written by software
   */
 object CSRInfos {
+  // Address Map
   // - User Trap Setup ???????????
   // User CSR has been delete in V20211203
   // val ustatus  = CSRInfo("h000") // TODO
@@ -127,6 +128,8 @@ object CSRInfos {
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
 class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
+  // default XLEN UInt and softwareWritable is true
+  // make default value for registers
   val misa   = CSRInfos.misa.makeUInt
   val mvendorid = CSRInfos.mvendorid.makeUInt
   val marchid = CSRInfos.marchid.makeUInt
@@ -138,13 +141,18 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val mtval  = CSRInfos.mtval.makeUInt
 
   /** Table for all CSR signals in this Bundle
-    */
+   * CSRs in this table can be read or write
+  */
   val table = List(
-    CSRInfoSignal(CSRInfos.misa,   misa),
-    CSRInfoSignal(CSRInfos.mtvec,  mtvec),
-    CSRInfoSignal(CSRInfos.mepc,   mepc),
-    CSRInfoSignal(CSRInfos.mcause, mcause),
-    CSRInfoSignal(CSRInfos.mtval,  mtval)
+    CSRInfoSignal(CSRInfos.misa,      misa),
+    CSRInfoSignal(CSRInfos.mvendorid, mvendorid),
+    CSRInfoSignal(CSRInfos.marchid,   marchid),
+    CSRInfoSignal(CSRInfos.mimpid,    mimpid),
+    CSRInfoSignal(CSRInfos.mhartid,   mhartid),
+    CSRInfoSignal(CSRInfos.mtvec,     mtvec),
+    CSRInfoSignal(CSRInfos.mepc,      mepc),
+    CSRInfoSignal(CSRInfos.mcause,    mcause),
+    CSRInfoSignal(CSRInfos.mtval,     mtval)
   )
 
   val MXLEN  = UInt(8.W)
@@ -164,6 +172,7 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
+    // Set initial value to CSRs
     val csr = Wire(new CSR)
     // TODO: same with data RVConfig
     csr.misa   := 0.U
@@ -179,6 +188,12 @@ object CSR {
     csr.mcause := 0.U
     csr.mtval  := 0.U
 
+
+    // // TODO: Need Merge
+    // val mstatus = RegInit("ha00002000".U(XLEN.W))
+    // val mie = RegInit(0.U(XLEN.W))
+
+    // // TODO: Need Merge End
     csr.MXLEN := XLEN.U
     csr.IALIGN := {
       if (config.C) 16.U
@@ -189,3 +204,16 @@ object CSR {
     csr
   }
 }
+
+// // TODO: WARL and ....
+
+// object mtvec{
+//   def apply()(implicit XLEN: Int): CSR = new CSR
+//   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
+//     // Volume II Page 29 3.1.7
+//     // Value 0: Direct
+//     // Value 1: Vectored
+//     // Value >=2: Reserved
+//     val reg_value  = UInt(0.W)
+//   }
+// }

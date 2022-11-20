@@ -9,6 +9,7 @@ sealed abstract class RVConfig(extensions: String) {
     *   - We use the term XLEN to refer to the width of an integer register in
     *     bits.
     */
+  // From Test to define a implicit value RVConfig and Use String to define "M", "C" or not
   val XLEN: Int
   val M: Boolean = extensions.indexOf("M") != -1
   val C: Boolean = extensions.indexOf("C") != -1

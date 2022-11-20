@@ -9,11 +9,12 @@ import rvspeccore.core.tool.BitTool._
 
 trait CSRSupport extends BaseCore {
   def csrRead(addr: UInt): UInt = {
+    // Read the value of special registers
+    // CSR addr require 12bit
     require(addr.getWidth == 12)
-
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-
+    printf("Test:%d,%x,%x",has,nowCSR,addr)
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
@@ -21,6 +22,7 @@ trait CSRSupport extends BaseCore {
       when(has) {
         rData := nowCSR(MXLEN - 1, 0)
       }.otherwise {
+        // all unimplemented CSR registers return 0
         rData := 0.U(MXLEN.W)
       }
 

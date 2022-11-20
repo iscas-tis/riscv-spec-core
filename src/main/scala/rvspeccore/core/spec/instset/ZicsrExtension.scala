@@ -22,6 +22,22 @@ trait ZicsrExtensionInsts {
   val CSRRWI = Inst("b????????????_?????_101_?????_1110011")
   val CSRRSI = Inst("b????????????_?????_110_?????_1110011")
   val CSRRCI = Inst("b????????????_?????_111_?????_1110011")
+  // Figure 2.3: RISC-V base instruction formats showing immediate variants
+  //   31                                  20 | 19     15| 14    12 | 11                   7 | 6      0
+  // /----------------------------------------|----------|----------|------------------------|----------\
+  // | imm_11_0                            12 | rs1 5    | funct3 3 | rd                   5 | opcode 7 | I-type
+  // | source/dest                         12 | source 5 | CSRRW  3 | dest                 5 | SYSTEM 7 | CSRRW  Read / Write
+  // | source/dest                         12 | source 5 | CSRRS  3 | dest                 5 | SYSTEM 7 | CSRRS  Read & Set Bit
+  // | source/dest                         12 | source 5 | CSRRC  3 | dest                 5 | SYSTEM 7 | CSRRC  Read & Clear Bit
+  // | source/dest                         12 | uimm   5 | CSRRWI 3 | dest                 5 | SYSTEM 7 | CSRRWI Read / Write Imm
+  // | source/dest                         12 | uimm   5 | CSRRSI 3 | dest                 5 | SYSTEM 7 | CSRRSI Read & Set Bit Imm
+  // | source/dest                         12 | uimm   5 | CSRRCI 3 | dest                 5 | SYSTEM 7 | CSRRCI Read & Clear Bit Imm
+  // \----------------------------------------|----------------------------------------------|----------/
+  //   31                                  20 | 19     15| 14    12 | 11                   7 | 6      0
+  // e.g. 0x30102573  csrrs a0,csr,zero
+  // 001100000001_00000_010_01010_1110011
+  // misa 0x301 =Bin(0011_0000_0001)
+  // csrr	a0,misa is equal to csrrs a0,csr,zero
 }
 
 /** “Zicsr” Control and Status Register (CSR) Instructions
@@ -32,7 +48,9 @@ trait ZicsrExtensionInsts {
   */
 trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts with CSRSupport {
   def doRVZicsr: Unit = {
+    printf("Inst:%x\n",inst)
     when(CSRRW(inst)) {
+      printf("Is CSRRW:%x\n",inst)
       decodeI
       when(rd =/= 0.U) {
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -40,6 +58,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       csrWrite(imm(11, 0), now.reg(rs1))
     }
     when(CSRRS(inst)) {
+      printf("Is CSRRS:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
@@ -47,6 +66,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       }
     }
     when(CSRRC(inst)) {
+      printf("Is CSRRC:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
@@ -54,6 +74,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       }
     }
     when(CSRRWI(inst)) {
+      printf("Is CSRRWI:%x\n",inst)
       decodeI
       when(rd =/= 0.U) {
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -61,6 +82,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
     }
     when(CSRRSI(inst)) {
+      printf("Is CSRRSI:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
@@ -68,6 +90,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       }
     }
     when(CSRRCI(inst)) {
+      printf("Is CSRRCI:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {

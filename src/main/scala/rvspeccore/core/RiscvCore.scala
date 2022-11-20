@@ -7,21 +7,18 @@ import spec._
 import spec.instset.csr.CSR
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
+  // Define Basic parts
   implicit val XLEN: Int = config.XLEN
-
   val io = IO(new Bundle {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
-
     val mem = new MemIO
-
     val now  = Output(State())
     val next = Output(State())
   })
-
+  // Initial State
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
-
   val mem = Wire(new MemIO)
 }
 
@@ -75,8 +72,9 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     exceptionSupportInit()
 
     inst := io.inst
-
     // Decode and Excute
+    // Attention: Config(_) "_" means Config(__have_some_value__)
+    printf("Current Inst:%x\n",inst)
     config match {
       case RV32Config(_) => {
         doRV32I
