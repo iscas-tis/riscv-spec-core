@@ -145,7 +145,6 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val mepc      = CSRInfos.mepc.makeUInt
   val mcause    = CSRInfos.mcause.makeUInt
   val mtval     = CSRInfos.mtval.makeUInt
-
   /** Table for all CSR signals in this Bundle
    * CSRs in this table can be read or write
   */
@@ -182,10 +181,19 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   )
 }
 object CSR {
-  def apply()(implicit XLEN: Int): CSR = new CSR
+  def apply()(implicit XLEN: Int): CSR = new CSR()
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
+    // TODO: finish the sideEffect func
+    // Initial the value of CSR Regs
+    // def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
+      // val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
+    //   val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
+    //   mstatusNew
+    // }
+    // TODO: End
     // Set initial value to CSRs
-    val csr = Wire(new CSR)
+    // CSR Class is just a Bundle, need to transfer to Wire
+    val csr = Wire(new CSR())
     // TODO: same with data RVConfig
     csr.misa      := 0.U
     // mvendorid value 0 means non-commercial implementation
@@ -195,8 +203,11 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid    := 0.U
     csr.mhartid   := 0.U
-    csr.mstatus   := 0.U //300
+    csr.mstatus   := zeroExt("h00001800".U, XLEN)  //300
+    // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
+    // printf("mpp---------------:%b\n",mstatus_change.mpp)
     csr.mstatush  := 0.U //310
+    // FIXME: Need to give mtvec a default BASE Addr and Mode
     csr.mtvec     := 0.U
     csr.medeleg   := 0.U  //302
     csr.mideleg   := 0.U  //303
@@ -217,7 +228,6 @@ object CSR {
       else 32.U
     }
     csr.ILEN := 32.U
-
     csr
   }
 }
@@ -234,3 +244,37 @@ object CSR {
 //     val reg_value  = UInt(0.W)
 //   }
 // }
+// Level | Encoding |       Name       | Abbreviation
+//   0   |    00    | User/Application |      U
+//   1   |    01    |    Supervisor    |      S
+//   2   |    10    |     Reserved     |      
+//   3   |    11    |     Machine      |      M
+class MstatusStruct(implicit XLEN: Int) extends Bundle {
+  // 记录Mstatus寄存器的状态 并使用Bundle按序构造寄存器
+  val sd   = Output(UInt(1.W))
+  val pad1 = if (XLEN == 64) Output(UInt(25.W)) else null
+  val mbe  = if (XLEN == 64) Output(UInt(1.W))  else null
+  val sbe  = if (XLEN == 64) Output(UInt(1.W))  else null
+  val sxl  = if (XLEN == 64) Output(UInt(2.W))  else null
+  val uxl  = if (XLEN == 64) Output(UInt(2.W))  else null
+  val pad0 = if (XLEN == 64) Output(UInt(9.W))  else Output(UInt(8.W))
+  val tsr  = Output(UInt(1.W)) // 22
+  val tw   = Output(UInt(1.W)) // 21
+  val tvm  = Output(UInt(1.W)) // 20
+  val mxr  = Output(UInt(1.W)) // 19
+  val sum  = Output(UInt(1.W)) // 18
+  val mprv = Output(UInt(1.W)) // 17
+  val xs   = Output(UInt(2.W)) // 16 ~ 15
+  val fs   = Output(UInt(2.W)) // 14 ~ 13
+  val mpp  = Output(UInt(2.W)) // 12 ~ 11
+  val vs   = Output(UInt(2.W)) // 10 ~ 9
+  val spp  = Output(UInt(1.W)) // 8
+  val mpie = Output(UInt(1.W)) // 7
+  val ube  = Output(UInt(1.W)) // 6
+  val spie = Output(UInt(1.W)) // 5
+  val pad2 = Output(UInt(1.W)) // 4
+  val mie  = Output(UInt(1.W)) // 3
+  val pad3 = Output(UInt(1.W)) // 2
+  val sie  = Output(UInt(1.W)) // 1
+  val pad4 = Output(UInt(1.W)) // 0
+}

@@ -56,7 +56,9 @@ trait CSRSupport extends BaseCore {
 
     csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
       when(addr === info.addr) {
+        // 地址是当前寄存器的地址
         if (info.softwareWritable) {
+          // 且该寄存器可写 使用mask
           nextCSR := (nowCSR & ~mask) | (data & mask)
         } else {
           // TODO: might cause some exception?

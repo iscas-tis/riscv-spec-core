@@ -50,6 +50,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
   def doRVZicsr: Unit = {
     printf("Inst:%x\n",inst)
     when(CSRRW(inst)) {
+      // t = CSRs[csr]; CSRs[csr] = x[rs1]; x[rd] = t
       printf("Is CSRRW:%x\n",inst)
       decodeI
       when(rd =/= 0.U) {
@@ -58,6 +59,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       csrWrite(imm(11, 0), now.reg(rs1))
     }
     when(CSRRS(inst)) {
+      // t = CSRs[csr]; CSRs[csr] = t | x[rs1]; x[rd] = t
       printf("Is CSRRS:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -66,6 +68,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       }
     }
     when(CSRRC(inst)) {
+      // t = CSRs[csr]; CSRs[csr] = t &~x[rs1]; x[rd] = t
       printf("Is CSRRC:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -74,6 +77,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       }
     }
     when(CSRRWI(inst)) {
+      // x[rd] = CSRs[csr]; CSRs[csr] = zimm
       printf("Is CSRRWI:%x\n",inst)
       decodeI
       when(rd =/= 0.U) {
@@ -82,6 +86,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
     }
     when(CSRRSI(inst)) {
+      // t = CSRs[csr]; CSRs[csr] = t | zimm; x[rd] = t
       printf("Is CSRRSI:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -90,6 +95,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       }
     }
     when(CSRRCI(inst)) {
+      // t = CSRs[csr]; CSRs[csr] = t &~zimm; x[rd] = t
       printf("Is CSRRCI:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)

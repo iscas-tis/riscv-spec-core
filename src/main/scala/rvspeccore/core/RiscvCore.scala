@@ -61,6 +61,7 @@ object State {
 class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // should keep the value in the next clock
   // if there no changes below
+  // Initial the value of next
   next := now
 
   // dont read or write mem
