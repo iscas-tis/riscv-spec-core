@@ -111,6 +111,7 @@ object RiscvTests {
 
   val maxStep = 600
   def stepTest(dut: CoreTester, restClock: Int): Int = {
+    // run a clock
     dut.clock.step(1)
     if (dut.io.inst.peek().litValue == "h0000006f".U.litValue) { // end
       restClock
@@ -121,6 +122,7 @@ object RiscvTests {
     }
   }
   def checkReturn(dut: CoreTester): Unit = {
+    // FIXME:最后一条指令是0x6f 10号寄存器为0
     dut.io.inst.expect("h0000006f".U(32.W)) // j halt
     dut.io.now.reg(10).expect(0.U)          // li	a0,0
   }
@@ -129,6 +131,7 @@ object RiscvTests {
 class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "RiscvCore"
   it should "pass RV64Config firrtl emit" in {
+    // generate Firrtl Code
     (new chisel3.stage.ChiselStage)
       .emitFirrtl(new RiscvCore()(RV64Config()), Array("--target-dir", "test_run_dir/" + getTestName))
   }
@@ -175,7 +178,7 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV32Config("MC")
 
-  val tests = Seq("rv32ui", "rv32um", "rv32uc")
+  val tests = Seq("csr")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -187,6 +190,45 @@ class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
         test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
           RiscvTests.stepTest(c, RiscvTests.maxStep)
           RiscvTests.checkReturn(c)
+        }
+      }
+    )
+  }
+}
+
+
+class RiscvCore32SpecCSR extends AnyFlatSpec with ChiselScalatestTester {
+  implicit val config = RV32Config("MC")
+
+  // val tests = Seq("rv32ui", "rv32um", "rv32uc")
+  val tests = Seq("csr")
+
+  // NOTE: funce.i shows passed test, but RiscvCore not support it.
+  //       Because RiscvCore is too simple.
+  behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"
+  // a0是十号寄存器
+  tests.foreach { testCase =>
+    // 分别测试 test变量中的项目
+    RiscvTests(testCase).foreach(f =>
+      it should s"pass ${f.getName}" in {
+        test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
+          // c: CoreTester 里面主要就是对new 的
+          RiscvTests.stepTest(c, RiscvTests.maxStep)
+          var a = 0;
+          // for 循环
+          var tempString = ""
+          println("--[Debug]-----PC: ",c.io.now.pc.peek())
+          for( a <- 0 to 31){
+            // println("Reg",a,": ",c.io.now.reg(a).peek())
+            tempString += " R" + a.toString() + ":" + c.io.now.reg(a).peek().litValue.toString()
+          }
+          println(tempString)
+          // RiscvTests.checkReturn(c)
+          // dut.io.inst.expect("h0000006f".U(32.W)) // j halt
+          // dut.io.now.reg(10).expect(0.U)          // li	a0,0
+          println(c.io.inst.peek())
+          println(c.io.now.pc.peek())
+          println(c.io.now.csr.mstatus.peek())
         }
       }
     )

@@ -62,7 +62,11 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       // t = CSRs[csr]; CSRs[csr] = t | x[rs1]; x[rd] = t
       printf("Is CSRRS:%x\n",inst)
       decodeI
+      // imm_11_0, rs1 , funct3, rd             , opcode ), inst); 
+      // imm := signExt(    imm_11_0                                      , XLEN) }
+      printf("imm:%x rs1:%x rd:%x\n",imm,rs1,rd)
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+      printf("After Write:%x\n",next.reg(rd))
       when(rs1 =/= 0.U) {
         csrWrite(imm(11, 0), Fill(XLEN, 1.U(1.W)), now.reg(rs1))
       }

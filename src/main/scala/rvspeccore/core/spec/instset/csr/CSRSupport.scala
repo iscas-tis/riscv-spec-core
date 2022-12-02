@@ -14,7 +14,7 @@ trait CSRSupport extends BaseCore {
     require(addr.getWidth == 12)
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-    printf("Test:%d,%x,%x",has,nowCSR,addr)
+    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x\n",has,nowCSR,addr)
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {

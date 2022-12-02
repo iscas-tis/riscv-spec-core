@@ -8,7 +8,7 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import rvspeccore.core.RVConfig
 
-case class CSRInfo(addr: UInt, width: Option[Int], softwareWritable: Boolean) {
+case class CSRInfo(addr: UInt, width: Option[Int], softwareWritable: Boolean, wfn: UInt => UInt) {
   def makeUInt(implicit XLEN: Int) = width match {
     case Some(value) => UInt(value.W)
     case None        => UInt(XLEN.W)
@@ -16,8 +16,8 @@ case class CSRInfo(addr: UInt, width: Option[Int], softwareWritable: Boolean) {
 }
 
 object CSRInfo {
-  def apply(addrStr: String, width: Option[Int] = None, softwareWritable: Boolean = true): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), None, softwareWritable)
+  def apply(addrStr: String, width: Option[Int] = None, softwareWritable: Boolean = true, wfn: UInt => UInt = (x => x)): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), None, softwareWritable, wfn)
   }
 }
 
@@ -195,7 +195,7 @@ object CSR {
     // CSR Class is just a Bundle, need to transfer to Wire
     val csr = Wire(new CSR())
     // TODO: same with data RVConfig
-    csr.misa      := 0.U
+    csr.misa      := "b01_0000_00000_00000_00000_00000_00000_0".U // FIXME: Need to give a new initial value
     // mvendorid value 0 means non-commercial implementation
     csr.mvendorid := 0.U
     // marchid allocated globally by RISC-V International 0 means not implementation
