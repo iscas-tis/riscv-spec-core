@@ -13,6 +13,14 @@ sealed abstract class RVConfig(extensions: String) {
   val XLEN: Int
   val M: Boolean = extensions.indexOf("M") != -1
   val C: Boolean = extensions.indexOf("C") != -1
+
+  // CSRs Config
+
+  // Misa
+  var CSRMisaExtList = List('A', 'S', 'I', 'U')
+  if(M){ CSRMisaExtList = CSRMisaExtList :+ 'M'}
+  if(C){ CSRMisaExtList = CSRMisaExtList :+ 'C'}
+  
 }
 
 case class RV32Config(extensions: String = "") extends RVConfig(extensions) {

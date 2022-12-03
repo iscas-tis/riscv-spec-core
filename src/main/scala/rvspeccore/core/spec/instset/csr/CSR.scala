@@ -204,10 +204,7 @@ object CSR {
       }
     }
     def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
-    var extList = List('A', 'S', 'I', 'U')
-    if(config.M){ extList = extList :+ 'M'}
-    if(config.C){ extList = extList :+ 'C'}
-    val misaInitVal = getMisaMxl() | extList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) //"h8000000000141105".U 
+    val misaInitVal = getMisaMxl() | config.CSRMisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) //"h8000000000141105".U 
     csr.misa      := misaInitVal
     // Misa Initial End -----------------
     
