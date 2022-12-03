@@ -194,8 +194,23 @@ object CSR {
     // Set initial value to CSRs
     // CSR Class is just a Bundle, need to transfer to Wire
     val csr = Wire(new CSR())
-    // TODO: same with data RVConfig
-    csr.misa      := "b01_0000_00000_00000_00000_00000_00000_0".U // FIXME: Need to give a new initial value
+
+    // Misa Initial Begin -----------------
+    def getMisaMxl(): UInt = {
+      XLEN match {
+        case 32  => 1.U << (XLEN-2)
+        case 64  => 2.U << (XLEN-2)
+        case 128 => 3.U << (XLEN-2)
+      }
+    }
+    def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
+    var extList = List('A', 'S', 'I', 'U')
+    if(config.M){ extList = extList :+ 'M'}
+    if(config.C){ extList = extList :+ 'C'}
+    val misaInitVal = getMisaMxl() | extList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) //"h8000000000141105".U 
+    csr.misa      := misaInitVal
+    // Misa Initial End -----------------
+    
     // mvendorid value 0 means non-commercial implementation
     csr.mvendorid := 0.U
     // marchid allocated globally by RISC-V International 0 means not implementation
