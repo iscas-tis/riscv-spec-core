@@ -77,8 +77,8 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        // FIXME: 新写法wmask下导致的失灵？
-        csrWrite(imm(11, 0), now.reg(rs1))
+        // FIXME: 新写法wmask下导致的失灵 [待验证]
+        csrWrite(imm(11, 0), next.reg(rd) & ~now.reg(rs1))
       }
     }
     when(CSRRWI(inst)) {
@@ -106,8 +106,8 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        // FIXME: 新写法wmask下导致的失灵？
-        csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
+        // FIXME: 新写法wmask下导致的失灵？ [待验证]
+        csrWrite(imm(11, 0), next.reg(rd) & ~zeroExt(rs1, XLEN))
       }
     }
   }
