@@ -68,7 +68,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       printf("After Write:%x\n",next.reg(rd))
       when(rs1 =/= 0.U) {
-        csrWrite(imm(11, 0), Fill(XLEN, 1.U(1.W)), now.reg(rs1))
+        csrWrite(imm(11, 0), now.reg(rs1))
       }
     }
     when(CSRRC(inst)) {
@@ -77,7 +77,8 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        csrWrite(imm(11, 0), 0.U(XLEN.W), now.reg(rs1))
+        // FIXME: 新写法wmask下导致的失灵？
+        csrWrite(imm(11, 0), now.reg(rs1))
       }
     }
     when(CSRRWI(inst)) {
@@ -94,8 +95,9 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       printf("Is CSRRSI:%x\n",inst)
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+      // TODO: might have some exceptions when csrrs and csrrsi rs1 is zero?
       when(rs1 =/= 0.U) {
-        csrWrite(imm(11, 0), Fill(XLEN, 1.U(1.W)), zeroExt(rs1, XLEN))
+        csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
       }
     }
     when(CSRRCI(inst)) {
@@ -104,7 +106,8 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
       decodeI
       next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
       when(rs1 =/= 0.U) {
-        csrWrite(imm(11, 0), 0.U(XLEN.W), zeroExt(rs1, XLEN))
+        // FIXME: 新写法wmask下导致的失灵？
+        csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
       }
     }
   }

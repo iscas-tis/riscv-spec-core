@@ -8,7 +8,7 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import rvspeccore.core.RVConfig
 
-case class CSRInfo(addr: UInt, width: Option[Int], softwareWritable: Boolean, wfn: UInt => UInt) {
+case class CSRInfo(addr: UInt, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt) {
   def makeUInt(implicit XLEN: Int) = width match {
     case Some(value) => UInt(value.W)
     case None        => UInt(XLEN.W)
@@ -16,8 +16,21 @@ case class CSRInfo(addr: UInt, width: Option[Int], softwareWritable: Boolean, wf
 }
 
 object CSRInfo {
-  def apply(addrStr: String, width: Option[Int] = None, softwareWritable: Boolean = true, wfn: UInt => UInt = (x => x)): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), None, softwareWritable, wfn)
+  // [last three] rmask: UInt, wfn: UInt => UInt,  wmask: UInt
+  def apply(addrStr: String)(implicit XLEN: Int): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), None, Fill(XLEN, 1.U(1.W)), x=>x, Fill(XLEN, 1.U(1.W)))
+  }
+  def apply(addrStr: String, width: Option[Int])(implicit XLEN: Int): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), width, Fill(XLEN, 1.U(1.W)), x=>x, Fill(XLEN, 1.U(1.W)))
+  }
+  def apply(addrStr: String, width: Option[Int], rmask: UInt)(implicit XLEN: Int): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), width, rmask, x=>x, Fill(XLEN, 1.U(1.W)))
+  }
+  def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt)(implicit XLEN: Int): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), width, rmask, wfn, Fill(XLEN, 1.U(1.W)))
+  }
+  def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt)(implicit XLEN: Int): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), width, rmask, wfn, wmask)
   }
 }
 
@@ -33,10 +46,8 @@ object CSRInfo {
   *
   * width: The `xxx` CSR is a `xxx`-bit register
   *
-  * softwareWritable: `xxx` is never written by the implementation, though it
-  * may be explicitly written by software
   */
-object CSRInfos {
+class CSRInfos()(implicit XLEN: Int){
   // Address Map
   // - User Trap Setup ???????????
   // User CSR has been delete in V20211203
@@ -78,10 +89,10 @@ object CSRInfos {
   // - Virtual Supervisor Registers
 
   // - Machine Information Registers
-  val mvendorid = CSRInfo("hf11", None, false) // TODO
-  val marchid   = CSRInfo("hf12", None, false) // TODO
-  val mimpid    = CSRInfo("hf13", None, false) // TODO: not mention whether can write or not
-  val mhartid   = CSRInfo("hf14", None, false) // TODO
+  val mvendorid = CSRInfo("hf11") // TODO
+  val marchid   = CSRInfo("hf12") // TODO
+  val mimpid    = CSRInfo("hf13") // TODO
+  val mhartid   = CSRInfo("hf14") // TODO
   // mconfigptr
   // - Machine Information Registers
   val mstatus    = CSRInfo("h300") // TODO
@@ -95,7 +106,7 @@ object CSRInfos {
   // mstatush
   // - Machine Trap Handling
   val mscratch = CSRInfo("h340") // TODO
-  val mepc     = CSRInfo("h341", None, false)
+  val mepc     = CSRInfo("h341")
   val mcause   = CSRInfo("h342") // TODO
   val mtval    = CSRInfo("h343")
   val mip      = CSRInfo("h344") // TODO
@@ -128,8 +139,8 @@ object CSRInfos {
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
 class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
-  // default XLEN UInt and softwareWritable is true
   // make default value for registers
+  val CSRInfos = new CSRInfos()
   val misa      = CSRInfos.misa.makeUInt
   val mvendorid = CSRInfos.mvendorid.makeUInt
   val marchid   = CSRInfos.marchid.makeUInt
@@ -185,11 +196,12 @@ object CSR {
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
     // TODO: finish the sideEffect func
     // Initial the value of CSR Regs
-    // def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
-      // val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
-    //   val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
-    //   mstatusNew
-    // }
+    
+    def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
+      val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
+      val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
+      mstatusNew
+    }
     // TODO: End
     // Set initial value to CSRs
     // CSR Class is just a Bundle, need to transfer to Wire
@@ -216,6 +228,7 @@ object CSR {
     csr.mimpid    := 0.U
     csr.mhartid   := 0.U
     csr.mstatus   := zeroExt("h00001800".U, XLEN)  //300
+    val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
     csr.mstatush  := 0.U //310

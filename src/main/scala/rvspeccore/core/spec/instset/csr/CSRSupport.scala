@@ -28,7 +28,7 @@ trait CSRSupport extends BaseCore {
 
       // special read
       switch(addr) {
-        is(CSRInfos.mepc.addr) {
+        is(now.csr.CSRInfos.mepc.addr) {
           // - 3.1.14 Machine Exception Program Counter (mepc)
           // : If an implementation allows IALIGN to be either 16 or 32 (by
           // : changing CSR misa, for example), then, whenever IALIGN=32, bit
@@ -47,19 +47,18 @@ trait CSRSupport extends BaseCore {
 
     rData
   }
-  def csrWrite(addr: UInt, data: UInt, mask: UInt = Fill(XLEN, 1.U(1.W))): Unit = {
+  def csrWrite(addr: UInt, data: UInt): Unit = {
+    def UnwritableMask = 0.U(XLEN.W)
     require(addr.getWidth == 12)
-    require(mask.getWidth == XLEN)
-
+    // require(mask.getWidth == XLEN)
     // common wirte
     val csrPairs = now.csr.table.zip(next.csr.table)
-
     csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
       when(addr === info.addr) {
         // 地址是当前寄存器的地址
-        if (info.softwareWritable) {
+        if (info.wfn != null && info.wmask != UnwritableMask) {
           // 且该寄存器可写 使用mask
-          nextCSR := (nowCSR & ~mask) | (data & mask)
+          nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
         } else {
           // TODO: might cause some exception?
         }
