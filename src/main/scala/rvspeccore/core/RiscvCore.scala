@@ -75,7 +75,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     inst := io.inst
     // Decode and Excute
     // Attention: Config(_) "_" means Config(__have_some_value__)
-    printf("Current Inst:%x\n",inst)
+    // Debug
+    // printf("Current Inst:%x\n",inst)
     config match {
       case RV32Config(_) => {
         doRV32I
