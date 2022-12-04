@@ -14,7 +14,7 @@ trait CSRSupport extends BaseCore {
     require(addr.getWidth == 12)
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x\n",has,nowCSR,addr)
+    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x)\n",has,nowCSR,addr)
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
@@ -59,6 +59,7 @@ trait CSRSupport extends BaseCore {
         if (info.wfn != null && info.wmask != UnwritableMask) {
           // 且该寄存器可写 使用mask
           nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
+          printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
         } else {
           // TODO: might cause some exception?
         }

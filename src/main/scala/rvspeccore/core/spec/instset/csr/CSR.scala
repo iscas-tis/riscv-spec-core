@@ -128,7 +128,10 @@ class CSRInfos()(implicit XLEN: Int){
   val mcycleh       = CSRInfo("hb80")
   val mhpmcounter3h = CSRInfo("hb82")
   // .. TODO: for mhpmcounter3h ~ mhpmcounter31h
-
+  // new add
+  val cycle         = CSRInfo("hc00")
+  val time          = CSRInfo("hc01")
+  val instret       = CSRInfo("hc02")
   // mtinst
   // mtval2
   // - Machine Trap Handling
@@ -148,6 +151,7 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val mhartid   = CSRInfos.mhartid.makeUInt
   val mstatus   = CSRInfos.mstatus.makeUInt
   val mstatush  = CSRInfos.mstatush.makeUInt
+  val mscratch  = CSRInfos.mscratch.makeUInt
   val mtvec     = CSRInfos.mtvec.makeUInt
   val medeleg   = CSRInfos.medeleg.makeUInt
   val mideleg   = CSRInfos.mideleg.makeUInt
@@ -156,6 +160,11 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val mepc      = CSRInfos.mepc.makeUInt
   val mcause    = CSRInfos.mcause.makeUInt
   val mtval     = CSRInfos.mtval.makeUInt
+
+  val cycle     = CSRInfos.cycle.makeUInt
+  // val time      = CSRInfos.time.makeUInt
+  // val instret   = CSRInfos.instret.makeUInt
+
   /** Table for all CSR signals in this Bundle
    * CSRs in this table can be read or write
   */
@@ -167,6 +176,7 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.mhartid,   mhartid),
     CSRInfoSignal(CSRInfos.mstatus,   mstatus),
     CSRInfoSignal(CSRInfos.mstatush,  mstatush),
+    CSRInfoSignal(CSRInfos.mscratch,  mscratch),
     CSRInfoSignal(CSRInfos.mtvec,     mtvec),
     CSRInfoSignal(CSRInfos.medeleg,   medeleg),
     CSRInfoSignal(CSRInfos.mideleg,   mideleg),
@@ -174,7 +184,10 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.mie,       mie),
     CSRInfoSignal(CSRInfos.mepc,      mepc),
     CSRInfoSignal(CSRInfos.mcause,    mcause),
-    CSRInfoSignal(CSRInfos.mtval,     mtval)
+    CSRInfoSignal(CSRInfos.mtval,     mtval),
+    CSRInfoSignal(CSRInfos.cycle,     cycle)
+    // CSRInfoSignal(CSRInfos.time,      time),
+    // CSRInfoSignal(CSRInfos.instret,   instret)
   )
 
   val MXLEN  = UInt(8.W)
@@ -233,6 +246,7 @@ object CSR {
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
     csr.mstatush  := 0.U //310
     // FIXME: Need to give mtvec a default BASE Addr and Mode
+    csr.mscratch  := 0.U
     csr.mtvec     := 0.U
     csr.medeleg   := 0.U  //302
     csr.mideleg   := 0.U  //303
@@ -241,7 +255,7 @@ object CSR {
     csr.mepc      := 0.U
     csr.mcause    := 0.U
     csr.mtval     := 0.U
-
+    csr.cycle     := 0.U // Warn: NutShell not implemented
     // // TODO: Need Merge
     // val mstatus = RegInit("ha00002000".U(XLEN.W))
     // val mie = RegInit(0.U(XLEN.W))
