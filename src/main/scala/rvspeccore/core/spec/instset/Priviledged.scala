@@ -29,3 +29,15 @@ trait PriviledgedInsts {
   // TODO: For more insts
   // ......  
 }
+
+/** “Priviledged” Instruction-Fetch Fence
+  *  Volume II Insts
+  */
+trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedInsts {
+  def doRVPriviledged: Unit = {
+    // FIXME: need to decode more insts & clearify there actions(not do nothing....)
+    when(SRET(inst)) { decodeI /* then do nothing for now */ }
+    when(MRET(inst)) { decodeI /* then do nothing for now */ }
+    when(WFI(inst)) { decodeI /* then do nothing for now */ }
+  }
+}
