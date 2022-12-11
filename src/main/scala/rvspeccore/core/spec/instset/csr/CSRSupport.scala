@@ -8,6 +8,12 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 
 trait CSRSupport extends BaseCore {
+
+  val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
+  val lr = RegInit(Bool(), false.B)
+  val VAddrBits = if(XLEN == 32) 32 else 39
+  val retTarget = Wire(UInt(VAddrBits.W))
+  retTarget := DontCare
   def csrRead(addr: UInt): UInt = {
     // Read the value of special registers
     // CSR addr require 12bit
@@ -68,5 +74,18 @@ trait CSRSupport extends BaseCore {
 
     // special wirte
     // ...
+  }
+
+  def Mret(): Unit = {
+      val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+      val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+      // // mstatusNew.mpp.m := ModeU //TODO: add mode U
+      mstatusNew.mie := mstatusOld.mpie
+      priviledgeMode := mstatusOld.mpp
+      mstatusNew.mpie := true.B
+      mstatusNew.mpp := 0x0.U
+      next.csr.mstatus := mstatusNew.asUInt
+      lr := false.B
+      retTarget := next.csr.mepc(VAddrBits-1, 0)
   }
 }
