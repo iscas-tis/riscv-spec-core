@@ -70,6 +70,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // ID & EXE
   when(io.valid) {
+    next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
 
     inst := io.inst
