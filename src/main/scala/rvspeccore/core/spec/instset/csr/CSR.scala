@@ -143,25 +143,28 @@ case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
 class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   // make default value for registers
-  val CSRInfos = new CSRInfos()
-  val misa      = CSRInfos.misa.makeUInt
-  val mvendorid = CSRInfos.mvendorid.makeUInt
-  val marchid   = CSRInfos.marchid.makeUInt
-  val mimpid    = CSRInfos.mimpid.makeUInt
-  val mhartid   = CSRInfos.mhartid.makeUInt
-  val mstatus   = CSRInfos.mstatus.makeUInt
-  val mstatush  = CSRInfos.mstatush.makeUInt
-  val mscratch  = CSRInfos.mscratch.makeUInt
-  val mtvec     = CSRInfos.mtvec.makeUInt
-  val medeleg   = CSRInfos.medeleg.makeUInt
-  val mideleg   = CSRInfos.mideleg.makeUInt
-  val mip       = CSRInfos.mip.makeUInt
-  val mie       = CSRInfos.mie.makeUInt
-  val mepc      = CSRInfos.mepc.makeUInt
-  val mcause    = CSRInfos.mcause.makeUInt
-  val mtval     = CSRInfos.mtval.makeUInt
+  val CSRInfos   = new CSRInfos()
+  val misa       = CSRInfos.misa.makeUInt
+  val mvendorid  = CSRInfos.mvendorid.makeUInt
+  val marchid    = CSRInfos.marchid.makeUInt
+  val mimpid     = CSRInfos.mimpid.makeUInt
+  val mhartid    = CSRInfos.mhartid.makeUInt
+  val mstatus    = CSRInfos.mstatus.makeUInt
+  val mstatush   = CSRInfos.mstatush.makeUInt
+  val mscratch   = CSRInfos.mscratch.makeUInt
+  val mtvec      = CSRInfos.mtvec.makeUInt
+  val mcounteren = CSRInfos.mcounteren.makeUInt
+  val medeleg    = CSRInfos.medeleg.makeUInt
+  val mideleg    = CSRInfos.mideleg.makeUInt
+  val mip        = CSRInfos.mip.makeUInt
+  val mie        = CSRInfos.mie.makeUInt
+  val mepc       = CSRInfos.mepc.makeUInt
+  val mcause     = CSRInfos.mcause.makeUInt
+  val mtval      = CSRInfos.mtval.makeUInt
 
-  val cycle     = CSRInfos.cycle.makeUInt
+  val cycle      = CSRInfos.cycle.makeUInt
+
+  val scounteren = CSRInfos.scounteren.makeUInt
   // val time      = CSRInfos.time.makeUInt
   // val instret   = CSRInfos.instret.makeUInt
 
@@ -178,6 +181,7 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.mstatush,  mstatush),
     CSRInfoSignal(CSRInfos.mscratch,  mscratch),
     CSRInfoSignal(CSRInfos.mtvec,     mtvec),
+    CSRInfoSignal(CSRInfos.mcounteren,mcounteren),
     CSRInfoSignal(CSRInfos.medeleg,   medeleg),
     CSRInfoSignal(CSRInfos.mideleg,   mideleg),
     CSRInfoSignal(CSRInfos.mip,       mip),
@@ -185,7 +189,8 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.mepc,      mepc),
     CSRInfoSignal(CSRInfos.mcause,    mcause),
     CSRInfoSignal(CSRInfos.mtval,     mtval),
-    CSRInfoSignal(CSRInfos.cycle,     cycle)
+    CSRInfoSignal(CSRInfos.cycle,     cycle),
+    CSRInfoSignal(CSRInfos.scounteren,scounteren)
     // CSRInfoSignal(CSRInfos.time,      time),
     // CSRInfoSignal(CSRInfos.instret,   instret)
   )
@@ -207,9 +212,9 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR()
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
+  
     // TODO: finish the sideEffect func
-    // Initial the value of CSR Regs
-    
+    // Initial the value of CSR Regs  
     def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
       val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
       val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
@@ -230,6 +235,7 @@ object CSR {
     }
     def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
     val misaInitVal = getMisaMxl() | config.CSRMisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) //"h8000000000141105".U 
+    // val valid = csr.io.in.valid
     csr.misa      := misaInitVal
     // Misa Initial End -----------------
     
@@ -248,6 +254,7 @@ object CSR {
     // FIXME: Need to give mtvec a default BASE Addr and Mode
     csr.mscratch  := 0.U
     csr.mtvec     := 0.U
+    csr.mcounteren:= 0.U
     csr.medeleg   := 0.U  //302
     csr.mideleg   := 0.U  //303
     csr.mip       := 0.U  //344
@@ -255,7 +262,8 @@ object CSR {
     csr.mepc      := 0.U
     csr.mcause    := 0.U
     csr.mtval     := 0.U
-    csr.cycle     := 0.U // Warn: NutShell not implemented
+    csr.cycle     := 0.U // Warn TODO: NutShell not implemented
+    csr.scounteren:= 0.U
     // // TODO: Need Merge
     // val mstatus = RegInit("ha00002000".U(XLEN.W))
     // val mie = RegInit(0.U(XLEN.W))
