@@ -6,8 +6,13 @@ import chisel3.util._
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
+import rvspeccore.core.RVConfig
 
 trait CSRSupport extends BaseCore {
+  def ModeU     = 0x0.U // 00 User/Application
+  def ModeS     = 0x1.U // 01 Supervisor
+  def ModeR     = 0x2.U // 10 Reserved
+  def ModeM     = 0x3.U // 11 Machine
 
   val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
   val lr = RegInit(Bool(), false.B)
@@ -76,16 +81,34 @@ trait CSRSupport extends BaseCore {
     // ...
   }
 
-  def Mret(): Unit = {
-      val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
-      val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
-      // // mstatusNew.mpp.m := ModeU //TODO: add mode U
-      mstatusNew.mie := mstatusOld.mpie
-      priviledgeMode := mstatusOld.mpp
-      mstatusNew.mpie := true.B
-      mstatusNew.mpp := 0x0.U
-      next.csr.mstatus := mstatusNew.asUInt
-      lr := false.B
-      retTarget := next.csr.mepc(VAddrBits-1, 0)
+  def Mret()(implicit config: RVConfig): Unit = {
+    val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+    val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+    // // mstatusNew.mpp.m := ModeU //TODO: add mode U
+    mstatusNew.mie   := mstatusOld.mpie
+    priviledgeMode   := mstatusOld.mpp
+    mstatusNew.mpie  := true.B
+    if(config.CSRMisaExtList.exists(s => s == 'U')) {
+      mstatusNew.mpp := ModeU 
+    } else {
+      mstatusNew.mpp := ModeM
+    }
+    next.csr.mstatus := mstatusNew.asUInt
+    lr := false.B
+    retTarget := next.csr.mepc(VAddrBits-1, 0)
+  }
+  def Sret(): Unit = {
+    // FIXME: is mstatus not sstatus ?
+    val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+    val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+    // mstatusNew.mpp.m := ModeU //TODO: add mode U
+    mstatusNew.sie   := mstatusOld.spie
+    priviledgeMode   := Cat(0.U(1.W), mstatusOld.spp)
+    mstatusNew.spie  := true.B
+    mstatusNew.spp   := ModeM
+    mstatusNew.mprv  := 0x0.U // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
+    next.csr.mstatus := mstatusNew.asUInt
+    lr := false.B
+    retTarget := next.csr.sepc(VAddrBits-1, 0)
   }
 }

@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 
 import rvspeccore.core.BaseCore
+import rvspeccore.core.RVConfig
 import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import csr._
@@ -34,7 +35,7 @@ trait PriviledgedInsts {
   *  Volume II Insts
   */
 trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedInsts with CSRSupport{
-  def doRVPriviledged: Unit = {
+  def doRVPriviledged()(implicit config: RVConfig): Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
     when(SRET(inst)) { decodeI /* then do nothing for now */ }
     when(MRET(inst)) { 
