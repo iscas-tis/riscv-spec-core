@@ -165,6 +165,7 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val cycle      = CSRInfos.cycle.makeUInt
 
   val scounteren = CSRInfos.scounteren.makeUInt
+  val sepc       = CSRInfos.sepc.makeUInt
   // val time      = CSRInfos.time.makeUInt
   // val instret   = CSRInfos.instret.makeUInt
 
@@ -190,7 +191,8 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.mcause,    mcause),
     CSRInfoSignal(CSRInfos.mtval,     mtval),
     CSRInfoSignal(CSRInfos.cycle,     cycle),
-    CSRInfoSignal(CSRInfos.scounteren,scounteren)
+    CSRInfoSignal(CSRInfos.scounteren,scounteren),
+    CSRInfoSignal(CSRInfos.sepc,      sepc)
     // CSRInfoSignal(CSRInfos.time,      time),
     // CSRInfoSignal(CSRInfos.instret,   instret)
   )
@@ -263,7 +265,8 @@ object CSR {
     csr.mcause    := 0.U
     csr.mtval     := 0.U
     csr.cycle     := 0.U // Warn TODO: NutShell not implemented
-    csr.scounteren:= 0.U
+    csr.scounteren:= 0.U // TODO: Need to modify
+    csr.sepc      := 0.U // TODO: Need to modify
     // // TODO: Need Merge
     // val mstatus = RegInit("ha00002000".U(XLEN.W))
     // val mie = RegInit(0.U(XLEN.W))
