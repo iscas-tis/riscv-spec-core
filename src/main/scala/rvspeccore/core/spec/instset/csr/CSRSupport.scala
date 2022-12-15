@@ -55,7 +55,6 @@ trait CSRSupport extends BaseCore {
       is(32.U(8.W)) { doCSRRead(32) }
       is(64.U(8.W)) { if (XLEN >= 64) { doCSRRead(64) } }
     }
-
     rData
   }
   def csrWrite(addr: UInt, data: UInt): Unit = {
@@ -89,7 +88,7 @@ trait CSRSupport extends BaseCore {
     priviledgeMode   := mstatusOld.mpp
     mstatusNew.mpie  := true.B
     if(config.CSRMisaExtList.exists(s => s == 'U')) {
-      mstatusNew.mpp := ModeU 
+      mstatusNew.mpp := ModeU
     } else {
       mstatusNew.mpp := ModeM
     }
@@ -105,7 +104,7 @@ trait CSRSupport extends BaseCore {
     mstatusNew.sie   := mstatusOld.spie
     priviledgeMode   := Cat(0.U(1.W), mstatusOld.spp)
     mstatusNew.spie  := true.B
-    mstatusNew.spp   := ModeM
+    mstatusNew.spp   := ModeM // FIXME: is which mode ?
     mstatusNew.mprv  := 0x0.U // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
     next.csr.mstatus := mstatusNew.asUInt
     lr := false.B

@@ -48,6 +48,12 @@ object CSRInfo {
   *
   */
 class CSRInfos()(implicit XLEN: Int){
+  // SideEffect
+  def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
+    val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
+    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
+    mstatusNew
+  }
   // Address Map
   // - User Trap Setup ???????????
   // User CSR has been delete in V20211203
@@ -95,7 +101,7 @@ class CSRInfos()(implicit XLEN: Int){
   val mhartid   = CSRInfo("hf14") // TODO
   // mconfigptr
   // - Machine Information Registers
-  val mstatus    = CSRInfo("h300") // TODO
+  val mstatus    = CSRInfo("h300", None, Fill(XLEN, 1.U(1.W)), mstatusUpdateSideEffect) // TODO
   val misa       = CSRInfo("h301") // TODO
   val medeleg    = CSRInfo("h302") // TODO
   val mideleg    = CSRInfo("h303") // TODO
@@ -217,11 +223,7 @@ object CSR {
   
     // TODO: finish the sideEffect func
     // Initial the value of CSR Regs  
-    def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
-      val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
-      val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
-      mstatusNew
-    }
+
     // TODO: End
     // Set initial value to CSRs
     // CSR Class is just a Bundle, need to transfer to Wire
@@ -248,7 +250,7 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid    := 0.U
     csr.mhartid   := 0.U
-    csr.mstatus   := zeroExt("h00001800".U, XLEN)  //300
+    csr.mstatus   := zeroExt("h000000ff".U, XLEN)  //300
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
