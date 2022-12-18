@@ -6,7 +6,7 @@ import chisel3.util._
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
-
+import rvspeccore.core.spec.instset.csr._
 /** Base Integer Instructions
   *
   *   - riscv-spec-20191213
@@ -98,7 +98,7 @@ trait IBaseInsts {
 
 // scalafmt: { maxColumn = 200 }
 
-trait IBase extends BaseCore with CommonDecode with IBaseInsts {
+trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport{
   // val setPc = WireInit(false.B)
 
   def memRead(addr: UInt, memWidth: UInt): UInt = {
@@ -183,7 +183,12 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts {
     when(SB(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
     when(SH(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) }
     when(SW(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) }
-
+    when(EBREAK(inst)) {
+      // FIXME: EBREAK is not I type, but juse Decode, not use...
+      decodeI;
+      raiseException(MExceptionCode.breakpoint)
+      printf("IS EBREAK\n")
+    }
     // - 2.7 Memory Ordering Instructions
     // - 2.8 Environment Call and Breakpoints
     // - 2.9 HINT Instructions

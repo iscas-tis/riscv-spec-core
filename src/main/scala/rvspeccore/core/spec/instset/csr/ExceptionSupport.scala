@@ -114,7 +114,7 @@ trait ExceptionSupport extends BaseCore {
       next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
       next.csr.mepc   := now.pc
       next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
-
+      // TODO: modify the exception case
       // special part
       exceptionCode match {
         case MExceptionCode.illegalInstruction => {
@@ -126,7 +126,12 @@ trait ExceptionSupport extends BaseCore {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
+        // 暂时将csr读不存在的寄存器设置为instructionAccessFault TODO: 需要进一步明确
         case MExceptionCode.instructionAccessFault => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
+        case MExceptionCode.breakpoint => {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
@@ -135,11 +140,10 @@ trait ExceptionSupport extends BaseCore {
       // jump
       switch(now.csr.mtvec(1, 0)) {
         is(0.U(2.W)) { 
-          printf("Nextpc1!!!!%x\n", (now.csr.mtvec(MXLEN - 1, 2)) << 2)
           // setPc := true.B
           global_data.setpc := true.B
           next.pc := (now.csr.mtvec(MXLEN - 1, 2)) << 2
-          printf("Nextpc2!!!!%x\n", next.pc)
+          printf("NextPC:%x\n", next.pc)
         }
         is(1.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U }
         // >= 2 reserved
