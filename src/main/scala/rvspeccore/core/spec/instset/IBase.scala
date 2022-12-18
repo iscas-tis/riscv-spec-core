@@ -99,7 +99,7 @@ trait IBaseInsts {
 // scalafmt: { maxColumn = 200 }
 
 trait IBase extends BaseCore with CommonDecode with IBaseInsts {
-  val setPc = WireInit(false.B)
+  // val setPc = WireInit(false.B)
 
   def memRead(addr: UInt, memWidth: UInt): UInt = {
     mem.read.valid    := true.B
@@ -159,19 +159,19 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts {
     // - 2.5 Control Transfer Instructions
     // - Unconditional Jumps
     // JAL
-    when(JAL(inst)) { decodeJ; setPc := true.B; next.pc := now.pc + imm; next.reg(rd) := now.pc + 4.U; }
+    when(JAL(inst)) { decodeJ; global_data.setpc := true.B; next.pc := now.pc + imm; next.reg(rd) := now.pc + 4.U; }
     // JALR
-    when(JALR(inst)) { decodeI; setPc := true.B; next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); next.reg(rd) := now.pc + 4.U; }
+    when(JALR(inst)) { decodeI; global_data.setpc := true.B; next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); next.reg(rd) := now.pc + 4.U; }
     // - Conditional Branches
     // BEQ/BNE
-    when(BEQ(inst)) { decodeB; when(now.reg(rs1) === now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
-    when(BNE(inst)) { decodeB; when(now.reg(rs1) =/= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
+    when(BEQ(inst)) { decodeB; when(now.reg(rs1) === now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BNE(inst)) { decodeB; when(now.reg(rs1) =/= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     // BLT[U]
-    when(BLT(inst))  { decodeB; when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
-    when(BLTU(inst)) { decodeB; when(now.reg(rs1) < now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
+    when(BLT(inst))  { decodeB; when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BLTU(inst)) { decodeB; when(now.reg(rs1) < now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     // BGE[U]
-    when(BGE(inst))  { decodeB; when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { setPc := true.B; next.pc := now.pc + imm } }
-    when(BGEU(inst)) { decodeB; when(now.reg(rs1) >= now.reg(rs2)) { setPc := true.B; next.pc := now.pc + imm } }
+    when(BGE(inst))  { decodeB; when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BGEU(inst)) { decodeB; when(now.reg(rs1) >= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     // - 2.6 Load and Store Instructions
     // LOAD
     when(LB(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }

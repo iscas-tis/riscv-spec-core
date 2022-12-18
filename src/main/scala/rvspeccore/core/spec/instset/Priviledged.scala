@@ -26,7 +26,7 @@ trait PriviledgedInsts {
   val HFANCE_GVMA     = Inst("b0110001_?????_?????_000_00000_1110011")
   val HINVAL_VVMA     = Inst("b0010011_?????_?????_000_00000_1110011")
   val HINVAL_GVMA     = Inst("b0110011_?????_?????_000_00000_1110011")
-
+  val NOP         = Inst("b0000_0000_0000_0000_0000_0000_0000_0000")
   // TODO: For more insts
   // ......  
 }
@@ -34,7 +34,7 @@ trait PriviledgedInsts {
 /** “Priviledged” Instruction-Fetch Fence
   *  Volume II Insts
   */
-trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedInsts with CSRSupport{
+trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedInsts with CSRSupport with ExceptionSupport{
   def doRVPriviledged()(implicit config: RVConfig): Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
     when(SRET(inst)) { decodeI /* then do nothing for now */ }
@@ -45,5 +45,10 @@ trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedIn
       /* then do nothing for now */ 
     }
     when(WFI(inst)) { decodeI /* then do nothing for now */ }
+    when(NOP(inst)) { 
+      printf("Is NOP:%x\n",inst)
+      tryRaiseException()
+      /* then do nothing for now */ 
+    }
   }
 }

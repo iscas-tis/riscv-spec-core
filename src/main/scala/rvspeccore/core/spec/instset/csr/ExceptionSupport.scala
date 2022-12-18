@@ -108,6 +108,7 @@ trait ExceptionSupport extends BaseCore {
   }
 
   def raiseException(exceptionCode: Int): Unit = {
+    printf("[Error]Exception:%d\n",exceptionCode.U)
     def doRaiseException(MXLEN: Int): Unit = {
       // common part
       next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
@@ -125,11 +126,21 @@ trait ExceptionSupport extends BaseCore {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
+        case MExceptionCode.instructionAccessFault => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
       }
-
+      printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump
       switch(now.csr.mtvec(1, 0)) {
-        is(0.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) }
+        is(0.U(2.W)) { 
+          printf("Nextpc1!!!!%x\n", (now.csr.mtvec(MXLEN - 1, 2)) << 2)
+          // setPc := true.B
+          global_data.setpc := true.B
+          next.pc := (now.csr.mtvec(MXLEN - 1, 2)) << 2
+          printf("Nextpc2!!!!%x\n", next.pc)
+        }
         is(1.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U }
         // >= 2 reserved
       }

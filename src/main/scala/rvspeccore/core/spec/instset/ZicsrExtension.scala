@@ -48,7 +48,7 @@ trait ZicsrExtensionInsts {
   */
 trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts with CSRSupport {
   def doRVZicsr: Unit = {
-    printf("Inst:%x\n",inst)
+    printf("PC: %x Inst:%x\n",now.pc,inst)
     when(CSRRW(inst)) {
       // t = CSRs[csr]; CSRs[csr] = x[rs1]; x[rd] = t
       printf("Is CSRRW:%x\n",inst)

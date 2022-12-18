@@ -8,7 +8,7 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import rvspeccore.core.RVConfig
 
-trait CSRSupport extends BaseCore {
+trait CSRSupport extends BaseCore with ExceptionSupport {
   def ModeU     = 0x0.U // 00 User/Application
   def ModeS     = 0x1.U // 01 Supervisor
   def ModeR     = 0x2.U // 10 Reserved
@@ -60,21 +60,30 @@ trait CSRSupport extends BaseCore {
   def csrWrite(addr: UInt, data: UInt): Unit = {
     def UnwritableMask = 0.U(XLEN.W)
     require(addr.getWidth == 12)
-    // require(mask.getWidth == XLEN)
-    // common wirte
-    val csrPairs = now.csr.table.zip(next.csr.table)
-    csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
-      when(addr === info.addr) {
-        // 地址是当前寄存器的地址
-        if (info.wfn != null && info.wmask != UnwritableMask) {
-          // 且该寄存器可写 使用mask
-          nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
-          printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
-        } else {
-          // TODO: might cause some exception?
+    val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
+    when(has) {
+      // require(mask.getWidth == XLEN)
+      // common wirte
+      val csrPairs = now.csr.table.zip(next.csr.table)
+      csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
+        when(addr === info.addr) {
+          // 地址是当前寄存器的地址
+          if (info.wfn != null && info.wmask != UnwritableMask) {
+            // 且该寄存器可写 使用mask
+            nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
+            printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
+          } else {
+            // TODO: might cause some exception?
+
+          }
         }
       }
+    }.otherwise {
+      // all unimplemented CSR registers return 0
+      printf("[Error]CSR_Write:Not have this reg...\n")
+      raiseException(MExceptionCode.instructionAccessFault)
     }
+
 
     // special wirte
     // ...
@@ -95,6 +104,10 @@ trait CSRSupport extends BaseCore {
     next.csr.mstatus := mstatusNew.asUInt
     lr := false.B
     retTarget := next.csr.mepc(VAddrBits-1, 0)
+    printf("nextpc1:%x\n",now.csr.mepc)
+    global_data.setpc := true.B
+    next.pc := now.csr.mepc
+    printf("nextpc2:%x\n",next.pc)
   }
   def Sret(): Unit = {
     // FIXME: is mstatus not sstatus ?
