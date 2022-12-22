@@ -135,6 +135,10 @@ trait ExceptionSupport extends BaseCore {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
+        case MExceptionCode.environmentCallFromMmode => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
       }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump

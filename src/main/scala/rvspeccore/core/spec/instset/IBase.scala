@@ -97,10 +97,26 @@ trait IBaseInsts {
 }
 
 // scalafmt: { maxColumn = 200 }
-
+object SizeOp {
+  def b = "b00".U
+  def h = "b01".U
+  def w = "b10".U
+  def d = "b11".U
+}
 trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport{
   // val setPc = WireInit(false.B)
-
+  def addrAligned(size: UInt, addr: UInt): Bool = {
+      MuxLookup(
+        size,
+        false.B,
+        Array(
+          "b00".U   -> true.B,              //b
+          "b01".U   -> (addr(0)   === 0.U), //h
+          "b10".U   -> (addr(1,0) === 0.U), //w
+          "b11".U   -> (addr(2,0) === 0.U)  //d
+        )
+      )
+  }
   def memRead(addr: UInt, memWidth: UInt): UInt = {
     mem.read.valid    := true.B
     mem.read.addr     := addr
@@ -189,6 +205,16 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       raiseException(MExceptionCode.breakpoint)
       printf("IS EBREAK\n")
     }
+
+    when(ECALL(inst)) {
+      // FIXME: EBREAK is not I type, but juse Decode, not use...
+      decodeI;
+      // TODO: More exception code
+      raiseException(MExceptionCode.environmentCallFromMmode)
+      // raiseException(MExceptionCode.breakpoint)
+      printf("IS ECALL\n")
+    }
+    
     // - 2.7 Memory Ordering Instructions
     // - 2.8 Environment Call and Breakpoints
     // - 2.9 HINT Instructions
@@ -231,7 +257,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(SUBW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN) }
     when(SRAW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN) }
 
-    // - 5.3 Load and Store Instructions
+    // - 5.3 Load and Store Instructions RV64
     // - LOAD
     when(LWU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
     when(LD(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) }
