@@ -105,6 +105,22 @@ object SizeOp {
 }
 trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport{
   // val setPc = WireInit(false.B)
+  def alignedException(method: String, size: UInt, addr: UInt): Unit = {
+    when(!addrAligned(size,addr)){
+      method match {
+          case "Store" => {
+            raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+          }
+          case "Load" => {
+            raiseException(MExceptionCode.loadAddressMisaligned)
+          }
+          case "Instr" => {
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+      }
+    }
+
+  }
   def addrAligned(size: UInt, addr: UInt): Bool = {
       MuxLookup(
         size,
@@ -190,15 +206,62 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(BGEU(inst)) { decodeB; when(now.reg(rs1) >= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     // - 2.6 Load and Store Instructions
     // LOAD
-    when(LB(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
-    when(LH(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
-    when(LW(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
-    when(LBU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
-    when(LHU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
+    // TODO: LBU and LHU ?
+    when(LB(inst))  { 
+      // TODO: LB好像不会出现非对齐访存的异常？
+      decodeI; 
+      when(addrAligned(SizeOp.b, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+    }
+    when(LH(inst))  { 
+      printf("[Debug]LH Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
+      decodeI; 
+      when(addrAligned(SizeOp.h, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+      // alignedException("Load", SizeOp.h, now.reg(rs1) + imm); 
+      printf("[Debug]LH End: %x\n",next.reg(rd))
+    }
+    when(LW(inst))  { 
+      printf("[Debug]LW Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
+      decodeI; 
+      when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+      printf("[Debug]LW End: %x\n", next.reg(rd))
+    }
+    when(LBU(inst)) { decodeI; alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
+    when(LHU(inst)) { decodeI; alignedException("Load", SizeOp.h, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
     // STORE
-    when(SB(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
-    when(SH(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) }
-    when(SW(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) }
+    when(SB(inst)) { decodeS; alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
+    when(SH(inst)) { 
+      decodeS; 
+      when(addrAligned(SizeOp.h, now.reg(rs1) + imm)){
+        memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) 
+      }.otherwise{
+        mem.write.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+      }
+    }
+    when(SW(inst)) { 
+      decodeS; 
+      when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
+        memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) 
+      }.otherwise{
+        mem.write.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+      }
+    }
     when(EBREAK(inst)) {
       // FIXME: EBREAK is not I type, but juse Decode, not use...
       decodeI;

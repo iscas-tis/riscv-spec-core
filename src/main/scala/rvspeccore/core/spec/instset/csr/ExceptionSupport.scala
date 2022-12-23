@@ -123,6 +123,7 @@ trait ExceptionSupport extends BaseCore {
           // : * the first ILEN bits of the faulting instruction
           // : * the first MXLEN bits of the faulting instruction
           // simply implement it for now
+          // FIXME: 实际上 非法指令存的是指令本身 其他的错误并非存储指令到mtval中 其他的也需要改
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
@@ -136,6 +137,20 @@ trait ExceptionSupport extends BaseCore {
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
         case MExceptionCode.environmentCallFromMmode => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
+        // FIXME:三种非对齐访存 把非必要的Case进行合并
+        case MExceptionCode.storeOrAMOAddressMisaligned => {
+          next.csr.mtval := io.mem.write.addr
+          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
+        }
+        case MExceptionCode.loadAddressMisaligned => {
+          next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+
+        }
+        case MExceptionCode.instructionAddressMisaligned => {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
