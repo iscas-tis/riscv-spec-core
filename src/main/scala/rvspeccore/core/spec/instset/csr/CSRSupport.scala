@@ -81,7 +81,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     }.otherwise {
       // all unimplemented CSR registers return 0
       printf("[Error]CSR_Write:Not have this reg...\n")
-      raiseException(MExceptionCode.instructionAccessFault)
+      raiseException(MExceptionCode.illegalInstruction)
     }
 
 
