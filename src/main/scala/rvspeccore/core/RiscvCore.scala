@@ -75,6 +75,11 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // ID & EXE
   when(io.valid) {
+    printf("PC: %x Inst:%x\n",now.pc,inst)
+    // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
+    //   raiseException(0)
+    //   next.csr.mtval := now.pc
+    // }.otherwise{
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
 
@@ -113,6 +118,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     }
 
     tryRaiseException()
+    // }
   }
 
   // mem port

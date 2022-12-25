@@ -151,6 +151,16 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     *   - riscv-spec-20191213
     *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
     */
+  def getfetchSize():UInt = {
+    MuxLookup(
+      now.csr.misa(CSR.getMisaExtInt('C')),
+      SizeOp.w,
+      Array(
+        "b0".U   -> SizeOp.w,
+        "b1".U   -> SizeOp.h
+      )
+    )
+  }
   def doRV32I: Unit = {
     // - 2.4 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
@@ -189,15 +199,67 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // NOP is encoded as ADDI x0, x0, 0.
 
     // - 2.5 Control Transfer Instructions
+    // FIXME: 全部的跳转指令都得加一次判断 并且之后需要在最后统一仲裁优先级
     // - Unconditional Jumps
     // JAL
-    when(JAL(inst)) { decodeJ; global_data.setpc := true.B; next.pc := now.pc + imm; next.reg(rd) := now.pc + 4.U; }
+    when(JAL(inst)) { 
+      decodeJ; 
+      // global_data.setpc := true.B; 
+      // next.pc := now.pc + imm; 
+      // next.reg(rd) := now.pc + 4.U; 
+      when(addrAligned(getfetchSize(), now.pc + imm)){
+        global_data.setpc := true.B; 
+        next.pc := now.pc + imm; 
+        next.reg(rd) := now.pc + 4.U; 
+      }.otherwise{
+        // FIXME: 没有赋值成功
+        next.csr.mtval := now.pc + imm; 
+        raiseException(MExceptionCode.instructionAddressMisaligned)
+      }
+    }
     // JALR
-    when(JALR(inst)) { decodeI; global_data.setpc := true.B; next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); next.reg(rd) := now.pc + 4.U; }
+    when(JALR(inst)) { 
+      decodeI; 
+      when(addrAligned(getfetchSize(), Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)))){
+        global_data.setpc := true.B; 
+        next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); 
+        next.reg(rd) := now.pc + 4.U; 
+      }.otherwise{
+        // FIXME: 没有赋值成功
+        next.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
+        raiseException(MExceptionCode.instructionAddressMisaligned)
+      }
+    }
     // - Conditional Branches
     // BEQ/BNE
-    when(BEQ(inst)) { decodeB; when(now.reg(rs1) === now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
-    when(BNE(inst)) { decodeB; when(now.reg(rs1) =/= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BEQ(inst)) { 
+      decodeB; 
+      when(now.reg(rs1) === now.reg(rs2)) { 
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B; 
+          next.pc := now.pc + imm; 
+        }.otherwise{
+          // FIXME: 没有赋值成功
+          next.csr.mtval := now.pc + imm; 
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+        // global_data.setpc := true.B; next.pc := now.pc + imm 
+      } 
+    }
+    when(BNE(inst)) { 
+      decodeB; 
+      when(now.reg(rs1) =/= now.reg(rs2)) { 
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B; 
+          next.pc := now.pc + imm; 
+        }.otherwise{
+          // FIXME: 没有赋值成功
+          next.csr.mtval := now.pc + imm; 
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+        // global_data.setpc := true.B; next.pc := now.pc + imm 
+      } 
+    }
     // BLT[U]
     when(BLT(inst))  { decodeB; when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     when(BLTU(inst)) { decodeB; when(now.reg(rs1) < now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }

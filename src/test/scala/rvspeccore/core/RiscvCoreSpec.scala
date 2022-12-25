@@ -157,7 +157,7 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV64Config("MC")
 
-  val tests = Seq("rv64ui", "rv64um", "rv64uc")
+  val tests = Seq("rv64mi")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -176,11 +176,14 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
+  
   implicit val config = RV32Config("MC")
+  // implicit val config = RV32Config("M")
 
   // val tests = Seq("rv32ui", "rv32um", "rv32uc")
-  // val tests = Seq("rv32mi")
+  // val tests = Seq("rv32si")
   val tests = Seq("csr")
+  // val tests = Seq("rv32mi")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -191,6 +194,13 @@ class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
       it should s"pass ${f.getName}" in {
         test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
           RiscvTests.stepTest(c, RiscvTests.maxStep)
+          var tempString = ""
+          println("--[Debug]-----PC: ",c.io.now.pc.peek())
+          for( a <- 0 to 31){
+            // println("Reg",a,": ",c.io.now.reg(a).peek())
+            tempString += " R" + a.toString() + ":" + c.io.now.reg(a).peek().litValue.toString()
+          }
+          println(tempString)
           RiscvTests.checkReturn(c)
         }
       }
@@ -215,7 +225,7 @@ class RiscvCore32SpecCSR extends AnyFlatSpec with ChiselScalatestTester {
       it should s"pass ${f.getName}" in {
         test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
           // c: CoreTester 里面主要就是对new 的
-          RiscvTests.stepTest(c, RiscvTests.maxStep)
+          RiscvTests.stepTest(c, 170)
           var a = 0;
           // for 循环
           var tempString = ""

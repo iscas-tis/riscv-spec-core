@@ -102,7 +102,8 @@ class CSRInfos()(implicit XLEN: Int){
   // mconfigptr
   // - Machine Information Registers
   val mstatus    = CSRInfo("h300", None, Fill(XLEN, 1.U(1.W)), mstatusUpdateSideEffect) // TODO
-  val misa       = CSRInfo("h301") // TODO
+  val misa       = CSRInfo("h301", None, Fill(XLEN, 1.U(1.W)), null, 0.U(XLEN.W)) // UnwritableMask implement
+  // val misa       = CSRInfo("h301") // TODO
   val medeleg    = CSRInfo("h302") // TODO
   val mideleg    = CSRInfo("h303") // TODO
   val mie        = CSRInfo("h304") // TODO
@@ -219,6 +220,8 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
 }
 object CSR {
   def apply()(implicit XLEN: Int): CSR = new CSR()
+  def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
+  def getMisaExtInt(ext: Char): Int = {(ext.toInt - 'A'.toInt)}
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
   
     // TODO: finish the sideEffect func
@@ -237,7 +240,6 @@ object CSR {
         case 128 => 3.U << (XLEN-2)
       }
     }
-    def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
     val misaInitVal = getMisaMxl() | config.CSRMisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) //"h8000000000141105".U 
     // val valid = csr.io.in.valid
     csr.misa      := misaInitVal

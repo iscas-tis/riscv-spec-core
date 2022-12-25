@@ -151,8 +151,8 @@ trait ExceptionSupport extends BaseCore {
 
         }
         case MExceptionCode.instructionAddressMisaligned => {
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-            .otherwise { next.csr.mtval := io.inst(31, 0) }
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
       }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
@@ -164,7 +164,11 @@ trait ExceptionSupport extends BaseCore {
           next.pc := (now.csr.mtvec(MXLEN - 1, 2)) << 2
           printf("NextPC:%x\n", next.pc)
         }
-        is(1.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U }
+        is(1.U(2.W)) { 
+          global_data.setpc := true.B
+          next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U 
+          printf("NextPC:%x\n", next.pc)
+        }
         // >= 2 reserved
       }
     }
