@@ -109,7 +109,7 @@ object RiscvTests {
     new File(s"$root/$instSet/$instTest")
   }
 
-  val maxStep = 600
+  val maxStep = 1000
   def stepTest(dut: CoreTester, restClock: Int): Int = {
     // run a clock
     dut.clock.step(1)
@@ -157,7 +157,8 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV64Config("MC")
 
-  val tests = Seq("rv64mi")
+  // val tests = Seq("rv64mi")
+  val tests = Seq("csr64")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -168,6 +169,13 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
       it should s"pass ${f.getName}" in {
         test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
           RiscvTests.stepTest(c, RiscvTests.maxStep)
+          var tempString = ""
+          println("--[Debug]-----PC: ",c.io.now.pc.peek())
+          for( a <- 0 to 31){
+            // println("Reg",a,": ",c.io.now.reg(a).peek())
+            tempString += " R" + a.toString() + ":" + c.io.now.reg(a).peek().litValue.toString()
+          }
+          println(tempString)
           RiscvTests.checkReturn(c)
         }
       }
@@ -182,8 +190,8 @@ class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
 
   // val tests = Seq("rv32ui", "rv32um", "rv32uc")
   // val tests = Seq("rv32si")
-  val tests = Seq("csr")
-  // val tests = Seq("rv32mi")
+  // val tests = Seq("rv64mi")
+  val tests = Seq("rv32mi")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -213,7 +221,7 @@ class RiscvCore32SpecCSR extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV32Config("MC")
 
   // val tests = Seq("rv32ui", "rv32um", "rv32uc")
-  val tests = Seq("csr")
+  val tests = Seq("csr32")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
