@@ -336,7 +336,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       decodeI;
       // TODO: More exception code
       raiseException(MExceptionCode.environmentCallFromMmode)
-      // raiseException(MExceptionCode.breakpoint)
       printf("IS ECALL\n")
     }
     
@@ -384,10 +383,27 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
     // - 5.3 Load and Store Instructions RV64
     // - LOAD
+    // FIXME: 并非所有的都加了异常访存的限制 需要重新梳理并新加
     when(LWU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
-    when(LD(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) }
+    when(LD(inst))  { 
+      decodeI; 
+      when(addrAligned(SizeOp.d, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+    }
     // - STORE
-    when(SD(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) }
+    when(SD(inst)) { 
+      decodeS; 
+      when(addrAligned(SizeOp.d, now.reg(rs1) + imm)){
+        memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) 
+      }.otherwise{
+        mem.write.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+      }
+    }
 
     // - 5.4 HINT Instructions
   }

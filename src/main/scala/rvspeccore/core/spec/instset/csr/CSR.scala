@@ -51,7 +51,9 @@ class CSRInfos()(implicit XLEN: Int){
   // SideEffect
   def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
     val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
-    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
+    mstatusOld.mpp := "b11".U
+    // FIXME: 临时mpp只能为M状态 之后要时刻保持其值为能够支持的状态
+    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatusOld.asUInt(XLEN-2, 0))
     mstatusNew
   }
   // Address Map
@@ -252,7 +254,12 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid    := 0.U
     csr.mhartid   := 0.U
-    csr.mstatus   := zeroExt("h000000ff".U, XLEN)  //300
+    if(XLEN == 32){
+      // TODO: 事实上 此处需要根据Config文件配置 进一步完善mstatus的初始值和可供修改的位置
+      csr.mstatus   := zeroExt("h000000ff".U, XLEN)  //300
+    }else{
+      csr.mstatus   := zeroExt("h2000000ff".U, XLEN)  //300
+    }
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
