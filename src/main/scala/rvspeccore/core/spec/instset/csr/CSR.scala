@@ -56,6 +56,11 @@ class CSRInfos()(implicit XLEN: Int){
   def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
     val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
     // mstatusOld.mpp := "b11".U
+    if (XLEN == 64){
+      // FIXME: 还需要判断S态是否存在
+      mstatusOld.uxl := "b10".U
+      mstatusOld.sxl := "b10".U
+    }
     // FIXME: 临时mpp只能为M状态 之后要时刻保持其值为能够支持的状态 
     // 需要读Config来继续进行 当前三个模式都有 所以这一行要注释掉
     val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatusOld.asUInt(XLEN-2, 0))
