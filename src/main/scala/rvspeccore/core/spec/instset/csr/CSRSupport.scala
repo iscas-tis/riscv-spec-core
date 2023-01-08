@@ -9,12 +9,10 @@ import rvspeccore.core.tool.BitTool._
 import rvspeccore.core.RVConfig
 
 trait CSRSupport extends BaseCore with ExceptionSupport {
-  def ModeU     = 0x0.U // 00 User/Application
-  def ModeS     = 0x1.U // 01 Supervisor
-  def ModeR     = 0x2.U // 10 Reserved
-  def ModeM     = 0x3.U // 11 Machine
-
-  val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
+  // def ModeU     = 0x0.U // 00 User/Application
+  // def ModeS     = 0x1.U // 01 Supervisor
+  // def ModeR     = 0x2.U // 10 Reserved
+  // def ModeM     = 0x3.U // 11 Machine
   val lr = RegInit(Bool(), false.B)
   val VAddrBits = if(XLEN == 32) 32 else 39
   val retTarget = Wire(UInt(VAddrBits.W))
@@ -96,6 +94,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     mstatusNew.mie   := mstatusOld.mpie
     priviledgeMode   := mstatusOld.mpp
     mstatusNew.mpie  := true.B
+    printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
     if(config.CSRMisaExtList.exists(s => s == 'U')) {
       mstatusNew.mpp := ModeU
     } else {
@@ -122,5 +121,9 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     next.csr.mstatus := mstatusNew.asUInt
     lr := false.B
     retTarget := next.csr.sepc(VAddrBits-1, 0)
+    printf("nextpc1:%x\n",now.csr.mepc)
+    global_data.setpc := true.B
+    next.pc := now.csr.sepc
+    printf("nextpc2:%x\n",next.pc)
   }
 }

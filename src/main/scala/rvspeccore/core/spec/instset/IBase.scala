@@ -332,10 +332,11 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     }
 
     when(ECALL(inst)) {
-      // FIXME: EBREAK is not I type, but juse Decode, not use...
+      // FIXME: ECALL is not I type, but juse Decode, not use...
       decodeI;
       // TODO: More exception code
       raiseException(MExceptionCode.environmentCallFromMmode)
+      // raiseException(MExceptionCode.environmentCallFromSmode)
       printf("IS ECALL\n")
     }
     

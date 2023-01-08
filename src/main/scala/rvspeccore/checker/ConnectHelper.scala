@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.BoringUtils
 
+import rvspeccore.core.RVConfig
 import rvspeccore.core.spec.instset.csr.CSR
 
 abstract class ConnectHelper {}
@@ -17,13 +18,13 @@ object ConnectCheckerResult extends ConnectHelper {
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
   }
-  def makeCSRSource()(implicit XLEN: Int): CSR = {
+  def makeCSRSource()(implicit XLEN: Int, config: RVConfig): CSR = {
     val csr = Wire(CSR())
     csr := DontCare
     BoringUtils.addSource(csr, uniqueIdCSR)
     csr
   }
-  def setChecker(checker: CheckerWithResult)(implicit XLEN: Int) = {
+  def setChecker(checker: CheckerWithResult)(implicit XLEN: Int, config: RVConfig) = {
     // reg
     val regVec = Wire(Vec(32, UInt(XLEN.W)))
     regVec := DontCare

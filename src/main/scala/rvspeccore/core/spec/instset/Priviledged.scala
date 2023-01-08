@@ -37,7 +37,12 @@ trait PriviledgedInsts {
 trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedInsts with CSRSupport with ExceptionSupport{
   def doRVPriviledged()(implicit config: RVConfig): Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
-    when(SRET(inst)) { decodeI /* then do nothing for now */ }
+    when(SRET(inst)) { 
+      printf("Is SRET:%x\n",inst)
+      decodeI 
+       Sret()
+      /* then do nothing for now */ 
+    }
     when(MRET(inst)) { 
       printf("Is MRET:%x\n",inst)
       decodeI
