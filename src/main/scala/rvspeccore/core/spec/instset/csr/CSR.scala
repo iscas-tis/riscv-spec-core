@@ -171,6 +171,17 @@ class CSRInfos()(implicit XLEN: Int){
   // - Machine Trap Handling
   // - ...
   // - Debug Mode Registers
+  // Machine Memory Protection
+  val pmpcfg0       = CSRInfo("h3A0")
+  val pmpcfg1       = CSRInfo("h3A1")
+  val pmpcfg2       = CSRInfo("h3A2")
+  val pmpcfg3       = CSRInfo("h3A3")
+  // TODO: Can modify
+  val pmpaddr0      = CSRInfo("h3B0") 
+  val pmpaddr1      = CSRInfo("h3B1") 
+  val pmpaddr2      = CSRInfo("h3B2") 
+  val pmpaddr3      = CSRInfo("h3B3") 
+
 }
 
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
@@ -201,11 +212,21 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
   val scounteren = CSRInfos.scounteren.makeUInt
 
   // if(config.S){
-    val scause    = CSRInfos.scause.makeUInt
-    val stvec     = CSRInfos.stvec.makeUInt
-    val sepc      = CSRInfos.sepc.makeUInt
-    val stval     = CSRInfos.stval.makeUInt
-    val sscratch  = CSRInfos.sscratch.makeUInt
+    val scause        = CSRInfos.scause.makeUInt
+    val stvec         = CSRInfos.stvec.makeUInt
+    val sepc          = CSRInfos.sepc.makeUInt
+    val stval         = CSRInfos.stval.makeUInt
+    val sscratch      = CSRInfos.sscratch.makeUInt
+    // Memory Protection
+    val satp          = CSRInfos.satp.makeUInt
+    val pmpcfg0       = CSRInfos.pmpcfg0.makeUInt
+    val pmpcfg1       = CSRInfos.pmpcfg1.makeUInt
+    val pmpcfg2       = CSRInfos.pmpcfg2.makeUInt
+    val pmpcfg3       = CSRInfos.pmpcfg3.makeUInt
+    val pmpaddr0      = CSRInfos.pmpaddr0.makeUInt
+    val pmpaddr1      = CSRInfos.pmpaddr1.makeUInt
+    val pmpaddr2      = CSRInfos.pmpaddr2.makeUInt
+    val pmpaddr3      = CSRInfos.pmpaddr3.makeUInt
   // }
   // val time      = CSRInfos.time.makeUInt
   // val instret   = CSRInfos.instret.makeUInt
@@ -247,7 +268,17 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
       CSRInfoSignal(CSRInfos.sstatus,   mstatus),
       CSRInfoSignal(CSRInfos.sie,       mie),
       CSRInfoSignal(CSRInfos.sip,       mip),
-      CSRInfoSignal(CSRInfos.sscratch,  sscratch)
+      CSRInfoSignal(CSRInfos.sscratch,  sscratch),
+      // Memory Protection
+      CSRInfoSignal(CSRInfos.satp,      satp),
+      CSRInfoSignal(CSRInfos.pmpcfg0,   pmpcfg0),
+      CSRInfoSignal(CSRInfos.pmpcfg1,   pmpcfg1),
+      CSRInfoSignal(CSRInfos.pmpcfg2,   pmpcfg2),
+      CSRInfoSignal(CSRInfos.pmpcfg3,   pmpcfg3),
+      CSRInfoSignal(CSRInfos.pmpaddr0,  pmpaddr0),
+      CSRInfoSignal(CSRInfos.pmpaddr1,  pmpaddr1),
+      CSRInfoSignal(CSRInfos.pmpaddr2,  pmpaddr2),
+      CSRInfoSignal(CSRInfos.pmpaddr3,  pmpaddr3)
       )
     table = table ++ table_S
   }
@@ -331,10 +362,19 @@ object CSR {
     csr.sepc      := 0.U // TODO: Need to modify
     csr.stval     := 0.U
     csr.sscratch  := 0.U
+    // Memory Protection
+    csr.satp      := 0.U
+    csr.pmpcfg0   := 0.U
+    csr.pmpcfg1   := 0.U
+    csr.pmpcfg2   := 0.U
+    csr.pmpcfg3   := 0.U
+    csr.pmpaddr0  := 0.U
+    csr.pmpaddr1  := 0.U
+    csr.pmpaddr2  := 0.U
+    csr.pmpaddr3  := 0.U
     // // TODO: Need Merge
     // val mstatus = RegInit("ha00002000".U(XLEN.W))
     // val mie = RegInit(0.U(XLEN.W))
-
     // // TODO: Need Merge End
     csr.MXLEN := XLEN.U
     csr.IALIGN := {
@@ -392,3 +432,36 @@ class MstatusStruct(implicit XLEN: Int) extends Bundle {
   val sie  = Output(UInt(1.W)) // 1
   val pad4 = Output(UInt(1.W)) // 0
 }
+class SatpStruct(implicit XLEN: Int) extends Bundle {
+  val mode = if (XLEN == 32) UInt(1.W) else UInt(4.W)
+  val asid = if (XLEN == 32) UInt(9.W) else UInt(16.W)
+  val ppn  = if (XLEN == 32) UInt(22.W) else UInt(44.W)
+}
+
+class SV39PTE() extends Bundle {
+  val reserved = UInt(10.W)
+  val ppn      = UInt(44.W)
+  val rsw      = UInt(2.W)
+  val flag     = UInt(8.W)
+}
+
+class PTEFlag() extends Bundle {
+  val d = Bool()
+  val a = Bool()
+  val g = Bool()
+  val u = Bool()
+  val x = Bool()
+  val w = Bool()
+  val r = Bool()
+  val v = Bool()
+}
+
+
+// TODO: FIXME: Merge to ours tools csr
+// NutShell
+// io.imemMMU.priviledgeMode := priviledgeMode
+// io.dmemMMU.priviledgeMode := Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+// XiangShan
+// tlbBundle.priv.imode := priviledgeMode
+// tlbBundle.priv.dmode := Mux(debugMode && dcsr.asTypeOf(new DcsrStruct).mprven, ModeM, Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode))
+// 当前还没有Debug Mode 因此按照NutShell 来讲 我认为是一致的

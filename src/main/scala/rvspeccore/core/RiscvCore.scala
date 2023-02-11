@@ -44,6 +44,8 @@ class WriteMemIO()(implicit XLEN: Int) extends Bundle {
 class MemIO()(implicit XLEN: Int) extends Bundle {
   val read  = new ReadMemIO
   val write = new WriteMemIO
+  val Anotherread  = Vec(3, new ReadMemIO())
+  val Anotherwrite = Vec(3, new WriteMemIO())
 }
 
 class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {

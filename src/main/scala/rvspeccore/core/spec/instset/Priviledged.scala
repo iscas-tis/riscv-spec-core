@@ -55,5 +55,6 @@ trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedIn
       tryRaiseException()
       /* then do nothing for now */ 
     }
+    when(SFANCE_VMA(inst)){ decodeI /* then do nothing for now */ }
   }
 }
