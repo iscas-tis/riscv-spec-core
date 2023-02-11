@@ -80,37 +80,27 @@ trait MMU extends BaseCore with ExceptionSupport{
         mem.write.data     := data
     }
     def PAWriteMMU(addr: UInt, memWidth: UInt, data: UInt): Unit = {
+        // 暂时先使用了一个端口 实际上 dirty操作的是最后找到的那个页 不像读页出现的问题
         mem.Anotherwrite(0).valid    := true.B
         mem.Anotherwrite(0).addr     := addr    
         mem.Anotherwrite(0).memWidth := memWidth
         mem.Anotherwrite(0).data     := data
     }
-    def LegalAddr(vaddr:UInt): Bool = {
-        val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        val pg_base = (now.csr.satp.asTypeOf((new SatpStruct)).ppn) << 12
-        // val flag = (now.pc === "h8000_0238".U)
-        // when(now.pc === "h8000_0238".U){
-        //     // 巨页处理
-        //     flag := false.B
-        // }.otherwise{
-        //     flag := true.B
-        // }
-        // sum.asBool & ~flag
-        sum.asBool
-    }
+
     def LegalAddrStep5(): Bool = {
         // FIXME: 需要进一步改这个函数 看手册哈
         val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        // val pg_base = (now.csr.satp.asTypeOf((new SatpStruct)).ppn) << 12
-        // val flag = (now.pc === "h8000_0238".U)
         sum.asBool
     }
+
     def ValidPage(PTE:PTEFlag): Bool = {
         PTE.r || PTE.x
     }
+
     def LegalPage(PTE:PTEFlag, level:Int): Bool = {
         ~((!PTE.v || (!PTE.r && PTE.w)) || (level < 0).asBool)
     }
+
     def IsWriteDirty(PTE:SV39PTE, PA:UInt) = {
         val FlagPTE = PTE.flag.asTypeOf(new PTEFlag())
         val FlagPTEnew = 0.U(8.W).asTypeOf(new PTEFlag())
@@ -123,6 +113,7 @@ trait MMU extends BaseCore with ExceptionSupport{
             PAWriteMMU(PA, 64.U, PTEnew.asUInt)
         }
     }
+
     def LevelCalc(data: UInt):UInt = {
         MuxLookup(
             data,
@@ -134,11 +125,13 @@ trait MMU extends BaseCore with ExceptionSupport{
             )
         )
     }
+
     def IsSuperPage() = {
     // def IsSuperPage(PTE:PTEFlag) = {
         val flag = (now.pc === "h8000_0238".U)
         false.B | flag
     }
+
     def AddrRSWLegal(addr:UInt) : Bool = {
         val flag = Wire(Bool())
         // FIXME: 需要修一下
@@ -150,16 +143,8 @@ trait MMU extends BaseCore with ExceptionSupport{
         flag := true.B
         flag
     }
+
     def PageTableWalk_new(addr:UInt, accsessType: Int): (Bool, UInt) = {
-        printf("[Debug]PageTableWalk_new!!! Addr: %x, Type: %d\n", addr, accsessType.asUInt)
-        // // FIXME:  临时的屎
-        //     val SatpNow = now.csr.satp.asTypeOf((new SatpStruct))
-        //     val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        //     val L2PA = Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
-        //     val PTE = PARead(L2PA, 64.U).asTypeOf(new SV39PTE())
-        //     val FlagPTE = PTE.flag.asTypeOf(new PTEFlag())
-        //     IsWriteDirty(PTE, L2PA)
-        // // FIXME: 临时拉的屎结束
         // Vaddr 前保留位校验 Begin
         // 失败 则Go bad
         val finalSuccess = Wire(Bool())
@@ -281,90 +266,9 @@ trait MMU extends BaseCore with ExceptionSupport{
             finaladdr := 0.U
         }
         // Vaddr 前保留位校验 End
-
-
-
-        // 合法性检测 Begin
-            // 失败 直接return fail
-        // 合法性检测 End
-
-        // 在 level为 2 和 1 的 情况下 检测 SuperPage Begin
-            // 失败 go bad
-        // 在 level为 2 和 1 的 情况下 检测 SuperPage End
-
-        // dirty位处理 Begin
-
-        // dirty位处理 End
-
-        // 返回地址 | OK
-
-        // Bad 处理Begin
-            // 再检测一次权限
-            // 返回fail
-        // Bad 处理End
         (finalSuccess, finaladdr)
-        // while( level > 0 ){
-        //     println( "Value of level-1: " + (level-1) );
-        //     level = level - 1;
-        //     // p_pte = pg_base + VPNi(vaddr, level) * PTE_SIZE;
-        //     val PTE_PA = Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
-        //     val PTE = PARead(PTE_PA, 64.U).asTypeOf(new SV39PTE())
-        // }
-        // val PTE_PA = Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
-        // val PTE = PARead(PTE_PA, 64.U).asTypeOf(new SV39PTE())
-        // when(LegalPage(PTE.flag.asTypeOf(new PTEFlag()), level)){
-        //     when(ValidPage(PTE.flag.asTypeOf(new PTEFlag()))){
-        //         IsLargePage(PTE.flag.asTypeOf(new PTEFlag()))
-        //         addr := "h8000_0000_0000_0000".U | addr
-        //     }
-        // }.otherwise{
-        //     level = level -1
-        //     PTE_PA := addr
-        //     PTE := PARead(PTE_PA, 64.U).asTypeOf(new SV39PTE())
-        //     when(LegalPage(PTE.flag.asTypeOf(new PTEFlag()), level)){
-        //         when(ValidPage(PTE.flag.asTypeOf(new PTEFlag()))){
-        //             IsLargePage(PTE.flag.asTypeOf(new PTEFlag()))
-        //             addr := "h8000_0000_0000_0000".U | addr
-        //         }
-        //     }
-        // }
-        // addr
     }
-    def PageTableWalk(addr:UInt, accsessType: Int): UInt = {
-        // TODO: 可以优化
-        printf("[Debug]PageTableWalk_old!!! Addr: %x, Type: %d\n", addr, accsessType.asUInt)
-        val SatpNow = now.csr.satp.asTypeOf((new SatpStruct))
-        val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        val L2PA = Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
-        val PTE = PARead(L2PA, 64.U).asTypeOf(new SV39PTE())
-        val FlagPTE = PTE.flag.asTypeOf(new PTEFlag())
-        // val FlagPTEnew = 0.U(8.W).asTypeOf(new PTEFlag())
-        // printf("[Debug]L2PA:%x, Page Value:%x \n", L2PA, PARead(L2PA, 64.U))
-        // mstatus->sum
-        printf("[Debug]FlagPTE: %x, A: %d D: %d PTEAddr:%x \n", FlagPTE.asUInt, FlagPTE.a, FlagPTE.d, L2PA)
-        val test = PageTableWalk_new(addr, accsessType)
-        printf("[Debug]PageTableWalk_new Test Success:%d, Addr:%x \n", test._1, test._2)
-        IsWriteDirty(PTE, L2PA)
-        // when(~FlagPTE.a || ~FlagPTE.d){
-        //     FlagPTEnew := FlagPTE
-        //     FlagPTEnew.a := true.B
-        //     FlagPTEnew.d := true.B
-        //     val PTEnew = Cat(PTE.reserved.asUInt, PTE.ppn.asUInt, PTE.rsw.asUInt, FlagPTEnew.asUInt)
-        //     printf("[Debug]Is Dirty!!! Need Write Addr: %x Value:%x \n", L2PA, PTEnew.asUInt)
-        //     PAWriteMMU(L2PA, 64.U, PTEnew.asUInt)
-        // }
-        "h0000_0000_8000_0000".U | addr
-    }
-    def AddrTrans(addr:UInt): UInt = {
-        val SatpNow = WireInit(now.csr.satp.asTypeOf((new SatpStruct)))
-        val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        val L2PA = Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
-        val FlagPTE = PARead(L2PA, 64.U).asTypeOf(new SV39PTE())
-        printf("[Debug]L2PA_W:%x, Page Value:%x Flag:%x PPN:%x PA:%x SUM:%x \n", L2PA, PARead(L2PA, 64.U), FlagPTE.flag, FlagPTE.ppn, Cat(0.U(8.W),Cat(FlagPTE.ppn,addr(11,0))), sum)
-        // // mstatus->sum
-        // "h8000_0000_0000_0000".U | addr
-        PageTableWalk(addr,0)
-    }
+
     def AddrTransRead(addr:UInt): UInt = {
         val SatpNow = WireInit(now.csr.satp.asTypeOf((new SatpStruct)))
         val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
@@ -375,4 +279,5 @@ trait MMU extends BaseCore with ExceptionSupport{
         "h0000_0000_8000_0000".U | addr
         // PageTableWalk(addr,0)
     }
+    
 }
