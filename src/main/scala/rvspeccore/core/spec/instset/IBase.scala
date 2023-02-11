@@ -6,6 +6,7 @@ import chisel3.util._
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
+import rvspeccore.core.tool.LoadStore
 import rvspeccore.core.spec.instset.csr._
 /** Base Integer Instructions
   *
@@ -74,6 +75,10 @@ trait IBaseInsts {
   val AND  = Inst("b0000000_?????_?????_111_?????_0110011")
 
   val FENCE  = Inst("b????????????_?????_000_?????_0001111")
+  // b????_????_????_????_?001_????_?000_1111
+  // b0000_1111_1111_0000_0000_0000_0000_1111
+  // b????_????_????_????_?000_????_?000_1111
+
   val ECALL  = Inst("b000000000000_00000_000_00000_1110011")
   val EBREAK = Inst("b000000000001_00000_000_00000_1110011")
 
@@ -103,7 +108,7 @@ object SizeOp {
   def w = "b10".U
   def d = "b11".U
 }
-trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport{
+trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport with LoadStore{
   // val setPc = WireInit(false.B)
   def alignedException(method: String, size: UInt, addr: UInt): Unit = {
     when(!addrAligned(size,addr)){
@@ -132,18 +137,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           "b11".U   -> (addr(2,0) === 0.U)  //d
         )
       )
-  }
-  def memRead(addr: UInt, memWidth: UInt): UInt = {
-    mem.read.valid    := true.B
-    mem.read.addr     := addr
-    mem.read.memWidth := memWidth
-    mem.read.data
-  }
-  def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
-    mem.write.valid    := true.B
-    mem.write.addr     := addr
-    mem.write.memWidth := memWidth
-    mem.write.data     := data
   }
 
   /** RV32I Base Integer Instruction Set
@@ -292,7 +285,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       printf("[Debug]LH End: %x\n",next.reg(rd))
     }
     when(LW(inst))  { 
-      printf("[Debug]LW Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
+      printf("[Debug]LW Begin: Reg:%x, Addr: %x TargetReg: %x\n",rs1,now.reg(rs1) + imm,rd)
       decodeI; 
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) 
@@ -338,6 +331,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       raiseException(MExceptionCode.environmentCallFromMmode)
       // raiseException(MExceptionCode.environmentCallFromSmode)
       printf("IS ECALL\n")
+    }
+    when(FENCE(inst)) {
+      decodeI /* then do nothing for now */
     }
     
     // - 2.7 Memory Ordering Instructions

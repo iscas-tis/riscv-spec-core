@@ -28,12 +28,12 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // map pc "h8000_0000".U to "h0000_0000".U
   val pc   = core.io.now.pc - "h8000_0000".U
   val inst = Wire(UInt(32.W))
-
+  val fetchAddr = Cat(mem.read((pc >> 2) + 1.U), mem.read(pc >> 2))
   // inst
   core.io.valid := !reset.asBool
   config match {
     case RV32Config(_) => {
-      val instMem = Cat(mem.read((pc >> 2) + 1.U), mem.read(pc >> 2))
+      val instMem = fetchAddr
 
       inst := MuxLookup(
         pc(1),
@@ -72,27 +72,73 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
       )
     )
   }
-
-  // read mem
-  val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
-  val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val rMask = width2Mask(core.io.mem.read.memWidth)
+  def readDatacalc(addr: UInt, memWidth: UInt) : (UInt, UInt, UInt) = {
+    val rIdx  = addr >> bytesWidth           // addr / (XLEN/8)
+    val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+    val rMask = width2Mask(memWidth)
+    (rIdx,rOff,rMask)
+  }
+  val (rIdx, rOff, rMask) = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
+  val (rIdx0, rOff0, rMask0) = readDatacalc(core.io.mem.Anotherread(0).addr, core.io.mem.Anotherread(0).memWidth)
+  val (rIdx1, rOff1, rMask1) = readDatacalc(core.io.mem.Anotherread(1).addr, core.io.mem.Anotherread(1).memWidth)
+  val (rIdx2, rOff2, rMask2) = readDatacalc(core.io.mem.Anotherread(2).addr, core.io.mem.Anotherread(2).memWidth)
+  // // read mem
+  // val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
+  // val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  // val rMask = width2Mask(core.io.mem.read.memWidth)
   when(core.io.mem.read.valid) {
     core.io.mem.read.data := (mem.read(rIdx) >> rOff) & rMask
   } otherwise {
     core.io.mem.read.data := 0.U
   }
 
+  when(core.io.mem.Anotherread(0).valid) {
+    core.io.mem.Anotherread(0).data := (mem.read(rIdx0) >> rOff0) & rMask0
+  } otherwise {
+    core.io.mem.Anotherread(0).data := 0.U
+  }
+
+  when(core.io.mem.Anotherread(1).valid) {
+    core.io.mem.Anotherread(1).data := (mem.read(rIdx1) >> rOff1) & rMask1
+  } otherwise {
+    core.io.mem.Anotherread(1).data := 0.U
+  }
+
+  when(core.io.mem.Anotherread(2).valid) {
+    core.io.mem.Anotherread(2).data := (mem.read(rIdx2) >> rOff2) & rMask2
+  } otherwise {
+    core.io.mem.Anotherread(2).data := 0.U
+  }
+
+
+
+  def WriteDataCalc(addr: UInt, memWidth: UInt, data: UInt) : (UInt, UInt) = {
+    val wIdx  = addr >> bytesWidth           // addr / bytes
+    val wOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+    val wMask = (width2Mask(memWidth) << wOff)(XLEN - 1, 0)
+    val mData = mem.read(wIdx)
+    // simulate write mask
+    val wData = ((data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
+    (wIdx, wData)
+  }
   // write mem
-  val wIdx  = core.io.mem.write.addr >> bytesWidth           // addr / bytes
-  val wOff  = core.io.mem.write.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  val wMask = (width2Mask(core.io.mem.write.memWidth) << wOff)(XLEN - 1, 0)
-  val mData = mem.read(wIdx)
+  // val wIdx  = core.io.mem.write.addr >> bytesWidth           // addr / bytes
+  // val wOff  = core.io.mem.write.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  // val wMask = (width2Mask(core.io.mem.write.memWidth) << wOff)(XLEN - 1, 0)
+  // val mData = mem.read(wIdx)
   // simulate write mask
-  val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
+  // val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
+  val (wIdx, wData) = WriteDataCalc(core.io.mem.write.addr, core.io.mem.write.memWidth, core.io.mem.write.data)
+  val (wIdx0, wData0) = WriteDataCalc(core.io.mem.Anotherwrite(0).addr, core.io.mem.Anotherwrite(0).memWidth, core.io.mem.Anotherwrite(0).data)
   when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }
+  when(core.io.mem.Anotherwrite(0).valid) {
+    mem.write(wIdx0, wData0)
+  }
+  // Begin multi port write
+
+  // End
 
   io.inst := inst
   io.now  := core.io.now
@@ -155,9 +201,9 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RV64Config("MC")
+  implicit val config = RV64Config("MCS")
 
-  // val tests = Seq("rv64mi")
+  // val tests = Seq("rv64si")
   val tests = Seq("csr64")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
@@ -185,13 +231,13 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
   
-  implicit val config = RV32Config("MC")
+  implicit val config = RV32Config("MCS")
   // implicit val config = RV32Config("M")
 
   // val tests = Seq("rv32ui", "rv32um", "rv32uc")
+  val tests = Seq("csr32")
   // val tests = Seq("rv32si")
-  // val tests = Seq("rv64mi")
-  val tests = Seq("rv32mi")
+  // val tests = Seq("rv32mi")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
