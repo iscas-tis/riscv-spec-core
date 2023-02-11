@@ -113,16 +113,28 @@ trait ExceptionSupport extends BaseCore {
   }
 
   def raiseException(exceptionCode: Int): Unit = {
-    // FIXME: 目前仅仅考虑了异常
+    // FIXME: 目前仅仅考虑了异常 没有实现中断
+    // val raiseIntr = io.cfIn.intrVec.asUInt.orR
+    val raiseIntr = false.B
     val deleg = now.csr.medeleg
+    // val deleg = Mux(raiseIntr, mideleg , medeleg)
     val delegS = (deleg(exceptionCode)) && (priviledgeMode < ModeM)
+    // val raiseExceptionIntr = (raiseException || raiseIntr) && io.instrValid
+    val raiseExceptionIntr = true.B
     printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionCode.U, deleg, delegS, priviledgeMode)
     def doRaiseExceptionM(MXLEN: Int): Unit = {
       // common part
-      // FIXME: 实际上 这里也应该改 因为不确定到底是mcause还是scause
+      val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+      val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
       next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
       next.csr.mepc   := now.pc
+      mstatusNew.mpp  := priviledgeMode
+      mstatusNew.mpie := mstatusOld.sie
+      mstatusNew.mie  := false.B
+      priviledgeMode  := ModeS
+      //FIXME: tva此处写法欠妥
       next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
+      next.csr.mstatus := mstatusNew.asUInt
       // TODO: modify the exception case
       // special part
       exceptionCode match {
@@ -163,6 +175,14 @@ trait ExceptionSupport extends BaseCore {
           // next.csr.mtval := io.mem.read.addr
           printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
+        case MExceptionCode.storeOrAMOPageFault => {
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:storeOrAMOPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
+        case MExceptionCode.loadPageFault => {
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
       }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump
@@ -183,12 +203,19 @@ trait ExceptionSupport extends BaseCore {
       }
     }
     def doRaiseExceptionS(MXLEN: Int): Unit = {
+      val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+      val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
       // common part
       // FIXME: 实际上 这里也应该改 因为不确定到底是mcause还是scause
       next.csr.scause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
-      printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, exceptionCode.U((MXLEN - 1).W)))
       next.csr.sepc   := now.pc
+      mstatusNew.spp := priviledgeMode
+      mstatusNew.spie := mstatusOld.sie
+      mstatusNew.sie := false.B
+      priviledgeMode := ModeS
+      printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, exceptionCode.U((MXLEN - 1).W)))
       next.csr.stval  := 0.U // : For other traps, mtval is set to zero
+      next.csr.mstatus := mstatusNew.asUInt
       // TODO: modify the exception case
       // special part
       exceptionCode match {
@@ -230,6 +257,16 @@ trait ExceptionSupport extends BaseCore {
         case MExceptionCode.instructionAddressMisaligned => {
           // next.csr.mtval := io.mem.read.addr
           printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
+        case MExceptionCode.storeOrAMOPageFault => {
+          // FIXME: 写不写mtval?
+          // next.csr.mtval := io.mem.write.addr
+          printf("[Debug]:storeOrAMOPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
+        case MExceptionCode.loadPageFault => {
+          // FIXME: 写不写mtval?
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
       }
       printf("Stvec mode:%x addr:%x\n",now.csr.stvec(1,0), now.csr.stvec(MXLEN - 1, 2) << 2)
