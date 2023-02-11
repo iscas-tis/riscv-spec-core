@@ -18,6 +18,9 @@ trait LoadStore extends BaseCore with MMU{
 //   def ModeS     = 0x1.U // 01 Supervisor
 //   def ModeR     = 0x2.U // 10 Reserved
 //   def ModeM     = 0x3.U // 11 Machine
+  def iFetch = 0x0.U
+  def Load   = 0x1.U
+  def Store  = 0x2.U
   def memRead(addr: UInt, memWidth: UInt): UInt = {
     val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
     val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
@@ -25,7 +28,14 @@ trait LoadStore extends BaseCore with MMU{
     printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
     mem.read.valid    := true.B
     when(vmEnable){
-        mem.read.addr     := AddrTransRead(addr)
+        // mem.read.addr     := AddrTransRead(addr)
+        // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
+        val (success, finaladdr) = PageTableWalk(addr, Load)
+        when(success){
+            mem.read.addr := finaladdr
+        }.otherwise{
+            raiseException(MExceptionCode.loadPageFault)
+        }
     }.otherwise{
         mem.read.addr     := addr
     }
@@ -40,7 +50,8 @@ trait LoadStore extends BaseCore with MMU{
     printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
     mem.write.valid    := true.B
     when(vmEnable){
-        val (success, finaladdr) = PageTableWalk_new(addr,0)
+        // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
+        val (success, finaladdr) = PageTableWalk(addr, Store)
         when(success){
             mem.write.addr := finaladdr
         }.otherwise{
@@ -94,17 +105,17 @@ trait MMU extends BaseCore with ExceptionSupport{
     }
 
     def ValidPage(PTE:PTEFlag): Bool = {
-        PTE.r || PTE.x
+        PTE.r | PTE.x
     }
 
     def LegalPage(PTE:PTEFlag, level:Int): Bool = {
-        ~((!PTE.v || (!PTE.r && PTE.w)) || (level < 0).asBool)
+        ~((!PTE.v | (!PTE.r && PTE.w)) | (level < 0).asBool)
     }
 
     def IsWriteDirty(PTE:SV39PTE, PA:UInt) = {
         val FlagPTE = PTE.flag.asTypeOf(new PTEFlag())
         val FlagPTEnew = 0.U(8.W).asTypeOf(new PTEFlag())
-        when(~FlagPTE.a || ~FlagPTE.d){
+        when(~FlagPTE.a | ~FlagPTE.d){
             FlagPTEnew := FlagPTE
             FlagPTEnew.a := true.B
             FlagPTEnew.d := true.B
@@ -125,16 +136,40 @@ trait MMU extends BaseCore with ExceptionSupport{
             )
         )
     }
-
-    def IsSuperPage() = {
-    // def IsSuperPage(PTE:PTEFlag) = {
-        val flag = (now.pc === "h8000_0238".U)
-        false.B | flag
+    def maskPPN(level:UInt) : UInt = {
+        val mask = MuxLookup(
+            level,
+            0.U(44.W), 
+            Array(
+                2.U   -> "b000000_0000000000_0000000000_111111111_111111111".U,
+                1.U   -> "b000000_0000000000_0000000000_000000000_111111111".U,
+                0.U   -> "b000000_0000000000_0000000000_000000000_000000000".U
+            )
+        )
+        mask
+    }
+    def maskVPN(level:UInt) : UInt = {
+        val mask = MuxLookup(
+            level,
+            0.U(44.W), 
+            Array(
+                2.U   -> "b000000000_111111111_111111111".U,
+                1.U   -> "b000000000_000000000_111111111".U,
+                0.U   -> "b000000000_000000000_000000000".U
+            )
+        )
+        mask
+    }
+    def IsSuperPage(ppn:UInt, level:UInt) : Bool = {
+        val mask = maskPPN(level)
+        printf("[Debug]SuperPage mask:%x ppn:%x flag:%d\n", mask, ppn, ((mask & ppn) =/= 0.U))
+        (mask & ppn) =/= 0.U
     }
 
     def AddrRSWLegal(addr:UInt) : Bool = {
-        val flag = Wire(Bool())
         // FIXME: 需要修一下
+        // 前几位是不是好的 + PMAPMP Check
+        val flag = Wire(Bool())
         // when((addr << (64 - 39)) >> (63 - 39) === addr){
         //     flag := true.B
         // }.otherwise{
@@ -144,7 +179,7 @@ trait MMU extends BaseCore with ExceptionSupport{
         flag
     }
 
-    def PageTableWalk_new(addr:UInt, accsessType: Int): (Bool, UInt) = {
+    def PageTableWalk(addr:UInt, accsessType: UInt): (Bool, UInt) = {
         // Vaddr 前保留位校验 Begin
         // 失败 则Go bad
         val finalSuccess = Wire(Bool())
@@ -155,7 +190,7 @@ trait MMU extends BaseCore with ExceptionSupport{
             val LevelVec = Wire(Vec(3, new PTWLevel()))
             val SatpNow = now.csr.satp.asTypeOf((new SatpStruct))
             LevelVec(2).valid := true.B     // 第一级肯定要打开
-            LevelVec(2).addr  := Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
+            LevelVec(2).addr  := Cat(Cat(0.U(8.W), Cat(SatpNow.ppn,addr(38,30))), 0.U(3.W))
             for(level <- 0 to 2){
                 // 循环生成三级页表的处理
                 when(LevelVec(2 - level).valid){
@@ -165,7 +200,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                     val PTE = PAReadMMU(LevelVec(2 - level).addr, 64.U, level).asTypeOf(new SV39PTE())
                     val PTEFlag = PTE.flag.asTypeOf(new PTEFlag())
 
-                    when(~PTEFlag.v || (~PTEFlag.r && PTEFlag.w)){
+                    when(~PTEFlag.v | (~PTEFlag.r && PTEFlag.w)){
                         // 失败了 后面也不继续找了 
                         if(2 - level - 1 >= 0){
                             LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
@@ -174,7 +209,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                         LevelVec(2 - level).success := false.B  // 这一级的寻找失败了
                         LevelVec(2 - level).pte     := 0.U
                     }.otherwise{
-                        when(PTEFlag.r || PTEFlag.x){
+                        when(PTEFlag.r | PTEFlag.x){
                             // 成功了
                             if(2 - level - 1 >= 0){
                                 LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
@@ -220,45 +255,38 @@ trait MMU extends BaseCore with ExceptionSupport{
             
             // 三级页表翻译 End
             // finalSuccess := LevelVec(2).success || LevelVec(1).success || LevelVec(0).success
-            when(LevelVec(2).success || LevelVec(1).success || LevelVec(0).success){
+            val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
+            when(~(successLevel === 3.U)){
                 // 翻译暂时成功了
                 when(LegalAddrStep5()){
                     // 检测超大页
-                    when(IsSuperPage()){
+                    when(IsSuperPage(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, successLevel)){
                         // 是大页
                         finalSuccess := false.B
                         finaladdr := 0.U
                     }.otherwise{
                         // 成功了 但是还需要操作一下Dirty
-                        // FIXME: 暂时向读热码妥协
                         // val PTE = PAReadMMU(LevelVec(2).addr, 64.U, 2).asTypeOf(new SV39PTE())
-                        val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
-                        when(successLevel === 3.U){
-                            // fail, not success
-                            finalSuccess := false.B
-                            finaladdr := 0.U
-                        }.otherwise{
-                            printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
+                        printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
+                        when(accsessType === 0x2.U){
                             IsWriteDirty(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()), LevelVec(successLevel).addr)
-                            // 就是说 暂时做两次 另外一个也用上 但是这样更离谱了 明天接着改这里 感觉需要把PTE也提前存一遍
-                            finalSuccess := true.B
-                            // FIXME: 其实也不是或到关系 漏洞百出 应该拼接
-                            finaladdr := "h0000_0000_8000_0000".U | addr
                         }
-
+                        finalSuccess := true.B
+                        // val adada_addr = ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn),0.U(12.W)) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
+                        // printf("[Debug]Final success ppn:%x addr:%x trans:%x\n", LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, addr, adada_addr)
+                        // finaladdr := "h0000_0000_8000_0000".U | addr
+                        finaladdr := ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn),0.U(12.W)) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
                     }
                 }.otherwise{
                     // 又失败了
                     finalSuccess := false.B
                     finaladdr := 0.U
                 }
-                // finaladdr := "h0000_0000_8000_0000".U | addr
             }.otherwise{
                 // 翻译失败了
                 finalSuccess := false.B
                 finaladdr := 0.U
             }
-
             // 这个时候失败是一定失败 成功可不一定成功
         }.otherwise{
             printf("[Debug] Vaddr illegal\n")
@@ -269,15 +297,4 @@ trait MMU extends BaseCore with ExceptionSupport{
         (finalSuccess, finaladdr)
     }
 
-    def AddrTransRead(addr:UInt): UInt = {
-        val SatpNow = WireInit(now.csr.satp.asTypeOf((new SatpStruct)))
-        val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        val L2PA = Cat(Cat(0.U(8.W),Cat(SatpNow.ppn,addr(38,30))),0.U(3.W))
-        val FlagPTE = PARead(L2PA, 64.U).asTypeOf(new SV39PTE())
-        printf("[Debug]L2PA_R:%x, Page Value:%x Flag:%x PPN:%x PA:%x SUM:%x \n", L2PA, PARead(L2PA, 64.U), FlagPTE.flag, FlagPTE.ppn, Cat(0.U(8.W),Cat(FlagPTE.ppn,addr(11,0))), sum)
-        // // mstatus->sum
-        "h0000_0000_8000_0000".U | addr
-        // PageTableWalk(addr,0)
-    }
-    
 }
