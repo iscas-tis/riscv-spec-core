@@ -20,15 +20,21 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     val now  = Output(State())
   })
 
-  val mem  = Mem(3000, UInt(XLEN.W))
+  val mem  = Mem(10000, UInt(XLEN.W))
   val core = Module(genCore)
 
   loadMemoryFromFile(mem, memFile)
 
   // map pc "h8000_0000".U to "h0000_0000".U
-  val pc   = core.io.now.pc - "h8000_0000".U
+  // val pc   = core.io.now.pc - "h8000_0000".U
+  // val pc2  = core.io.iFetchpc - "h8000_0000".U
+  val pc  = core.io.iFetchpc - "h8000_0000".U
+  printf("[Debug]From CoreSpec: PC : %x NowPC: %x iFetchpc: %x\n", pc , core.io.now.pc, core.io.iFetchpc)
+  // printf("[Debug]From CoreSpec: PC2: %x NowPC: %x iFetchpc: %x\n", pc2, core.io.now.pc, core.io.iFetchpc)
   val inst = Wire(UInt(32.W))
   val fetchAddr = Cat(mem.read((pc >> 2) + 1.U), mem.read(pc >> 2))
+  // val fetchAddr2 = Cat(mem.read((pc2 >> 2) + 1.U), mem.read(pc2 >> 2))
+  // printf("[Debug] InstMEM: %x %x\n", fetchAddr, fetchAddr2)
   // inst
   core.io.valid := !reset.asBool
   config match {
@@ -78,10 +84,13 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     val rMask = width2Mask(memWidth)
     (rIdx,rOff,rMask)
   }
-  val (rIdx, rOff, rMask) = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
+  val (rIdx, rOff, rMask)    = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
   val (rIdx0, rOff0, rMask0) = readDatacalc(core.io.mem.Anotherread(0).addr, core.io.mem.Anotherread(0).memWidth)
   val (rIdx1, rOff1, rMask1) = readDatacalc(core.io.mem.Anotherread(1).addr, core.io.mem.Anotherread(1).memWidth)
   val (rIdx2, rOff2, rMask2) = readDatacalc(core.io.mem.Anotherread(2).addr, core.io.mem.Anotherread(2).memWidth)
+  val (rIdx3, rOff3, rMask3) = readDatacalc(core.io.mem.Anotherread(3).addr, core.io.mem.Anotherread(3).memWidth)
+  val (rIdx4, rOff4, rMask4) = readDatacalc(core.io.mem.Anotherread(4).addr, core.io.mem.Anotherread(4).memWidth)
+  val (rIdx5, rOff5, rMask5) = readDatacalc(core.io.mem.Anotherread(5).addr, core.io.mem.Anotherread(5).memWidth)
   // // read mem
   // val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
   // val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
@@ -108,6 +117,24 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     core.io.mem.Anotherread(2).data := (mem.read(rIdx2) >> rOff2) & rMask2
   } otherwise {
     core.io.mem.Anotherread(2).data := 0.U
+  }
+
+  when(core.io.mem.Anotherread(3).valid) {
+    core.io.mem.Anotherread(3).data := (mem.read(rIdx3) >> rOff3) & rMask3
+  } otherwise {
+    core.io.mem.Anotherread(3).data := 0.U
+  }
+
+  when(core.io.mem.Anotherread(4).valid) {
+    core.io.mem.Anotherread(4).data := (mem.read(rIdx4) >> rOff4) & rMask4
+  } otherwise {
+    core.io.mem.Anotherread(4).data := 0.U
+  }
+
+  when(core.io.mem.Anotherread(5).valid) {
+    core.io.mem.Anotherread(5).data := (mem.read(rIdx5) >> rOff5) & rMask5
+  } otherwise {
+    core.io.mem.Anotherread(5).data := 0.U
   }
 
 
@@ -155,7 +182,7 @@ object RiscvTests {
     new File(s"$root/$instSet/$instTest")
   }
 
-  val maxStep = 1000
+  val maxStep = 300
   def stepTest(dut: CoreTester, restClock: Int): Int = {
     // run a clock
     dut.clock.step(1)

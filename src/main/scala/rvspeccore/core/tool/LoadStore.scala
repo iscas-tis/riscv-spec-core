@@ -63,6 +63,31 @@ trait LoadStore extends BaseCore with MMU{
     mem.write.memWidth := memWidth
     mem.write.data     := data
   }
+
+  def iFetchTrans(addr: UInt) : (Bool, UInt) = {
+    val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (priviledgeMode < 0x3.U)
+    printf("[Debug]iFetchTrans addr:%x, vm:%x \n", addr, vmEnable)
+    val resultStatus = Wire(Bool())
+    val resultPC = Wire(UInt(XLEN.W))
+    when(vmEnable){
+        val (success, finaladdr) = PageTableWalkIFetch(addr)
+        when(success){
+            // vm 转换成功
+            resultPC := finaladdr
+            resultStatus := true.B
+            printf("[Debug]iFetchTrans2 Final Addr: %x\n", finaladdr)
+        }.otherwise{
+            resultPC := 0.U
+            resultStatus := false.B
+            printf("[Debug]iFetchTrans3 Final Addr Trans Fault \n")
+            raiseException(MExceptionCode.instructionPageFault)
+        }
+    }.otherwise{
+        resultPC := addr
+        resultStatus := true.B
+    }
+    (resultStatus, resultPC)
+  }
 }
 
 trait MMU extends BaseCore with ExceptionSupport{
@@ -98,10 +123,10 @@ trait MMU extends BaseCore with ExceptionSupport{
         mem.Anotherwrite(0).data     := data
     }
 
-    def LegalAddrStep5(): Bool = {
+    def LegalAddrStep5(isiFetch: Bool): Bool = {
         // FIXME: 需要进一步改这个函数 看手册哈
         val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
-        sum.asBool
+        sum.asBool || isiFetch
     }
 
     def ValidPage(PTE:PTEFlag): Bool = {
@@ -258,7 +283,7 @@ trait MMU extends BaseCore with ExceptionSupport{
             val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
             when(~(successLevel === 3.U)){
                 // 翻译暂时成功了
-                when(LegalAddrStep5()){
+                when(LegalAddrStep5(false.B)){
                     // 检测超大页
                     when(IsSuperPage(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, successLevel)){
                         // 是大页
@@ -275,7 +300,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                         // val adada_addr = ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn),0.U(12.W)) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
                         // printf("[Debug]Final success ppn:%x addr:%x trans:%x\n", LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, addr, adada_addr)
                         // finaladdr := "h0000_0000_8000_0000".U | addr
-                        finaladdr := ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn),0.U(12.W)) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
+                        finaladdr := ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn), addr(11,0) ) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
                     }
                 }.otherwise{
                     // 又失败了
@@ -284,6 +309,121 @@ trait MMU extends BaseCore with ExceptionSupport{
                 }
             }.otherwise{
                 // 翻译失败了
+                finalSuccess := false.B
+                finaladdr := 0.U
+            }
+            // 这个时候失败是一定失败 成功可不一定成功
+        }.otherwise{
+            printf("[Debug] Vaddr illegal\n")
+            finalSuccess := false.B
+            finaladdr := 0.U
+        }
+        // Vaddr 前保留位校验 End
+        (finalSuccess, finaladdr)
+    }
+
+    def PageTableWalkIFetch(addr:UInt): (Bool, UInt) = {
+        // Vaddr 前保留位校验 Begin
+        // 失败 则Go bad
+        val finalSuccess = Wire(Bool())
+        val finaladdr = Wire(UInt(XLEN.W))
+        when(AddrRSWLegal(addr)){
+            printf("[Debug] Vaddr Legal\n")
+            // 三级页表翻译 Begin
+            val LevelVec = Wire(Vec(3, new PTWLevel()))
+            val SatpNow = now.csr.satp.asTypeOf((new SatpStruct))
+            LevelVec(2).valid := true.B     // 第一级肯定要打开
+            LevelVec(2).addr  := Cat(Cat(0.U(8.W), Cat(SatpNow.ppn,addr(38,30))), 0.U(3.W))
+            for(level <- 0 to 2){
+                // 循环生成三级页表的处理
+                when(LevelVec(2 - level).valid){
+                    printf("[Debug]LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
+                    // 寻页且继续的那个函数 返回第二级的值
+                    val PTE_PA = LevelVec(2 - level).addr
+                    val PTE = PAReadMMU(LevelVec(2 - level).addr, 64.U, 3 + level).asTypeOf(new SV39PTE())
+                    val PTEFlag = PTE.flag.asTypeOf(new PTEFlag())
+                    LevelVec(2 - level).pte     := PTE.asUInt
+                    when(~PTEFlag.v | (~PTEFlag.r && PTEFlag.w)){
+                        // 失败了 后面也不继续找了 
+                        if(2 - level - 1 >= 0){
+                            LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
+                            LevelVec(2 - level - 1).addr    := 0.U
+                        }
+                        LevelVec(2 - level).success := false.B  // 这一级的寻找失败了
+                    }.otherwise{
+                        when(PTEFlag.r | PTEFlag.x){
+                            // 成功了
+                            if(2 - level - 1 >= 0){
+                                LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
+                                LevelVec(2 - level - 1).addr    := 0.U
+                            }
+                            LevelVec(2 - level).success := true.B  // 这一级的寻找成功了
+                        }.otherwise{
+                            // 需要继续找
+                            if(2 - level - 1 >= 0){
+                                LevelVec(2 - level - 1).valid   := true.B     // 下一级的有效打开
+                                // FIXME: 需要特别优化
+                                if((2 - level - 1) == 1){
+                                    LevelVec(2 - level - 1).addr    := Cat(Cat(0.U(8.W),Cat(PTE.ppn, addr(29,21))),0.U(3.W))
+                                }
+                                if((2 - level - 1) == 0){
+                                    LevelVec(2 - level - 1).addr    := Cat(Cat(0.U(8.W),Cat(PTE.ppn, addr(20,12))),0.U(3.W))
+                                }
+                            }
+                            LevelVec(2 - level).success := false.B  // 这一级的寻找失败了
+                        }
+                    }
+                }.otherwise{
+                    // // 这一级无效 需要把这一级的success 和 下一级的有效信号给干掉
+                    if(2 - level - 1 >= 0){
+                        LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效关闭
+                        LevelVec(2 - level - 1).addr    := 0.U
+                    }
+                    LevelVec(2 - level).success := false.B
+                    LevelVec(2 - level).pte     := 0.U
+
+                }
+                // when(LevelVec(2 - level).success){
+                //     printf("[Debug]LevelTest:%d level success %x\n", (2-level).U, LevelVec(2 - level).success)
+                // }
+            }
+            printf("[Debug]LevelSuccess : %d %d %d\n", LevelVec(2).success, LevelVec(1).success, LevelVec(0).success)
+            printf("[Debug]LevelPTE     : %x %x %x\n", LevelVec(2).pte, LevelVec(1).pte, LevelVec(0).pte)
+            printf("[Debug]LevelSuccess2: %x\n", Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
+            printf("[Debug]LevelSuccess3: %d\n", LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success)))
+
+            
+            // 三级页表翻译 End
+            // finalSuccess := LevelVec(2).success || LevelVec(1).success || LevelVec(0).success
+            val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
+            when(~(successLevel === 3.U)){
+                // 翻译暂时成功了
+                printf("[Debug]PTE Success\n")
+                when(LegalAddrStep5(true.B)){
+                    // 检测超大页
+                    printf("[Debug]Legal Address Step5 True\n")
+                    when(IsSuperPage(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, successLevel)){
+                        // 是大页
+                        printf("[Debug]SuperPage fault\n")
+                        finalSuccess := false.B
+                        finaladdr := 0.U
+                    }.otherwise{
+                        printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
+                        finalSuccess := true.B
+                        // val adada_addr = ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn),0.U(12.W)) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
+                        // printf("[Debug]Final success ppn:%x addr:%x trans:%x\n", LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, addr, adada_addr)
+                        // finaladdr := "h0000_0000_8000_0000".U | addr
+                        finaladdr := ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn), addr(11,0) ) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
+                    }
+                }.otherwise{
+                    // 又失败了
+                    printf("[Debug]Legal Address Step5 False\n")
+                    finalSuccess := false.B
+                    finaladdr := 0.U
+                }
+            }.otherwise{
+                // 翻译失败了
+                printf("[Debug]PTE False\n")
                 finalSuccess := false.B
                 finaladdr := 0.U
             }

@@ -5,6 +5,7 @@ import chisel3.util._
 
 import spec._
 import spec.instset.csr.CSR
+import spec.instset.csr.SatpStruct
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   // Define Basic parts
@@ -15,6 +16,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
     val mem = new MemIO
     val now  = Output(State())
     val next = Output(State())
+    val iFetchpc = Output(UInt(XLEN.W))
   })
   // Initial State
   val now  = RegInit(State.wireInit())
@@ -23,6 +25,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   // Global Data
   val global_data = Wire(new GlobalData)
   val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
+  val iFetchpc = Wire(UInt(XLEN.W))
 }
 class GlobalData extends Bundle {
   val setpc    = Bool()
@@ -44,7 +47,7 @@ class WriteMemIO()(implicit XLEN: Int) extends Bundle {
 class MemIO()(implicit XLEN: Int) extends Bundle {
   val read  = new ReadMemIO
   val write = new WriteMemIO
-  val Anotherread  = Vec(3, new ReadMemIO())
+  val Anotherread  = Vec(3 + 3, new ReadMemIO())
   val Anotherwrite = Vec(3, new WriteMemIO())
 }
 
@@ -70,23 +73,31 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // if there no changes below
   // Initial the value of next
   global_data.setpc := false.B
+  iFetchpc  := now.pc
   next := now
-
+  printf("io.iFetchpc: %x %x\n", io.iFetchpc, iFetchpc)
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
 
   // ID & EXE
   when(io.valid) {
-    printf("PC: %x Inst:%x\n",now.pc,inst)
+    printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
     // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
     //   raiseException(0)
     //   next.csr.mtval := now.pc
     // }.otherwise{
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-
-    inst := io.inst
+    val (resultStatus, resultPC) = iFetchTrans(now.pc)
+    printf("[Debug]iFetch Come on: Status:%d PC:%x \n", resultStatus, resultPC)
+    when(resultStatus){
+      inst := io.inst
+    }.otherwise{
+      printf("[Debug]iFetch Fail and Give NOP:")
+      inst := 0.U(XLEN.W) // With a NOP instruction
+    }
+    iFetchpc := resultPC
     // Decode and Excute
     // Attention: Config(_) "_" means Config(__have_some_value__)
     // Debug
@@ -133,4 +144,5 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // output
   io.now  := now
   io.next := next
+  io.iFetchpc := iFetchpc
 }

@@ -131,7 +131,7 @@ trait ExceptionSupport extends BaseCore {
       mstatusNew.mpp  := priviledgeMode
       mstatusNew.mpie := mstatusOld.sie
       mstatusNew.mie  := false.B
-      priviledgeMode  := ModeS
+      priviledgeMode  := ModeM // 之前写的大bug
       //FIXME: tva此处写法欠妥
       next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
       next.csr.mstatus := mstatusNew.asUInt
@@ -182,6 +182,10 @@ trait ExceptionSupport extends BaseCore {
         case MExceptionCode.loadPageFault => {
           // next.csr.mtval := io.mem.read.addr
           printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
+        case MExceptionCode.instructionPageFault => {
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:instructionPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
       }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
@@ -268,6 +272,10 @@ trait ExceptionSupport extends BaseCore {
           // next.csr.mtval := io.mem.read.addr
           printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
+        case MExceptionCode.instructionPageFault => {
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:instructionPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
       }
       printf("Stvec mode:%x addr:%x\n",now.csr.stvec(1,0), now.csr.stvec(MXLEN - 1, 2) << 2)
       // jump
@@ -289,12 +297,13 @@ trait ExceptionSupport extends BaseCore {
     }
 
     when(delegS){
-      printf("USE S Mode ing...\n")
+      printf("[Debug] Exception USE S Mode ing...\n")
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionS(32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionS(64) } }
       }
     }.otherwise{
+      printf("[Debug] Exception USE M Mode ing...\n")
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionM(32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionM(64) } }

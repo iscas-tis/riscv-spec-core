@@ -26,7 +26,7 @@ trait PriviledgedInsts {
   val HFANCE_GVMA     = Inst("b0110001_?????_?????_000_00000_1110011")
   val HINVAL_VVMA     = Inst("b0010011_?????_?????_000_00000_1110011")
   val HINVAL_GVMA     = Inst("b0110011_?????_?????_000_00000_1110011")
-  val NOP         = Inst("b0000_0000_0000_0000_0000_0000_0000_0000")
+  val NOP             = Inst("b0000000_00000_00000_000_00000_0000000")
   // TODO: For more insts
   // ......  
 }
