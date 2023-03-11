@@ -25,15 +25,15 @@ object RiscvSpecCore extends SbtModule { m =>
     MavenRepository("https://oss.sonatype.org/content/repositories/releases")
   )
   override def ivyDeps = Agg(
-    ivy"edu.berkeley.cs::chisel3:3.5-SNAPSHOT"
+    ivy"edu.berkeley.cs::chisel3:3.5.4"
   )
   override def scalacPluginIvyDeps = Agg(
-    ivy"edu.berkeley.cs:::chisel3-plugin:3.5-SNAPSHOT",
+    ivy"edu.berkeley.cs:::chisel3-plugin:3.5.4",
     ivy"org.scalamacros:::paradise:2.1.1"
   )
   object test extends Tests with ScalaTest {
     override def ivyDeps = m.ivyDeps() ++ Agg(
-      ivy"edu.berkeley.cs::chiseltest:0.5-SNAPSHOT"
+      ivy"edu.berkeley.cs::chiseltest:0.5.4"
     )
   }
 }
