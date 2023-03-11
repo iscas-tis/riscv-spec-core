@@ -48,7 +48,7 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
     MuxCase(
       (divisor.asSInt / dividend.asSInt)(L - 1, 0).asUInt, // (L-1, 0) cut extra bit in double sign bit
       Array(
-        (dividend === 0.U(L))                                                        -> -1.S(L.W).asUInt,
+        (dividend === 0.U(L.W))                                                        -> -1.S(L.W).asUInt,
         (divisor === -(1 << (L - 1)).S(L.W).asUInt && dividend === -1.S(L.W).asUInt) -> -(1 << (L - 1)).S(L.W).asUInt
       )
     )
@@ -65,8 +65,8 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
     MuxCase(
       (divisor.asSInt % dividend.asSInt).asUInt,
       Array(
-        (dividend === 0.U(L))                                                        -> divisor,
-        (divisor === -(1 << (L - 1)).S(L.W).asUInt && dividend === -1.S(L.W).asUInt) -> 0.U(L)
+        (dividend === 0.U(L.W))                                                        -> divisor,
+        (divisor === -(1 << (L - 1)).S(L.W).asUInt && dividend === -1.S(L.W).asUInt) -> 0.U(L.W)
       )
     )
   }
@@ -74,7 +74,7 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
     MuxCase(
       divisor % dividend,
       Array(
-        (dividend === 0.U(L)) -> divisor
+        (dividend === 0.U(L.W)) -> divisor
       )
     )
   }
