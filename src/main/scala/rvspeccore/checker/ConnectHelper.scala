@@ -4,6 +4,8 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.BoringUtils
 
+import rvspeccore.core.spec.instset.csr.CSR
+
 abstract class ConnectHelper {}
 
 /** Connect RegFile to io.result.reg by BoringUtils
@@ -11,6 +13,7 @@ abstract class ConnectHelper {}
 object ConnectCheckerResult extends ConnectHelper {
   val uniqueIdReg: String = "ConnectCheckerResult-UniqueIdReg"
   val uniqueIdMem: String = "ConnectCheckerResult-UniqueIdMem"
+  val uniqueIdCSR: String = "ConnectCheckerResult-uniqueIdCSR"
 
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
@@ -48,7 +51,14 @@ object ConnectCheckerResult extends ConnectHelper {
     }
   }
 
+  def makeCSRSource()(implicit XLEN: Int): CSR = {
+    val csr = Wire(CSR())
+    csr := DontCare
+    BoringUtils.addSource(csr, uniqueIdCSR)
+    csr
+  }
   def setChecker(checker: CheckerWithResult, memDelay: Int = 0)(implicit XLEN: Int) = {
+    // reg
     val regVec = Wire(Vec(32, UInt(XLEN.W)))
     regVec := DontCare
     BoringUtils.addSink(regVec, uniqueIdReg)
@@ -63,5 +73,10 @@ object ConnectCheckerResult extends ConnectHelper {
 
       checker.io.mem.get := regNextDelay(mem, memDelay)
     }
+    // csr
+    val csr = Wire(CSR())
+    csr := DontCare
+    BoringUtils.addSink(csr, uniqueIdCSR)
+    checker.io.result.csr := csr
   }
 }

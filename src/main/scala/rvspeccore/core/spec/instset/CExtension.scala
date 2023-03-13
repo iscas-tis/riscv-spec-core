@@ -108,17 +108,17 @@ trait CDecode extends BaseCore with CommonDecode {
 
   // Table 16.1: Compressed 16-bit RVC instruction formats.
   // format: off
-  //                           / 15  13 | 12  | 11   7 | 6           2 | 1 0 \
-  def decodeCR  = { unpack(List(    funct4    ,  rs1   ,      rs2      , op  ), inst(15, 0)); rd := rs1   }
-  def decodeCI  = { unpack(List( funct3 , ph1 ,  rs1   ,      ph5      , op  ), inst(15, 0)); rd := rs1   }
-  def decodeCSS = { unpack(List( funct3 ,     ph6      ,      rs2      , op  ), inst(15, 0))              }
-  def decodeCIW = { unpack(List( funct3 ,         ph8           , rd_  , op  ), inst(15, 0))              }
-  def decodeCL  = { unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rd_  , op  ), inst(15, 0))              }
-  def decodeCS  = { unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rs2_ , op  ), inst(15, 0))              }
-  def decodeCA  = { unpack(List(     funct6     , rs1_ , funct2 , rs2_ , op  ), inst(15, 0)); rd_ := rs1_ }
-  def decodeCB  = { unpack(List( funct3 ,  ph3  , rs1_ ,      ph5      , op  ), inst(15, 0)); rd_ := rs1_ } // rd_ := rs1_ described in C.SRLI
-  def decodeCJ  = { unpack(List( funct3 ,             ph11             , op  ), inst(15, 0))              }
-  //                           \ 15  13 | 12 10 | 9  7 | 6    5 | 4  2 | 1 0 /
+  //                                       / 15  13 | 12  | 11   7 | 6           2 | 1 0 \
+  def decodeCR  = { decodeInit; unpack(List(    funct4    ,  rs1   ,      rs2      , op  ), inst(15, 0)); rd := rs1   }
+  def decodeCI  = { decodeInit; unpack(List( funct3 , ph1 ,  rs1   ,      ph5      , op  ), inst(15, 0)); rd := rs1   }
+  def decodeCSS = { decodeInit; unpack(List( funct3 ,     ph6      ,      rs2      , op  ), inst(15, 0))              }
+  def decodeCIW = { decodeInit; unpack(List( funct3 ,         ph8           , rd_  , op  ), inst(15, 0))              }
+  def decodeCL  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rd_  , op  ), inst(15, 0))              }
+  def decodeCS  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rs2_ , op  ), inst(15, 0))              }
+  def decodeCA  = { decodeInit; unpack(List(     funct6     , rs1_ , funct2 , rs2_ , op  ), inst(15, 0)); rd_ := rs1_ }
+  def decodeCB  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1_ ,      ph5      , op  ), inst(15, 0)); rd_ := rs1_ } // rd_ := rs1_ described in C.SRLI
+  def decodeCJ  = { decodeInit; unpack(List( funct3 ,             ph11             , op  ), inst(15, 0))              }
+  //                                       \ 15  13 | 12 10 | 9  7 | 6    5 | 4  2 | 1 0 /
   // format: on
 }
 
@@ -256,6 +256,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_SUB(inst)) { decodeCA; next.reg(cat01(rd_)) := now.reg(cat01(rd_)) - now.reg(cat01(rs2_)) }
     // - Defined Illegal Instruction
     // - NOP Instruction
+    when(C_NOP(inst)) { decodeCI /* then do nothing */ }
     // - Breakpoint Instruction
   }
   def doRV64C: Unit = {

@@ -12,7 +12,7 @@ import rvspeccore.core.tool.BitTool._
   *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
   *   - 2.3 Immediate Encoding Variants
   */
-trait CommonDecode extends BaseCore {
+trait CommonDecode extends BaseCore with csr.ExceptionSupport {
   val inst = WireInit(0.U(32.W))
 
   val opcode = WireInit(0.U(7.W))
@@ -45,13 +45,18 @@ trait CommonDecode extends BaseCore {
   // scalafmt: { maxColumn = 120 } (back to defaults)
 
   // format: off
-  //                         / 31           25 | 24    20 | 19 15 | 14 12 | 11           7 | 6    0 \
-  def decodeR = { unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                           }
-  def decodeI = { unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , XLEN) }
-  def decodeS = { unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , XLEN) }
-  def decodeB = { unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , XLEN) }
-  def decodeU = { unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , XLEN) }
-  def decodeJ = { unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), XLEN) }
-  //                         \ 31 31 | 30      21 | 20 20 | 19         12 | 11   8 | 7   7 | 6    0 /
+  //                                     / 31           25 | 24    20 | 19 15 | 14 12 | 11           7 | 6    0 \
+  def decodeR = { decodeInit; unpack(List( funct7          , rs2      , rs1   , funct3, rd             , opcode ), inst)                                                                           }
+  def decodeI = { decodeInit; unpack(List( imm_11_0                   , rs1   , funct3, rd             , opcode ), inst); imm := signExt(    imm_11_0                                      , XLEN) }
+  def decodeS = { decodeInit; unpack(List( imm_11_5        , rs2      , rs1   , funct3, imm_4_0        , opcode ), inst); imm := signExt(Cat(imm_11_5, imm_4_0)                            , XLEN) }
+  def decodeB = { decodeInit; unpack(List( imm_12, imm_10_5, rs2      , rs1   , funct3, imm_4_1, imm_11, opcode ), inst); imm := signExt(Cat(imm_12, imm_11, imm_10_5, imm_4_1, 0.U(1.W))  , XLEN) }
+  def decodeU = { decodeInit; unpack(List( imm_31_12                                  , rd             , opcode ), inst); imm := signExt(Cat(imm_31_12, 0.U(12.W))                         , XLEN) }
+  def decodeJ = { decodeInit; unpack(List( imm_20, imm_10_1   , imm_11, imm_19_12     , rd             , opcode ), inst); imm := signExt(Cat(imm_20, imm_19_12, imm_11, imm_10_1, 0.U(1.W)), XLEN) }
+  //                                     \ 31 31 | 30      21 | 20 20 | 19         12 | 11   8 | 7   7 | 6    0 /
   // format: on
+
+  def decodeInit = {
+    // decode only work when the instruction is legal
+    legalInstruction()
+  }
 }

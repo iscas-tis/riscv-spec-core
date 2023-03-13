@@ -118,6 +118,19 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     }
     // next pc: hard to get next pc in a pipeline
     // check it at next instruction
+
+    // next csr //FIXME: Temporarily closed csr assert
+    // io.result.csr.table.zip(specCore.io.next.csr.table).map {
+    //   case (result, next) => {
+    //     assert(result.signal === next.signal)
+    //   }
+    // }
+    // io.result.csr.vTable.zip(specCore.io.next.csr.vTable).map {
+    //   case (resultSig, nextSig) => {
+    //     assert(resultSig === nextSig)
+    //   }
+    // }
+
   }
 }
 

@@ -4,11 +4,22 @@ import chisel3._
 import chisel3.util._
 
 import spec._
+import spec.instset.csr.CSR
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 
-  val now  = RegInit(State().init())
+  val io = IO(new Bundle {
+    val inst  = Input(UInt(32.W))
+    val valid = Input(Bool())
+
+    val mem = new MemIO
+
+    val now  = Output(State())
+    val next = Output(State())
+  })
+
+  val now  = RegInit(State.wireInit())
   val next = Wire(State())
 
   val mem = Wire(new MemIO)
@@ -36,30 +47,21 @@ class MemIO()(implicit XLEN: Int) extends Bundle {
 class State()(implicit XLEN: Int) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
-
-  def init(reg: UInt = 0.U(XLEN.W), pc: UInt = "h8000_0000".U(XLEN.W)): State = {
-    val state = Wire(this)
-    state.reg := Seq.fill(32)(reg)
-    state.pc  := pc
-    state
-  }
+  val csr = CSR()
 }
 
 object State {
   def apply()(implicit XLEN: Int): State = new State
+  def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
+    val state = Wire(new State)
+    state.reg := Seq.fill(32)(0.U(XLEN.W))
+    state.pc  := pcStr.U(XLEN.W)
+    state.csr := CSR.wireInit()
+    state
+  }
 }
 
 class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
-  val io = IO(new Bundle {
-    val inst  = Input(UInt(32.W))
-    val valid = Input(Bool())
-
-    val mem = new MemIO
-
-    val now  = Output(State())
-    val next = Output(State())
-  })
-
   // should keep the value in the next clock
   // if there no changes below
   next := now
@@ -70,6 +72,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // ID & EXE
   when(io.valid) {
+    exceptionSupportInit()
+
     inst := io.inst
 
     // Decode and Excute
@@ -85,6 +89,11 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
         if (config.C) { doRV64C }
       }
     }
+    // do without config for now
+    doRVZicsr
+    doRVZifencei
+
+    next.reg(0) := 0.U
 
     when(!setPc) {
       if (config.C) {
@@ -96,10 +105,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
       }
     }
 
-    // riscv-spec-20191213
-    // Register x0 is hardwired with all bits equal to 0.
-    // Register x0 can be used as the destination if the result is not required.
-    next.reg(0) := 0.U(XLEN.W)
+    tryRaiseException()
   }
 
   // mem port
