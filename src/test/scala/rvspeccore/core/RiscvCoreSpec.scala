@@ -78,7 +78,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
   val rMask = width2Mask(core.io.mem.read.memWidth)
   when(core.io.mem.read.valid) {
-    core.io.mem.read.data := (mem.read(rIdx) >> rOff) & rMask
+    core.io.mem.read.data := mem.read(rIdx)
   } otherwise {
     core.io.mem.read.data := 0.U
   }
