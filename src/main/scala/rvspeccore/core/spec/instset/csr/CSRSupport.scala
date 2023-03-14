@@ -9,11 +9,12 @@ import rvspeccore.core.tool.BitTool._
 
 trait CSRSupport extends BaseCore {
   def csrRead(addr: UInt): UInt = {
+    // Read the value of special registers
+    // CSR addr require 12bit
     require(addr.getWidth == 12)
-
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-
+    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x)\n",has,nowCSR,addr)
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
@@ -21,12 +22,13 @@ trait CSRSupport extends BaseCore {
       when(has) {
         rData := nowCSR(MXLEN - 1, 0)
       }.otherwise {
+        // all unimplemented CSR registers return 0
         rData := 0.U(MXLEN.W)
       }
 
       // special read
       switch(addr) {
-        is(CSRInfos.mepc.addr) {
+        is(now.csr.CSRInfos.mepc.addr) {
           // - 3.1.14 Machine Exception Program Counter (mepc)
           // : If an implementation allows IALIGN to be either 16 or 32 (by
           // : changing CSR misa, for example), then, whenever IALIGN=32, bit
@@ -45,17 +47,19 @@ trait CSRSupport extends BaseCore {
 
     rData
   }
-  def csrWrite(addr: UInt, data: UInt, mask: UInt = Fill(XLEN, 1.U(1.W))): Unit = {
+  def csrWrite(addr: UInt, data: UInt): Unit = {
+    def UnwritableMask = 0.U(XLEN.W)
     require(addr.getWidth == 12)
-    require(mask.getWidth == XLEN)
-
+    // require(mask.getWidth == XLEN)
     // common wirte
     val csrPairs = now.csr.table.zip(next.csr.table)
-
     csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
       when(addr === info.addr) {
-        if (info.softwareWritable) {
-          nextCSR := (nowCSR & ~mask) | (data & mask)
+        // 地址是当前寄存器的地址
+        if (info.wfn != null && info.wmask != UnwritableMask) {
+          // 且该寄存器可写 使用mask
+          nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
+          printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
         } else {
           // TODO: might cause some exception?
         }
