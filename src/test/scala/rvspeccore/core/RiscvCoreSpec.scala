@@ -179,8 +179,7 @@ class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV32Config("MC")
 
   // val tests = Seq("rv32ui", "rv32um", "rv32uc")
-  // val tests = Seq("rv32mi")
-  val tests = Seq("csr")
+  val tests = Seq("tempcsr32")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -192,45 +191,6 @@ class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
         test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
           RiscvTests.stepTest(c, RiscvTests.maxStep)
           RiscvTests.checkReturn(c)
-        }
-      }
-    )
-  }
-}
-
-
-class RiscvCore32SpecCSR extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RV32Config("MC")
-
-  // val tests = Seq("rv32ui", "rv32um", "rv32uc")
-  val tests = Seq("csr")
-
-  // NOTE: funce.i shows passed test, but RiscvCore not support it.
-  //       Because RiscvCore is too simple.
-  behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"
-  // a0是十号寄存器
-  tests.foreach { testCase =>
-    // 分别测试 test变量中的项目
-    RiscvTests(testCase).foreach(f =>
-      it should s"pass ${f.getName}" in {
-        test(new CoreTester(new RiscvCore, f.getCanonicalPath())) { c =>
-          // c: CoreTester 里面主要就是对new 的
-          RiscvTests.stepTest(c, RiscvTests.maxStep)
-          var a = 0;
-          // for 循环
-          var tempString = ""
-          println("--[Debug]-----PC: ",c.io.now.pc.peek())
-          for( a <- 0 to 31){
-            // println("Reg",a,": ",c.io.now.reg(a).peek())
-            tempString += " R" + a.toString() + ":" + c.io.now.reg(a).peek().litValue.toString()
-          }
-          println(tempString)
-          // RiscvTests.checkReturn(c)
-          // dut.io.inst.expect("h0000006f".U(32.W)) // j halt
-          // dut.io.now.reg(10).expect(0.U)          // li	a0,0
-          println(c.io.inst.peek())
-          println(c.io.now.pc.peek())
-          println(c.io.now.csr.mstatus.peek())
         }
       }
     )
