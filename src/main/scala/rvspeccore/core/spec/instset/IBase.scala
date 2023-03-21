@@ -99,7 +99,7 @@ trait IBaseInsts {
 // scalafmt: { maxColumn = 200 }
 
 trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport{
-  val setPc = WireInit(false.B)
+  // val setPc = WireInit(false.B)
   def width2Mask(width: UInt): UInt = {
     MuxLookup(
       width,

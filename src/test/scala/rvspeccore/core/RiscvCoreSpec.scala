@@ -178,8 +178,8 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV32Config("MC")
 
-  // val tests = Seq("rv32ui", "rv32um", "rv32uc")
-  val tests = Seq("tempcsr32")
+  val tests = Seq("rv32ui", "rv32um", "rv32uc")
+  // val tests = Seq("tempcsr32")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
