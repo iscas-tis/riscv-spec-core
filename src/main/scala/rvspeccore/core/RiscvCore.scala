@@ -22,6 +22,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val mem = Wire(new MemIO)
   // Global Data
   val global_data = Wire(new GlobalData)
+  val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
 }
 class GlobalData extends Bundle {
   val setpc    = Bool()
@@ -45,14 +46,14 @@ class MemIO()(implicit XLEN: Int) extends Bundle {
   val write = new WriteMemIO
 }
 
-class State()(implicit XLEN: Int) extends Bundle {
+class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
   val csr = CSR()
 }
 
 object State {
-  def apply()(implicit XLEN: Int): State = new State
+  def apply()(implicit XLEN: Int, config: RVConfig): State = new State
   def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
     state.reg := Seq.fill(32)(0.U(XLEN.W))
@@ -75,6 +76,11 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // ID & EXE
   when(io.valid) {
+    printf("PC: %x Inst:%x\n",now.pc,inst)
+    // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
+    //   raiseException(0)
+    //   next.csr.mtval := now.pc
+    // }.otherwise{
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
 
@@ -113,6 +119,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     }
 
     tryRaiseException()
+    // }
   }
 
   // mem port

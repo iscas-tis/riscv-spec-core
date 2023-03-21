@@ -109,7 +109,7 @@ object RiscvTests {
     new File(s"$root/$instSet/$instTest")
   }
 
-  val maxStep = 600
+  val maxStep = 1000
   def stepTest(dut: CoreTester, restClock: Int): Int = {
     // run a clock
     dut.clock.step(1)

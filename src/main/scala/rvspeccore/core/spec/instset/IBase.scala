@@ -97,7 +97,12 @@ trait IBaseInsts {
 }
 
 // scalafmt: { maxColumn = 200 }
-
+object SizeOp {
+  def b = "b00".U
+  def h = "b01".U
+  def w = "b10".U
+  def d = "b11".U
+}
 trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport{
   // val setPc = WireInit(false.B)
   def width2Mask(width: UInt): UInt = {
@@ -111,6 +116,34 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         64.U -> "hffff_ffff_ffff_ffff".U(64.W)
       )
     )
+  }
+  def alignedException(method: String, size: UInt, addr: UInt): Unit = {
+    when(!addrAligned(size,addr)){
+      method match {
+          case "Store" => {
+            raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+          }
+          case "Load" => {
+            raiseException(MExceptionCode.loadAddressMisaligned)
+          }
+          case "Instr" => {
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+      }
+    }
+
+  }
+  def addrAligned(size: UInt, addr: UInt): Bool = {
+      MuxLookup(
+        size,
+        false.B,
+        Array(
+          "b00".U   -> true.B,              //b
+          "b01".U   -> (addr(0)   === 0.U), //h
+          "b10".U   -> (addr(1,0) === 0.U), //w
+          "b11".U   -> (addr(2,0) === 0.U)  //d
+        )
+      )
   }
   def memRead(addr: UInt, memWidth: UInt): UInt = {
     val bytesWidth = log2Ceil(XLEN / 8)
@@ -133,6 +166,16 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     *   - riscv-spec-20191213
     *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
     */
+  def getfetchSize():UInt = {
+    MuxLookup(
+      now.csr.misa(CSR.getMisaExtInt('C')),
+      SizeOp.w,
+      Array(
+        "b0".U   -> SizeOp.w,
+        "b1".U   -> SizeOp.h
+      )
+    )
+  }
   def doRV32I: Unit = {
     // - 2.4 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
@@ -171,15 +214,67 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // NOP is encoded as ADDI x0, x0, 0.
 
     // - 2.5 Control Transfer Instructions
+    // FIXME: 全部的跳转指令都得加一次判断 并且之后需要在最后统一仲裁优先级
     // - Unconditional Jumps
     // JAL
-    when(JAL(inst)) { decodeJ; global_data.setpc := true.B; next.pc := now.pc + imm; next.reg(rd) := now.pc + 4.U; }
+    when(JAL(inst)) { 
+      decodeJ; 
+      // global_data.setpc := true.B; 
+      // next.pc := now.pc + imm; 
+      // next.reg(rd) := now.pc + 4.U; 
+      when(addrAligned(getfetchSize(), now.pc + imm)){
+        global_data.setpc := true.B; 
+        next.pc := now.pc + imm; 
+        next.reg(rd) := now.pc + 4.U; 
+      }.otherwise{
+        // FIXME: 没有赋值成功
+        next.csr.mtval := now.pc + imm; 
+        raiseException(MExceptionCode.instructionAddressMisaligned)
+      }
+    }
     // JALR
-    when(JALR(inst)) { decodeI; global_data.setpc := true.B; next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); next.reg(rd) := now.pc + 4.U; }
+    when(JALR(inst)) { 
+      decodeI; 
+      when(addrAligned(getfetchSize(), Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)))){
+        global_data.setpc := true.B; 
+        next.pc := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)); 
+        next.reg(rd) := now.pc + 4.U; 
+      }.otherwise{
+        // FIXME: 没有赋值成功
+        next.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
+        raiseException(MExceptionCode.instructionAddressMisaligned)
+      }
+    }
     // - Conditional Branches
     // BEQ/BNE
-    when(BEQ(inst)) { decodeB; when(now.reg(rs1) === now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
-    when(BNE(inst)) { decodeB; when(now.reg(rs1) =/= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BEQ(inst)) { 
+      decodeB; 
+      when(now.reg(rs1) === now.reg(rs2)) { 
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B; 
+          next.pc := now.pc + imm; 
+        }.otherwise{
+          // FIXME: 没有赋值成功
+          next.csr.mtval := now.pc + imm; 
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+        // global_data.setpc := true.B; next.pc := now.pc + imm 
+      } 
+    }
+    when(BNE(inst)) { 
+      decodeB; 
+      when(now.reg(rs1) =/= now.reg(rs2)) { 
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B; 
+          next.pc := now.pc + imm; 
+        }.otherwise{
+          // FIXME: 没有赋值成功
+          next.csr.mtval := now.pc + imm; 
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+        // global_data.setpc := true.B; next.pc := now.pc + imm 
+      } 
+    }
     // BLT[U]
     when(BLT(inst))  { decodeB; when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     when(BLTU(inst)) { decodeB; when(now.reg(rs1) < now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
@@ -188,21 +283,78 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(BGEU(inst)) { decodeB; when(now.reg(rs1) >= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
     // - 2.6 Load and Store Instructions
     // LOAD
-    when(LB(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
-    when(LH(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
-    when(LW(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
-    when(LBU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
-    when(LHU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
+    // TODO: LBU and LHU ?
+    when(LB(inst))  { 
+      // TODO: LB好像不会出现非对齐访存的异常？
+      decodeI; 
+      when(addrAligned(SizeOp.b, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+    }
+    when(LH(inst))  { 
+      printf("[Debug]LH Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
+      decodeI; 
+      when(addrAligned(SizeOp.h, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+      // alignedException("Load", SizeOp.h, now.reg(rs1) + imm); 
+      printf("[Debug]LH End: %x\n",next.reg(rd))
+    }
+    when(LW(inst))  { 
+      printf("[Debug]LW Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
+      decodeI; 
+      when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+      printf("[Debug]LW End: %x\n", next.reg(rd))
+    }
+    when(LBU(inst)) { decodeI; alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
+    when(LHU(inst)) { decodeI; alignedException("Load", SizeOp.h, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
     // STORE
-    when(SB(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
-    when(SH(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) }
-    when(SW(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) }
+    when(SB(inst)) { decodeS; alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
+    when(SH(inst)) { 
+      decodeS; 
+      when(addrAligned(SizeOp.h, now.reg(rs1) + imm)){
+        memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0)) 
+      }.otherwise{
+        mem.write.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+      }
+    }
+    when(SW(inst)) { 
+      decodeS; 
+      when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
+        memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0)) 
+      }.otherwise{
+        mem.write.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+      }
+    }
     when(EBREAK(inst)) {
       // FIXME: EBREAK is not I type, but juse Decode, not use...
       decodeI;
       raiseException(MExceptionCode.breakpoint)
       printf("IS EBREAK\n")
     }
+
+    when(ECALL(inst)) {
+      // FIXME: ECALL is not I type, but juse Decode, not use...
+      decodeI;
+      // TODO: More exception code
+      raiseException(MExceptionCode.environmentCallFromMmode)
+      // raiseException(MExceptionCode.environmentCallFromSmode)
+      printf("IS ECALL\n")
+    }
+    
     // - 2.7 Memory Ordering Instructions
     // - 2.8 Environment Call and Breakpoints
     // - 2.9 HINT Instructions
@@ -245,12 +397,29 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(SUBW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN) }
     when(SRAW(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN) }
 
-    // - 5.3 Load and Store Instructions
+    // - 5.3 Load and Store Instructions RV64
     // - LOAD
+    // FIXME: 并非所有的都加了异常访存的限制 需要重新梳理并新加
     when(LWU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
-    when(LD(inst))  { decodeI; next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) }
+    when(LD(inst))  { 
+      decodeI; 
+      when(addrAligned(SizeOp.d, now.reg(rs1) + imm)){
+        next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+    }
     // - STORE
-    when(SD(inst)) { decodeS; memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) }
+    when(SD(inst)) { 
+      decodeS; 
+      when(addrAligned(SizeOp.d, now.reg(rs1) + imm)){
+        memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0)) 
+      }.otherwise{
+        mem.write.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+      }
+    }
 
     // - 5.4 HINT Instructions
   }

@@ -91,7 +91,12 @@ object SExceptionCode {
 }
 
 trait ExceptionSupport extends BaseCore {
+  def ModeU     = 0x0.U // 00 User/Application
+  def ModeS     = 0x1.U // 01 Supervisor
+  def ModeR     = 0x2.U // 10 Reserved
+  def ModeM     = 0x3.U // 11 Machine
   val illegalInstruction = WireInit(false.B)
+  // 看看产生的是中断还是异常
 
   def exceptionSupportInit() {
     illegalInstruction := true.B
@@ -108,9 +113,13 @@ trait ExceptionSupport extends BaseCore {
   }
 
   def raiseException(exceptionCode: Int): Unit = {
-    printf("[Error]Exception:%d\n",exceptionCode.U)
-    def doRaiseException(MXLEN: Int): Unit = {
+    // FIXME: 目前仅仅考虑了异常
+    val deleg = now.csr.medeleg
+    val delegS = (deleg(exceptionCode)) && (priviledgeMode < ModeM)
+    printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionCode.U, deleg, delegS, priviledgeMode)
+    def doRaiseExceptionM(MXLEN: Int): Unit = {
       // common part
+      // FIXME: 实际上 这里也应该改 因为不确定到底是mcause还是scause
       next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
       next.csr.mepc   := now.pc
       next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
@@ -123,6 +132,7 @@ trait ExceptionSupport extends BaseCore {
           // : * the first ILEN bits of the faulting instruction
           // : * the first MXLEN bits of the faulting instruction
           // simply implement it for now
+          // FIXME: 实际上 非法指令存的是指令本身 其他的错误并非存储指令到mtval中 其他的也需要改
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
@@ -135,9 +145,28 @@ trait ExceptionSupport extends BaseCore {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
             .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
+        case MExceptionCode.environmentCallFromMmode => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
+        // FIXME:三种非对齐访存 把非必要的Case进行合并
+        case MExceptionCode.storeOrAMOAddressMisaligned => {
+          next.csr.mtval := io.mem.write.addr
+          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
+        }
+        case MExceptionCode.loadAddressMisaligned => {
+          next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+
+        }
+        case MExceptionCode.instructionAddressMisaligned => {
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
       }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump
+      // 还需要使用不同的东西进行跳转
       switch(now.csr.mtvec(1, 0)) {
         is(0.U(2.W)) { 
           // setPc := true.B
@@ -145,17 +174,98 @@ trait ExceptionSupport extends BaseCore {
           next.pc := (now.csr.mtvec(MXLEN - 1, 2)) << 2
           printf("NextPC:%x\n", next.pc)
         }
-        is(1.U(2.W)) { next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U }
+        is(1.U(2.W)) { 
+          global_data.setpc := true.B
+          next.pc := now.csr.mtvec(MXLEN - 1, 2) + (4 * exceptionCode).U 
+          printf("NextPC:%x\n", next.pc)
+        }
+        // >= 2 reserved
+      }
+    }
+    def doRaiseExceptionS(MXLEN: Int): Unit = {
+      // common part
+      // FIXME: 实际上 这里也应该改 因为不确定到底是mcause还是scause
+      next.csr.scause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
+      printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, exceptionCode.U((MXLEN - 1).W)))
+      next.csr.sepc   := now.pc
+      next.csr.stval  := 0.U // : For other traps, mtval is set to zero
+      // TODO: modify the exception case
+      // special part
+      exceptionCode match {
+        case MExceptionCode.illegalInstruction => {
+          // : illegal-instruction exception occurs, then mtval will contain the shortest of:
+          // : * the actual faulting instruction
+          // : * the first ILEN bits of the faulting instruction
+          // : * the first MXLEN bits of the faulting instruction
+          // simply implement it for now
+          // FIXME: 实际上 非法指令存的是指令本身 其他的错误并非存储指令到mtval中 其他的也需要改
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
+        // 暂时将csr读不存在的寄存器设置为instructionAccessFault TODO: 需要进一步明确
+        case MExceptionCode.instructionAccessFault => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
+        // 实际上是S Mode
+        case MExceptionCode.breakpoint => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
+            .otherwise { next.csr.stval := io.inst(31, 0) }
+        }
+        // FIXME: 很奇怪 把这个删了代码就不能跑了 无法理解
+        case MExceptionCode.environmentCallFromMmode => {
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+            .otherwise { next.csr.mtval := io.inst(31, 0) }
+        }
+        // FIXME:三种非对齐访存 把非必要的Case进行合并
+        case MExceptionCode.storeOrAMOAddressMisaligned => {
+          next.csr.mtval := io.mem.write.addr
+          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
+        }
+        case MExceptionCode.loadAddressMisaligned => {
+          next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+
+        }
+        case MExceptionCode.instructionAddressMisaligned => {
+          // next.csr.mtval := io.mem.read.addr
+          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
+      }
+      printf("Stvec mode:%x addr:%x\n",now.csr.stvec(1,0), now.csr.stvec(MXLEN - 1, 2) << 2)
+      // jump
+      // 还需要使用不同的东西进行跳转
+      switch(now.csr.stvec(1, 0)) {
+        is(0.U(2.W)) { 
+          // setPc := true.B
+          global_data.setpc := true.B
+          next.pc := (now.csr.stvec(MXLEN - 1, 2)) << 2
+          printf("NextPC:%x\n", next.pc)
+        }
+        is(1.U(2.W)) { 
+          global_data.setpc := true.B
+          next.pc := now.csr.stvec(MXLEN - 1, 2) + (4 * exceptionCode).U 
+          printf("NextPC:%x\n", next.pc)
+        }
         // >= 2 reserved
       }
     }
 
-    switch(now.csr.MXLEN) {
-      is(32.U(8.W)) { doRaiseException(32) }
-      is(64.U(8.W)) { if (XLEN >= 64) { doRaiseException(64) } }
+    when(delegS){
+      printf("USE S Mode ing...\n")
+      switch(now.csr.MXLEN) {
+        is(32.U(8.W)) { doRaiseExceptionS(32) }
+        is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionS(64) } }
+      }
+    }.otherwise{
+      switch(now.csr.MXLEN) {
+        is(32.U(8.W)) { doRaiseExceptionM(32) }
+        is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionM(64) } }
+      }
     }
   }
 
   // TODO: def raise an Interrupt
+  // FIXME: 需要对中断做出处理 但是当前只针对异常进行处理
   // may have Modifier
 }

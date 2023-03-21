@@ -29,9 +29,12 @@ object CSRInfo {
   def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt)(implicit XLEN: Int): CSRInfo = {
     new CSRInfo(addrStr.U(12.W), width, rmask, wfn, Fill(XLEN, 1.U(1.W)))
   }
-  def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt)(implicit XLEN: Int): CSRInfo = {
+  def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt): CSRInfo = {
     new CSRInfo(addrStr.U(12.W), width, rmask, wfn, wmask)
   }
+  // def apply(addrStr: String, width: Option[Int], rmask: UInt, wmask: UInt): CSRInfo = {
+  //   new CSRInfo(addrStr.U(12.W), width, rmask, x=>x, wmask)
+  // }
 }
 
 /** All CSR informations
@@ -49,9 +52,18 @@ object CSRInfo {
   */
 class CSRInfos()(implicit XLEN: Int){
   // SideEffect
+  def NoSideEffect: UInt => UInt = (x=>x)
   def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
     val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
-    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN-2, 0))
+    // mstatusOld.mpp := "b11".U
+    if (XLEN == 64){
+      // FIXME: 还需要判断S态是否存在
+      mstatusOld.uxl := "b10".U
+      mstatusOld.sxl := "b10".U
+    }
+    // FIXME: 临时mpp只能为M状态 之后要时刻保持其值为能够支持的状态 
+    // 需要读Config来继续进行 当前三个模式都有 所以这一行要注释掉
+    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatusOld.asUInt(XLEN-2, 0))
     mstatusNew
   }
   // Address Map
@@ -70,8 +82,22 @@ class CSRInfos()(implicit XLEN: Int){
   // - Unprivileged Counter/Timers
 
   // - Supervisor Trap Setup
-  val sstatus    = CSRInfo("h100") // TODO
-  val sie        = CSRInfo("h104") // TODO
+  val sstatusWmask = "hc6122".U(XLEN.W)
+  // Sstatus Write Mask
+  // -------------------------------------------------------
+  //    19           9   5     2
+  // 0  1100 0000 0001 0010 0010
+  // 0  c    0    1    2    2
+  // -------------------------------------------------------
+  val sstatusRmask = sstatusWmask | "h8000000300018000".U
+  // val sieMask = "h222".U & mideleg
+  // val sipMask = "h222".U & mideleg
+  val sipWMask = "h2".U(XLEN.W) // ssip is writeable in smode
+  // MaskedRegMap(Sstatus, mstatus, sstatusWmask, mstatusUpdateSideEffect, sstatusRmask),
+  val sstatus    = CSRInfo("h100", None, sstatusRmask, mstatusUpdateSideEffect(_), sstatusWmask) // TODO
+
+  // MaskedRegMap(Sie, mie, sieMask, MaskedRegMap.NoSideEffect, sieMask),
+  val sie        = CSRInfo("h104", None, "h222".U, NoSideEffect, "h222".U) // TODO
   val stvec      = CSRInfo("h105") // TODO
   val scounteren = CSRInfo("h106") // TODO
   // - Supervisor Configuration
@@ -81,12 +107,13 @@ class CSRInfos()(implicit XLEN: Int){
   val sepc     = CSRInfo("h141") // TODO
   val scause   = CSRInfo("h142") // TODO
   val stval    = CSRInfo("h143") // TODO
-  val sip      = CSRInfo("h144") // TODO
+
+  // MaskedRegMap(Sip, mip.asUInt, sipMask, MaskedRegMap.Unwritable, sipMask),
+  val sip      = CSRInfo("h144", None, "h222".U, null, sipWMask) // FIXME: h222 is a error impl
   // - Supervisor Trap Handling
   val satp = CSRInfo("h180") // TODO
   // - Debug/Trace Registers
   // scontext
-  // what????????????????????????????????????????????
   val sedeleg = CSRInfo("h102") // TODO
   val sideleg = CSRInfo("h103") // TODO
 
@@ -102,7 +129,8 @@ class CSRInfos()(implicit XLEN: Int){
   // mconfigptr
   // - Machine Information Registers
   val mstatus    = CSRInfo("h300", None, Fill(XLEN, 1.U(1.W)), mstatusUpdateSideEffect) // TODO
-  val misa       = CSRInfo("h301") // TODO
+  val misa       = CSRInfo("h301", None, Fill(XLEN, 1.U(1.W)), null, 0.U(XLEN.W)) // UnwritableMask implement
+  // val misa       = CSRInfo("h301") // TODO
   val medeleg    = CSRInfo("h302") // TODO
   val mideleg    = CSRInfo("h303") // TODO
   val mie        = CSRInfo("h304") // TODO
@@ -147,7 +175,7 @@ class CSRInfos()(implicit XLEN: Int){
 
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
-class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
+class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqInBundle {
   // make default value for registers
   val CSRInfos   = new CSRInfos()
   val misa       = CSRInfos.misa.makeUInt
@@ -171,14 +199,21 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   val cycle      = CSRInfos.cycle.makeUInt
 
   val scounteren = CSRInfos.scounteren.makeUInt
-  val sepc       = CSRInfos.sepc.makeUInt
+
+  // if(config.S){
+    val scause    = CSRInfos.scause.makeUInt
+    val stvec     = CSRInfos.stvec.makeUInt
+    val sepc      = CSRInfos.sepc.makeUInt
+    val stval     = CSRInfos.stval.makeUInt
+    val sscratch  = CSRInfos.sscratch.makeUInt
+  // }
   // val time      = CSRInfos.time.makeUInt
   // val instret   = CSRInfos.instret.makeUInt
 
   /** Table for all CSR signals in this Bundle
    * CSRs in this table can be read or write
   */
-  val table = List(
+  val table_M = List(
     CSRInfoSignal(CSRInfos.misa,      misa),
     CSRInfoSignal(CSRInfos.mvendorid, mvendorid),
     CSRInfoSignal(CSRInfos.marchid,   marchid),
@@ -196,12 +231,26 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
     CSRInfoSignal(CSRInfos.mepc,      mepc),
     CSRInfoSignal(CSRInfos.mcause,    mcause),
     CSRInfoSignal(CSRInfos.mtval,     mtval),
-    CSRInfoSignal(CSRInfos.cycle,     cycle),
-    CSRInfoSignal(CSRInfos.scounteren,scounteren),
-    CSRInfoSignal(CSRInfos.sepc,      sepc)
+    CSRInfoSignal(CSRInfos.cycle,     cycle)
     // CSRInfoSignal(CSRInfos.time,      time),
     // CSRInfoSignal(CSRInfos.instret,   instret)
   )
+  
+  var table = table_M
+  if(config.S){
+    val table_S = List(
+      CSRInfoSignal(CSRInfos.scounteren,scounteren),
+      CSRInfoSignal(CSRInfos.scause,    scause),
+      CSRInfoSignal(CSRInfos.stvec,     stvec),
+      CSRInfoSignal(CSRInfos.sepc,      sepc),
+      CSRInfoSignal(CSRInfos.stval,     stval),
+      CSRInfoSignal(CSRInfos.sstatus,   mstatus),
+      CSRInfoSignal(CSRInfos.sie,       mie),
+      CSRInfoSignal(CSRInfos.sip,       mip),
+      CSRInfoSignal(CSRInfos.sscratch,  sscratch)
+      )
+    table = table ++ table_S
+  }
 
   val MXLEN  = UInt(8.W)
   val IALIGN = UInt(8.W) // : the instruction-address alignment constraint the implementation enforces
@@ -218,7 +267,9 @@ class CSR()(implicit XLEN: Int) extends Bundle with IgnoreSeqInBundle {
   )
 }
 object CSR {
-  def apply()(implicit XLEN: Int): CSR = new CSR()
+  def apply()(implicit XLEN: Int, config: RVConfig): CSR = new CSR()
+  def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
+  def getMisaExtInt(ext: Char): Int = {(ext.toInt - 'A'.toInt)}
   def wireInit()(implicit XLEN: Int, config: RVConfig): CSR = {
   
     // TODO: finish the sideEffect func
@@ -237,7 +288,6 @@ object CSR {
         case 128 => 3.U << (XLEN-2)
       }
     }
-    def getMisaExt(ext: Char): UInt = {1.U << (ext.toInt - 'A'.toInt)}
     val misaInitVal = getMisaMxl() | config.CSRMisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) //"h8000000000141105".U 
     // val valid = csr.io.in.valid
     csr.misa      := misaInitVal
@@ -250,7 +300,13 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid    := 0.U
     csr.mhartid   := 0.U
-    csr.mstatus   := zeroExt("h000000ff".U, XLEN)  //300
+    if(XLEN == 32){
+      // TODO: 事实上 此处需要根据Config文件配置 进一步完善mstatus的初始值和可供修改的位置
+      // FIXME: 默认值的FS位一个是01 好像有问题
+      csr.mstatus   := zeroExt("h000000ff".U, XLEN)
+    }else{
+      csr.mstatus   := zeroExt("h2000000ff".U, XLEN)
+    }
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
@@ -267,8 +323,14 @@ object CSR {
     csr.mcause    := 0.U
     csr.mtval     := 0.U
     csr.cycle     := 0.U // Warn TODO: NutShell not implemented
+
+    // TODO: S Mode modify (if case)
+    csr.scause    := 0.U
     csr.scounteren:= 0.U // TODO: Need to modify
+    csr.stvec     := 0.U
     csr.sepc      := 0.U // TODO: Need to modify
+    csr.stval     := 0.U
+    csr.sscratch  := 0.U
     // // TODO: Need Merge
     // val mstatus = RegInit("ha00002000".U(XLEN.W))
     // val mie = RegInit(0.U(XLEN.W))
