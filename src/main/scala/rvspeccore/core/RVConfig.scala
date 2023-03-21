@@ -17,7 +17,8 @@ sealed abstract class RVConfig(extensions: String) {
   // CSRs Config
 
   // Misa
-  var CSRMisaExtList = List('A', 'S', 'I', 'U')
+  // var CSRMisaExtList = List('A', 'S', 'I', 'U')
+  var CSRMisaExtList = List('A', 'S', 'I')
   if(M){ CSRMisaExtList = CSRMisaExtList :+ 'M'}
   if(C){ CSRMisaExtList = CSRMisaExtList :+ 'C'}
   

@@ -20,8 +20,12 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
   val mem = Wire(new MemIO)
+  // Global Data
+  val global_data = Wire(new GlobalData)
 }
-
+class GlobalData extends Bundle {
+  val setpc    = Bool()
+}
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
   val valid    = Output(Bool())
   val addr     = Output(UInt(XLEN.W))
@@ -62,6 +66,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // should keep the value in the next clock
   // if there no changes below
   // Initial the value of next
+  global_data.setpc := false.B
   next := now
 
   // dont read or write mem
@@ -70,6 +75,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // ID & EXE
   when(io.valid) {
+    next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
 
     inst := io.inst
@@ -90,12 +96,13 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
       }
     }
     // do without config for now
+    doRVPriviledged
     doRVZicsr
     doRVZifencei
 
     next.reg(0) := 0.U
 
-    when(!setPc) {
+    when(!global_data.setpc) {
       if (config.C) {
         // + 4.U for 32 bits width inst
         // + 2.U for 16 bits width inst in C extension

@@ -12,3 +12,4 @@ trait RVInstSet
     with ZicsrExtension
     with csr.CSRSupport
     with csr.ExceptionSupport
+    with PriviledgedExtension
