@@ -122,10 +122,10 @@ class CSRInfos()(implicit XLEN: Int){
   // - Virtual Supervisor Registers
 
   // - Machine Information Registers
-  val mvendorid = CSRInfo("hf11") // TODO
-  val marchid   = CSRInfo("hf12") // TODO
-  val mimpid    = CSRInfo("hf13") // TODO
-  val mhartid   = CSRInfo("hf14") // TODO
+  val mvendorid = CSRInfo("hf11", None, Fill(XLEN, 1.U(1.W)), null) 
+  val marchid   = CSRInfo("hf12", None, Fill(XLEN, 1.U(1.W)), null) 
+  val mimpid    = CSRInfo("hf13", None, Fill(XLEN, 1.U(1.W)), null) 
+  val mhartid   = CSRInfo("hf14", None, Fill(XLEN, 1.U(1.W)), null) 
   // mconfigptr
   // - Machine Information Registers
   val mstatus    = CSRInfo("h300", None, Fill(XLEN, 1.U(1.W)), mstatusUpdateSideEffect) // TODO
@@ -219,19 +219,19 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
     CSRInfoSignal(CSRInfos.marchid,   marchid),
     CSRInfoSignal(CSRInfos.mimpid,    mimpid),
     CSRInfoSignal(CSRInfos.mhartid,   mhartid),
-    CSRInfoSignal(CSRInfos.mstatus,   mstatus),
-    CSRInfoSignal(CSRInfos.mstatush,  mstatush),
-    CSRInfoSignal(CSRInfos.mscratch,  mscratch),
+    // CSRInfoSignal(CSRInfos.mstatus,   mstatus),
+    // CSRInfoSignal(CSRInfos.mstatush,  mstatush),
+    // CSRInfoSignal(CSRInfos.mscratch,  mscratch),
     CSRInfoSignal(CSRInfos.mtvec,     mtvec),
-    CSRInfoSignal(CSRInfos.mcounteren,mcounteren),
-    CSRInfoSignal(CSRInfos.medeleg,   medeleg),
-    CSRInfoSignal(CSRInfos.mideleg,   mideleg),
-    CSRInfoSignal(CSRInfos.mip,       mip),
-    CSRInfoSignal(CSRInfos.mie,       mie),
-    CSRInfoSignal(CSRInfos.mepc,      mepc),
-    CSRInfoSignal(CSRInfos.mcause,    mcause),
-    CSRInfoSignal(CSRInfos.mtval,     mtval),
-    CSRInfoSignal(CSRInfos.cycle,     cycle)
+    // CSRInfoSignal(CSRInfos.mcounteren,mcounteren),
+    // CSRInfoSignal(CSRInfos.medeleg,   medeleg),
+    // CSRInfoSignal(CSRInfos.mideleg,   mideleg),
+    // CSRInfoSignal(CSRInfos.mip,       mip),
+    // CSRInfoSignal(CSRInfos.mie,       mie),
+    // CSRInfoSignal(CSRInfos.mepc,      mepc),
+    // CSRInfoSignal(CSRInfos.mcause,    mcause),
+    // CSRInfoSignal(CSRInfos.mtval,     mtval),
+    // CSRInfoSignal(CSRInfos.cycle,     cycle)
     // CSRInfoSignal(CSRInfos.time,      time),
     // CSRInfoSignal(CSRInfos.instret,   instret)
   )

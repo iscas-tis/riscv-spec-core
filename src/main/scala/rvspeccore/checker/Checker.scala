@@ -108,14 +108,20 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   }else{
     specCore.io.mem.read.data := DontCare
   }
+  // Initial false default
+  when(RegNext(io.instCommit.valid, false.B)) {
+    for (i <- 0 until 32) {
+      assert(RegNext(io.result.reg(i.U), 0.U) === RegNext(specCore.io.next.reg(i.U), 0.U))
+    }  
+  }
   // assert in current clock
   when(io.instCommit.valid) {
     // now pc
     assert(io.instCommit.pc === specCore.io.now.pc)
     // next reg
-    for (i <- 0 until 32) {
-      assert(io.result.reg(i.U) === specCore.io.next.reg(i.U))
-    }
+    // for (i <- 0 until 32) {
+    //   assert(io.result.reg(i.U) === specCore.io.next.reg(i.U))
+    // }
     // next pc: hard to get next pc in a pipeline
     // check it at next instruction
 
@@ -125,6 +131,19 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     //     assert(result.signal === next.signal)
     //   }
     // }
+    assert(io.result.csr.misa === specCore.io.next.csr.misa)
+    assert(io.result.csr.mvendorid === specCore.io.next.csr.mvendorid)
+    assert(io.result.csr.marchid === specCore.io.next.csr.marchid)
+    assert(io.result.csr.mimpid === specCore.io.next.csr.mimpid)
+    assert(io.result.csr.mhartid === specCore.io.next.csr.mhartid)
+
+    assert(io.result.csr.mtvec === specCore.io.next.csr.mtvec)
+    // assert(io.result.csr.mideleg === specCore.io.next.csr.mideleg) // 这个有错
+    // assert(io.result.csr.medeleg === specCore.io.next.csr.medeleg)
+    // assert(io.result.csr.mepc === specCore.io.next.csr.mepc)
+    // assert(io.result.csr.mcause === specCore.io.next.csr.mcause)
+    // assert(io.result.csr.mtval === specCore.io.next.csr.mtval)
+    // assert(io.result.csr.mstatus === specCore.io.next.csr.mstatus)
     // io.result.csr.vTable.zip(specCore.io.next.csr.vTable).map {
     //   case (resultSig, nextSig) => {
     //     assert(resultSig === nextSig)

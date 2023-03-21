@@ -47,67 +47,87 @@ trait ZicsrExtensionInsts {
   *     Version 2.0
   */
 trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts with CSRSupport {
+  def wen(addr:UInt, justRead:Bool = false.B) : Bool = {
+    // val justRead = isSet && src1 === 0.U  // csrrs and csrrsi are exceptions when their src1 is zero
+    val isIllegalWrite = addr(11,10) === "b11".U && (!justRead)
+    // val isIllegalWrite = wen && (addr(11, 10) === "b11".U) && !justRead  // Write a read-only CSR register
+    // val isIllegalAccess = isIllegalMode || isIllegalWrite
+    isIllegalWrite
+  }
   def doRVZicsr: Unit = {
     // printf("PC: %x Inst:%x\n",now.pc,inst)
     when(CSRRW(inst)) {
       // t = CSRs[csr]; CSRs[csr] = x[rs1]; x[rd] = t
       printf("Is CSRRW:%x\n",inst)
       decodeI
-      when(rd =/= 0.U) {
-        next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+      when(!wen(imm(11, 0))){
+        when(rd =/= 0.U) {
+          next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+        }
+        csrWrite(imm(11, 0), now.reg(rs1))
       }
-      csrWrite(imm(11, 0), now.reg(rs1))
+
     }
     when(CSRRS(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t | x[rs1]; x[rd] = t
       printf("Is CSRRS:%x\n",inst)
       decodeI
-      // imm_11_0, rs1 , funct3, rd             , opcode ), inst); 
-      // imm := signExt(    imm_11_0                                      , XLEN) }
-      // printf("imm:%x rs1:%x rd:%x\n",imm,rs1,rd)
-      next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
-      // printf("After Write:%x\n",next.reg(rd))
-      when(rs1 =/= 0.U) {
-        csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) | now.reg(rs1))
+      when(!wen(imm(11, 0), now.reg(rs1) === 0.U)){
+        // imm_11_0, rs1 , funct3, rd             , opcode ), inst); 
+        // imm := signExt(    imm_11_0                                      , XLEN) }
+        // printf("imm:%x rs1:%x rd:%x\n",imm,rs1,rd)
+        next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+        // printf("After Write:%x\n",next.reg(rd))
+        when(rs1 =/= 0.U) {
+          csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) | now.reg(rs1))
+        }
       }
     }
     when(CSRRC(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t &~x[rs1]; x[rd] = t
       printf("Is CSRRC:%x\n",inst)
       decodeI
-      next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
-      when(rs1 =/= 0.U) {
-        // FIXME: 新写法wmask下导致的失灵 [待验证]
-        csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) & ~now.reg(rs1))
+      when(!wen(imm(11, 0))){
+        next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+        when(rs1 =/= 0.U) {
+          // FIXME: 新写法wmask下导致的失灵 [待验证]
+          csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) & ~now.reg(rs1))
+        }
       }
     }
     when(CSRRWI(inst)) {
       // x[rd] = CSRs[csr]; CSRs[csr] = zimm
       printf("Is CSRRWI:%x\n",inst)
       decodeI
-      when(rd =/= 0.U) {
-        next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+      when(!wen(imm(11, 0))){
+        when(rd =/= 0.U) {
+          next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+        }
+        csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
       }
-      csrWrite(imm(11, 0), zeroExt(rs1, XLEN))
     }
     when(CSRRSI(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t | zimm; x[rd] = t
       printf("Is CSRRSI:%x\n",inst)
       decodeI
-      next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
-      // TODO: might have some exceptions when csrrs and csrrsi rs1 is zero?
-      when(rs1 =/= 0.U) {
-        csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) | zeroExt(rs1, XLEN))
+      when(!wen(imm(11, 0), now.reg(rs1) === 0.U)){
+        next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+        // TODO: might have some exceptions when csrrs and csrrsi rs1 is zero?
+        when(rs1 =/= 0.U) {
+          csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) | zeroExt(rs1, XLEN))
+        }
       }
     }
     when(CSRRCI(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t &~zimm; x[rd] = t
       printf("Is CSRRCI:%x\n",inst)
       decodeI
-      next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
-      when(rs1 =/= 0.U) {
-        // FIXME: 新写法wmask下导致的失灵？ [待验证]
-        csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) & ~zeroExt(rs1, XLEN))
+      when(!wen(imm(11, 0))){
+        next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
+        when(rs1 =/= 0.U) {
+          // FIXME: 新写法wmask下导致的失灵？ [待验证]
+          csrWrite(imm(11, 0), zeroExt(csrRead(imm(11, 0)), XLEN) & ~zeroExt(rs1, XLEN))
+        }
       }
     }
   }
