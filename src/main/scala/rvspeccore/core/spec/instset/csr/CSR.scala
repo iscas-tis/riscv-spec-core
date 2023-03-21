@@ -129,7 +129,8 @@ class CSRInfos()(implicit XLEN: Int){
   // mconfigptr
   // - Machine Information Registers
   val mstatus    = CSRInfo("h300", None, Fill(XLEN, 1.U(1.W)), mstatusUpdateSideEffect) // TODO
-  val misa       = CSRInfo("h301", None, Fill(XLEN, 1.U(1.W)), null, 0.U(XLEN.W)) // UnwritableMask implement
+  // val misa       = CSRInfo("h301", None, Fill(XLEN, 1.U(1.W)), null, 0.U(XLEN.W)) // UnwritableMask implement
+  val misa       = CSRInfo("h301")
   // val misa       = CSRInfo("h301") // TODO
   val medeleg    = CSRInfo("h302") // TODO
   val mideleg    = CSRInfo("h303") // TODO
