@@ -340,18 +340,19 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     when(EBREAK(inst)) {
-      // FIXME: EBREAK is not I type, but juse Decode, not use...
       decodeI;
       raiseException(MExceptionCode.breakpoint)
       printf("IS EBREAK\n")
     }
 
     when(ECALL(inst)) {
-      // FIXME: ECALL is not I type, but juse Decode, not use...
       decodeI;
-      // TODO: More exception code
+      switch(priviledgeMode) {
+        is(0x3.U) { raiseException(MExceptionCode.environmentCallFromMmode) }
+        is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
+        is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
+      }
       raiseException(MExceptionCode.environmentCallFromMmode)
-      // raiseException(MExceptionCode.environmentCallFromSmode)
       printf("IS ECALL\n")
     }
     

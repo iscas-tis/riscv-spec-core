@@ -215,7 +215,6 @@ trait ExceptionSupport extends BaseCore {
       //     when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
       //       .otherwise { next.csr.mtval := io.inst(31, 0) }
       //   }
-      //   // 暂时将csr读不存在的寄存器设置为instructionAccessFault TODO: 需要进一步明确
       //   case MExceptionCode.instructionAccessFault => {
       //     when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
       //       .otherwise { next.csr.mtval := io.inst(31, 0) }
@@ -278,12 +277,11 @@ trait ExceptionSupport extends BaseCore {
           // : * the first MXLEN bits of the faulting instruction
           // simply implement it for now
           // FIXME: 实际上 非法指令存的是指令本身 其他的错误并非存储指令到mtval中 其他的也需要改
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
             .otherwise { next.csr.stval := io.inst(31, 0) }          
         }
-        // 暂时将csr读不存在的寄存器设置为instructionAccessFault TODO: 需要进一步明确
         is(MExceptionCode.instructionAccessFault.U){
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
             .otherwise { next.csr.stval := io.inst(31, 0) }
         }
         // 实际上是S Mode
@@ -299,17 +297,17 @@ trait ExceptionSupport extends BaseCore {
         }
         // FIXME:三种非对齐访存 把非必要的Case进行合并
         is(MExceptionCode.storeOrAMOAddressMisaligned.U){
-          next.csr.mtval := io.mem.write.addr
-          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
+          next.csr.stval := io.mem.write.addr
+          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.stval)
         }
         is(MExceptionCode.loadAddressMisaligned.U){
-          next.csr.mtval := io.mem.read.addr
-          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+          next.csr.stval := io.mem.read.addr
+          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
 
         }
         is(MExceptionCode.instructionAddressMisaligned.U){
-          // next.csr.mtval := io.mem.read.addr
-          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+          // next.csr.stval := io.mem.read.addr
+          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
         }
 
       }
