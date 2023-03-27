@@ -6,6 +6,7 @@ import chisel3.util.experimental.BoringUtils
 
 import rvspeccore.core.RVConfig
 import rvspeccore.core.spec.instset.csr.CSR
+import rvspeccore.core.spec.instset.csr.EventSig
 
 abstract class ConnectHelper {}
 
@@ -15,6 +16,7 @@ object ConnectCheckerResult extends ConnectHelper {
   val uniqueIdReg: String = "ConnectCheckerResult-UniqueIdReg"
   val uniqueIdMem: String = "ConnectCheckerResult-UniqueIdMem"
   val uniqueIdCSR: String = "ConnectCheckerResult-uniqueIdCSR"
+  val uniqueIdEvent: String = "ConnectCheckerResult-uniqueIdEvent"
 
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
@@ -58,6 +60,14 @@ object ConnectCheckerResult extends ConnectHelper {
     BoringUtils.addSource(csr, uniqueIdCSR)
     csr
   }
+
+  def makeEventSource()(implicit XLEN: Int, config: RVConfig): EventSig = {
+    val event = Wire(new EventSig())
+    event := DontCare
+    BoringUtils.addSource(event, uniqueIdEvent)
+    event
+  }
+  
   def setChecker(checker: CheckerWithResult, memDelay: Int = 0)(implicit XLEN: Int, config: RVConfig) = {
     // reg
     val regVec = Wire(Vec(32, UInt(XLEN.W)))
@@ -79,5 +89,10 @@ object ConnectCheckerResult extends ConnectHelper {
     csr := DontCare
     BoringUtils.addSink(csr, uniqueIdCSR)
     checker.io.result.csr := csr
+
+    val event = Wire(new EventSig())
+    event := DontCare
+    BoringUtils.addSink(event, uniqueIdEvent)
+    checker.io.event := event
   }
 }

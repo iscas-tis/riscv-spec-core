@@ -5,6 +5,7 @@ import chisel3.util._
 
 import spec._
 import spec.instset.csr.CSR
+import spec.instset.csr.EventSig
 
 abstract class BaseCore()(implicit config: RVConfig) extends Module {
   // Define Basic parts
@@ -15,6 +16,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
     val mem = new MemIO
     val now  = Output(State())
     val next = Output(State())
+    val event = Output(new EventSig)
   })
   // Initial State
   val now  = RegInit(State.wireInit())
@@ -23,6 +25,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   // Global Data
   val global_data = Wire(new GlobalData)
   val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
+  val event = Wire(new EventSig)
 }
 class GlobalData extends Bundle {
   val setpc    = Bool()
@@ -68,6 +71,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // if there no changes below
   // Initial the value of next
   global_data.setpc := false.B
+  event := 0.U.asTypeOf(new EventSig)
   next := now
 
   // dont read or write mem
@@ -131,4 +135,5 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // output
   io.now  := now
   io.next := next
+  io.event := event
 }

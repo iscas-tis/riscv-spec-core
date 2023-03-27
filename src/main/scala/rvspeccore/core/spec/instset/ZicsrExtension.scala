@@ -46,12 +46,17 @@ trait ZicsrExtensionInsts {
   *   - Chapter 9 “Zicsr”, Control and Status Register (CSR) Instructions,
   *     Version 2.0
   */
-trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts with CSRSupport {
+trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts with CSRSupport with ExceptionSupport {
   def wen(addr:UInt, justRead:Bool = false.B) : Bool = {
     // val justRead = isSet && src1 === 0.U  // csrrs and csrrsi are exceptions when their src1 is zero
     val isIllegalWrite = addr(11,10) === "b11".U && (!justRead)
+    val isIllegalMode  = priviledgeMode < addr(9, 8)
     // val isIllegalWrite = wen && (addr(11, 10) === "b11".U) && !justRead  // Write a read-only CSR register
-    // val isIllegalAccess = isIllegalMode || isIllegalWrite
+    val isIllegalAccess = isIllegalMode || isIllegalWrite
+    val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
+    when(isIllegalAccess || !has) {
+      raiseException(MExceptionCode.illegalInstruction)
+    }
     isIllegalWrite
   }
   def doRVZicsr: Unit = {

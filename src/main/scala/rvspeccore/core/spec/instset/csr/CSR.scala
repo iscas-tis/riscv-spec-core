@@ -176,6 +176,14 @@ class CSRInfos()(implicit XLEN: Int){
 
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
+class EventSig()(implicit XLEN: Int) extends Bundle {
+  val valid         = Bool()
+  val intrNO        = UInt(XLEN.W)
+  val cause         = UInt(XLEN.W)
+  val exceptionPC   = UInt(XLEN.W)
+  val exceptionInst = UInt(XLEN.W)
+}
+
 class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqInBundle {
   // make default value for registers
   val CSRInfos   = new CSRInfos()

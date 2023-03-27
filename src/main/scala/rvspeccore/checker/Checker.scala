@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 import rvspeccore.core._
-
+import rvspeccore.core.spec.instset.csr.EventSig
 abstract class Checker()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 }
@@ -41,6 +41,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     val instCommit = Input(InstCommit())
     val result     = Input(State())
     val mem        = if (checkMem) Some(Input(new MemIO)) else None
+    val event      = Input(new EventSig())
   })
 
   // link to spec core
@@ -116,6 +117,15 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   }
   // assert in current clock
   when(io.instCommit.valid) {
+    // Event Check
+    // FIXME: Now or Next ?
+    when(io.event.valid) {
+      assert(io.event.intrNO === specCore.io.event.intrNO)
+      assert(io.event.cause === specCore.io.event.cause)
+      assert(io.event.exceptionPC === specCore.io.event.exceptionPC)
+      assert(io.event.exceptionInst === specCore.io.event.exceptionInst)
+    }
+    
     // now pc
     assert(io.instCommit.pc === specCore.io.now.pc)
     // next reg
@@ -125,19 +135,19 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     // next pc: hard to get next pc in a pipeline
     // check it at next instruction
 
-    // next csr //FIXME: Temporarily closed csr assert
-    // io.result.csr.table.zip(specCore.io.next.csr.table).map {
-    //   case (result, next) => {
-    //     assert(result.signal === next.signal)
-    //   }
-    // }
-    assert(io.result.csr.misa === specCore.io.next.csr.misa)
-    assert(io.result.csr.mvendorid === specCore.io.next.csr.mvendorid)
-    assert(io.result.csr.marchid === specCore.io.next.csr.marchid)
-    assert(io.result.csr.mimpid === specCore.io.next.csr.mimpid)
-    assert(io.result.csr.mhartid === specCore.io.next.csr.mhartid)
+    // next csr
+    io.result.csr.table.zip(specCore.io.next.csr.table).map {
+      case (result, next) => {
+        assert(result.signal === next.signal)
+      }
+    }
+    // assert(io.result.csr.misa === specCore.io.next.csr.misa)
+    // assert(io.result.csr.mvendorid === specCore.io.next.csr.mvendorid)
+    // assert(io.result.csr.marchid === specCore.io.next.csr.marchid)
+    // assert(io.result.csr.mimpid === specCore.io.next.csr.mimpid)
+    // assert(io.result.csr.mhartid === specCore.io.next.csr.mhartid)
 
-    assert(io.result.csr.mtvec === specCore.io.next.csr.mtvec)
+    // assert(io.result.csr.mtvec === specCore.io.next.csr.mtvec)
     // assert(io.result.csr.mideleg === specCore.io.next.csr.mideleg) // 这个有错
     // assert(io.result.csr.medeleg === specCore.io.next.csr.medeleg)
     // assert(io.result.csr.mepc === specCore.io.next.csr.mepc)

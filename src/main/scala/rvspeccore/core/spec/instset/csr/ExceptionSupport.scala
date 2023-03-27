@@ -121,6 +121,7 @@ trait ExceptionSupport extends BaseCore {
   // 仲裁之后的统一执行 尾部折叠判断优先级
   val exceptionVec = Wire(Vec(16, Bool()))
   exceptionVec.map(_ := false.B)
+  val exceptionNO = Priority.excPriority.foldRight(0.U)((i: Int, sum: UInt) => Mux(exceptionVec(i), i.U, sum))
   def exceptionSupportInit() {
     illegalInstruction := true.B
   }
@@ -142,8 +143,12 @@ trait ExceptionSupport extends BaseCore {
     raiseExceptionIntr := true.B
   }
   def dealExceptionCode : Unit = {
+    event.valid := true.B
+    // event.intrNO := exceptionNO
+    event.cause  := exceptionNO
+    event.exceptionPC     := now.pc
+    event.exceptionInst   := io.inst(31, 0)
     // FIXME: 目前仅仅考虑了异常
-    val exceptionNO = Priority.excPriority.foldRight(0.U)((i: Int, sum: UInt) => Mux(exceptionVec(i), i.U, sum))
     val deleg = now.csr.medeleg
     val delegS = (deleg(exceptionNO)) && (priviledgeMode < ModeM)
     printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, priviledgeMode)
@@ -151,11 +156,13 @@ trait ExceptionSupport extends BaseCore {
     // FIXME: 需要对中断做出处理 但是当前只针对异常进行处理
     when(delegS){
       printf("USE S Mode ing...\n")
+      event.cause := next.csr.scause
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionS(exceptionNO, 32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionS(exceptionNO, 64) } }
       }
     }.otherwise{
+      event.cause := next.csr.mcause
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionM(exceptionNO, 32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionM(exceptionNO, 64) } }
