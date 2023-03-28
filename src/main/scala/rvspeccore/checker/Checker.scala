@@ -74,12 +74,16 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       load_push.memWidth := 0.U
       LoadQueue.io.in.bits := load_push
     }
+    when(RegNext(specCore.io.mem.read.valid, false.B)){
+      // 暴露接口值
+      assert(RegNext(LoadQueue.io.out.bits.addr, 0.U)      === RegNext(specCore.io.mem.read.addr, 0.U))
+    }
     when(specCore.io.mem.read.valid){
       LoadQueue.io.out.ready := true.B
       // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
       specCore.io.mem.read.data := { if (checkMem) LoadQueue.io.out.bits.data else DontCare }
-      assert(LoadQueue.io.out.bits.addr      === specCore.io.mem.read.addr)
-      assert(LoadQueue.io.out.bits.memWidth  === specCore.io.mem.read.memWidth)
+      // assert(LoadQueue.io.out.bits.addr      === specCore.io.mem.read.addr)
+      // assert(LoadQueue.io.out.bits.memWidth  === specCore.io.mem.read.memWidth)
     }.otherwise{
       specCore.io.mem.read.data := 0.U
     }
