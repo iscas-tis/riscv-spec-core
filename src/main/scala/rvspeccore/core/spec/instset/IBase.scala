@@ -318,7 +318,15 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       printf("[Debug]LW End: %x\n", next.reg(rd))
     }
     when(LBU(inst)) { decodeI; alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
-    when(LHU(inst)) { decodeI; alignedException("Load", SizeOp.h, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) }
+    when(LHU(inst)) { 
+      decodeI; 
+      when(addrAligned(SizeOp.h, now.reg(rs1) + imm)){
+        next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+    }
     // STORE
     when(SB(inst)) { decodeS; alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
     when(SH(inst)) { 
@@ -401,7 +409,15 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // - 5.3 Load and Store Instructions RV64
     // - LOAD
     // FIXME: 并非所有的都加了异常访存的限制 需要重新梳理并新加
-    when(LWU(inst)) { decodeI; next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) }
+    when(LWU(inst)) { 
+      decodeI; 
+      when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
+        next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) 
+      }.otherwise{
+        mem.read.addr := now.reg(rs1) + imm
+        raiseException(MExceptionCode.loadAddressMisaligned)
+      }
+    }
     when(LD(inst))  { 
       decodeI; 
       when(addrAligned(SizeOp.d, now.reg(rs1) + imm)){
