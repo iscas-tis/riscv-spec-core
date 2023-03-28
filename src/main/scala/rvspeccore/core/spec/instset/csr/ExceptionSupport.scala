@@ -152,27 +152,37 @@ trait ExceptionSupport extends BaseCore {
     val deleg = now.csr.medeleg
     val delegS = (deleg(exceptionNO)) && (priviledgeMode < ModeM)
     printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, priviledgeMode)
+    printf("[Debug] mstatus:%x %x\n", now.csr.mstatus, next.csr.mstatus)
     // TODO: def raise an Interrupt
     // FIXME: 需要对中断做出处理 但是当前只针对异常进行处理
+    val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+    val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
     when(delegS){
       printf("USE S Mode ing...\n")
       event.cause := next.csr.scause
+      mstatusNew.spp := priviledgeMode
+      mstatusNew.spie := mstatusOld.sie
+      mstatusNew.sie := false.B
+      priviledgeMode := ModeS
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionS(exceptionNO, 32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionS(exceptionNO, 64) } }
       }
     }.otherwise{
       event.cause := next.csr.mcause
+      mstatusNew.mpp := priviledgeMode
+      mstatusNew.mpie := mstatusOld.mie
+      mstatusNew.mie := false.B
+      priviledgeMode := ModeM
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionM(exceptionNO, 32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionM(exceptionNO, 64) } }
       }
     }
-
+    next.csr.mstatus := mstatusNew.asUInt
     def doRaiseExceptionM(exceptionCode: UInt, MXLEN: Int): Unit = {
+      printf("[Debug]Mtval:%x\n", next.csr.mtval)
       // common part
-      // FIXME: 实际上 这里也应该改 因为不确定到底是mcause还是scause
-      // next.csr.mcause := Cat(false.B, exceptionCode.U((MXLEN - 1).W))
       next.csr.mcause := Cat(0.U, zeroExt(exceptionCode, MXLEN - 1))
       next.csr.mepc   := now.pc
       next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
@@ -180,8 +190,10 @@ trait ExceptionSupport extends BaseCore {
       // special part
       switch(exceptionCode) {
         is(MExceptionCode.illegalInstruction.U) {
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-            .otherwise { next.csr.mtval := io.inst(31, 0) }
+          // FIXME: optionally, NutShell do nothing...
+          next.csr.mtval := 0.U
+          // when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
+          //   .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
         is(MExceptionCode.instructionAccessFault.U){
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
@@ -204,46 +216,8 @@ trait ExceptionSupport extends BaseCore {
           printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
       }
-      // exceptionCode match {
-      //   case MExceptionCode.illegalInstruction => {
-      //     // : illegal-instruction exception occurs, then mtval will contain the shortest of:
-      //     // : * the actual faulting instruction
-      //     // : * the first ILEN bits of the faulting instruction
-      //     // : * the first MXLEN bits of the faulting instruction
-      //     // simply implement it for now
-      //     // FIXME: 实际上 非法指令存的是指令本身 其他的错误并非存储指令到mtval中 其他的也需要改
-      //     when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-      //       .otherwise { next.csr.mtval := io.inst(31, 0) }
-      //   }
-      //   case MExceptionCode.instructionAccessFault => {
-      //     when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-      //       .otherwise { next.csr.mtval := io.inst(31, 0) }
-      //   }
-      //   case MExceptionCode.breakpoint => {
-      //     when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-      //       .otherwise { next.csr.mtval := io.inst(31, 0) }
-      //   }
-      //   case MExceptionCode.environmentCallFromMmode => {
-      //     when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-      //       .otherwise { next.csr.mtval := io.inst(31, 0) }
-      //   }
-      //   // FIXME:三种非对齐访存 把非必要的Case进行合并
-      //   case MExceptionCode.storeOrAMOAddressMisaligned => {
-      //     next.csr.mtval := io.mem.write.addr
-      //     printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
-      //   }
-      //   case MExceptionCode.loadAddressMisaligned => {
-      //     next.csr.mtval := io.mem.read.addr
-      //     printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
-      //   }
-      //   case MExceptionCode.instructionAddressMisaligned => {
-      //     // next.csr.mtval := io.mem.read.addr
-      //     printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
-      //   }
-      // }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump
-      // 还需要使用不同的东西进行跳转
       switch(now.csr.mtvec(1, 0)) {
         is(0.U(2.W)) { 
           // setPc := true.B
@@ -262,7 +236,6 @@ trait ExceptionSupport extends BaseCore {
 
     def doRaiseExceptionS(exceptionCode: UInt, MXLEN: Int): Unit = {
       // common part
-      // FIXME: 实际上 这里也应该改 因为不确定到底是mcause还是scause
       next.csr.scause := Cat(false.B, zeroExt(exceptionCode, MXLEN - 1))
       printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, zeroExt(exceptionCode, MXLEN - 1)))
       next.csr.sepc   := now.pc
