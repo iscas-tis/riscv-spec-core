@@ -23,13 +23,14 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     require(addr.getWidth == 12)
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x)\n",has,nowCSR,addr)
+    val rmask : UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.info.rmask })
+    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
       // common read
       when(has) {
-        rData := nowCSR(MXLEN - 1, 0)
+        rData := (nowCSR(MXLEN - 1, 0) & rmask)
       }.otherwise {
         // all unimplemented CSR registers return 0
         rData := 0.U(MXLEN.W)
@@ -66,6 +67,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
         when(addr === info.addr) {
           // 地址是当前寄存器的地址
+          printf("[Debug]Find ADDR, %x %x\n", (info.wfn != null).B, (info.wmask != UnwritableMask).B)
           if (info.wfn != null && info.wmask != UnwritableMask) {
             // 且该寄存器可写 使用mask
             nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
