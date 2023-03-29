@@ -78,7 +78,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
   val rMask = width2Mask(core.io.mem.read.memWidth)
   when(core.io.mem.read.valid) {
-    core.io.mem.read.data := (mem.read(rIdx) >> rOff) & rMask
+    core.io.mem.read.data := mem.read(rIdx)
   } otherwise {
     core.io.mem.read.data := 0.U
   }
@@ -109,8 +109,9 @@ object RiscvTests {
     new File(s"$root/$instSet/$instTest")
   }
 
-  val maxStep = 600
+  val maxStep = 1000
   def stepTest(dut: CoreTester, restClock: Int): Int = {
+    // run a clock
     dut.clock.step(1)
     if (dut.io.inst.peek().litValue == "h0000006f".U.litValue) { // end
       restClock
@@ -121,6 +122,7 @@ object RiscvTests {
     }
   }
   def checkReturn(dut: CoreTester): Unit = {
+    // FIXME:最后一条指令是0x6f 10号寄存器为0
     dut.io.inst.expect("h0000006f".U(32.W)) // j halt
     dut.io.now.reg(10).expect(0.U)          // li	a0,0
   }
@@ -129,6 +131,7 @@ object RiscvTests {
 class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "RiscvCore"
   it should "pass RV64Config firrtl emit" in {
+    // generate Firrtl Code
     (new chisel3.stage.ChiselStage)
       .emitFirrtl(new RiscvCore()(RV64Config()), Array("--target-dir", "test_run_dir/" + getTestName))
   }
@@ -176,6 +179,7 @@ class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RV32Config("MC")
 
   val tests = Seq("rv32ui", "rv32um", "rv32uc")
+  // val tests = Seq("tempcsr32")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
