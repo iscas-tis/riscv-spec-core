@@ -90,42 +90,56 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
   }
 
   def Mret()(implicit config: RVConfig): Unit = {
-    val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
-    val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
-    // // mstatusNew.mpp.m := ModeU //TODO: add mode U
-    mstatusNew.mie   := mstatusOld.mpie
-    priviledgeMode   := mstatusOld.mpp
-    mstatusNew.mpie  := true.B
-    printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
-    if(config.CSRMisaExtList.exists(s => s == 'U')) {
-      mstatusNew.mpp := ModeU
-    } else {
-      mstatusNew.mpp := ModeM
+    when(priviledgeMode === ModeM) {
+      val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+      val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
+      mstatusNew.mie   := mstatusOld.mpie
+      priviledgeMode   := mstatusOld.mpp
+      mstatusNew.mpie  := true.B
+      printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
+      if(config.CSRMisaExtList.exists(s => s == 'U')) {
+        mstatusNew.mpp := ModeU
+      } else {
+        mstatusNew.mpp := ModeM
+      }
+      next.csr.mstatus := mstatusNew.asUInt
+      lr := false.B
+      retTarget := next.csr.mepc(VAddrBits-1, 0)
+      printf("nextpc1:%x\n",now.csr.mepc)
+      global_data.setpc := true.B
+      next.pc := now.csr.mepc
+      printf("nextpc2:%x\n",next.pc)
+    }.otherwise{
+      raiseException(MExceptionCode.illegalInstruction)
     }
-    next.csr.mstatus := mstatusNew.asUInt
-    lr := false.B
-    retTarget := next.csr.mepc(VAddrBits-1, 0)
-    printf("nextpc1:%x\n",now.csr.mepc)
-    global_data.setpc := true.B
-    next.pc := now.csr.mepc
-    printf("nextpc2:%x\n",next.pc)
   }
   def Sret(): Unit = {
-    // FIXME: is mstatus not sstatus ?
     val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
     val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
-    // mstatusNew.mpp.m := ModeU //TODO: add mode U
-    mstatusNew.sie   := mstatusOld.spie
-    priviledgeMode   := Cat(0.U(1.W), mstatusOld.spp)
-    mstatusNew.spie  := true.B
-    mstatusNew.spp   := ModeM // FIXME: is which mode ?
-    mstatusNew.mprv  := 0x0.U // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
-    next.csr.mstatus := mstatusNew.asUInt
-    lr := false.B
-    retTarget := next.csr.sepc(VAddrBits-1, 0)
-    printf("nextpc1:%x\n",now.csr.mepc)
-    global_data.setpc := true.B
-    next.pc := now.csr.sepc
-    printf("nextpc2:%x\n",next.pc)
+    // 3.1.6.5 Virtualization Support in mstatus Register
+    // The TSR (Trap SRET) bit is a WARL field that supports intercepting the supervisor exception
+    // return instruction, SRET. When TSR=1, attempts to execute SRET while executing in S-mode
+    // will raise an illegal instruction exception. When TSR=0, this operation is permitted in S-mode.
+    // TSR is read-only 0 when S-mode is not supported.
+    val illegalSret = priviledgeMode < ModeS
+    val illegalSModeSret = priviledgeMode === ModeS && mstatusOld.tsr.asBool
+    when(illegalSret || illegalSModeSret){
+      raiseException(MExceptionCode.illegalInstruction)
+    }.otherwise{
+      // FIXME: is mstatus not sstatus ?
+      mstatusNew.sie   := mstatusOld.spie
+      priviledgeMode   := Cat(0.U(1.W), mstatusOld.spp)
+      mstatusNew.spie  := true.B // 正确的
+      mstatusNew.spp   := ModeU
+      mstatusNew.mprv  := 0x0.U // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
+      next.csr.mstatus := mstatusNew.asUInt
+      lr := false.B
+      retTarget := next.csr.sepc(VAddrBits-1, 0)
+      printf("nextpc1:%x\n",now.csr.sepc)
+      global_data.setpc := true.B
+      next.pc := now.csr.sepc
+      printf("nextpc2:%x\n",next.pc)
+      printf("next mstatus:%x\n", next.csr.mstatus)
+    }
   }
 }

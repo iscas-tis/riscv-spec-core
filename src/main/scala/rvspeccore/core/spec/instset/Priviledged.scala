@@ -15,7 +15,8 @@ trait PriviledgedInsts {
   val MRET       = Inst("b001100000010_00000_000_00000_1110011")
   val WFI        = Inst("b0001000_00101_00000_000_00000_1110011") 
   val SFANCE_VMA = Inst("b0001001_?????_?????_000_00000_1110011")
-
+  val TEST_ILLEGAL = Inst("b0000000_00000_00000_000_00000_1111011")
+  
   // The above are instructions for Nutshell
 
   val SINVAL_VMA = Inst("b0001011_?????_?????_000_00000_1110011")

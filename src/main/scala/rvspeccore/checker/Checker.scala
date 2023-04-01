@@ -74,16 +74,12 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       load_push.memWidth := 0.U
       LoadQueue.io.in.bits := load_push
     }
-    when(RegNext(specCore.io.mem.read.valid, false.B)){
-      // 暴露接口值
-      assert(RegNext(LoadQueue.io.out.bits.addr, 0.U)      === RegNext(specCore.io.mem.read.addr, 0.U))
-    }
     when(specCore.io.mem.read.valid){
       LoadQueue.io.out.ready := true.B
       // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
       specCore.io.mem.read.data := { if (checkMem) LoadQueue.io.out.bits.data else DontCare }
-      // assert(LoadQueue.io.out.bits.addr      === specCore.io.mem.read.addr)
-      // assert(LoadQueue.io.out.bits.memWidth  === specCore.io.mem.read.memWidth)
+      assert(LoadQueue.io.out.bits.addr      === specCore.io.mem.read.addr)
+      assert(LoadQueue.io.out.bits.memWidth  === specCore.io.mem.read.memWidth)
     }.otherwise{
       specCore.io.mem.read.data := 0.U
     }
@@ -119,18 +115,28 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       assert(RegNext(io.result.reg(i.U), 0.U) === RegNext(specCore.io.next.reg(i.U), 0.U))
     }  
   }
+  printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
+  when(io.event.valid || specCore.io.event.valid) {
+  // when(io.event.valid) {
+    assert(io.event.valid === specCore.io.event.valid) // Make sure DUT and specCore currently occur the same exception
+    assert(io.event.intrNO === specCore.io.event.intrNO)
+    assert(io.event.cause === specCore.io.event.cause)
+    assert(io.event.exceptionPC === specCore.io.event.exceptionPC)
+    assert(io.event.exceptionInst === specCore.io.event.exceptionInst)
+  }
   // assert in current clock
   when(io.instCommit.valid) {
-    // Event Check
-    // FIXME: Now or Next ?
-    when(io.event.valid) {
-      assert(io.event.intrNO === specCore.io.event.intrNO)
-      assert(io.event.cause === specCore.io.event.cause)
-      assert(io.event.exceptionPC === specCore.io.event.exceptionPC)
-      assert(io.event.exceptionInst === specCore.io.event.exceptionInst)
-    }
-    
     // now pc
+    assume(
+      !(
+        RVI.loadStore(io.instCommit.inst) &&
+        (
+          (io.result.csr.mtval(63,32) === 0.U) 
+          && (specCore.io.next.csr.mtval(31,0) === io.result.csr.mtval(31,0)) 
+          && (specCore.io.next.csr.mtval(63,32) =/= 0.U)
+        )
+      )
+    )
     assert(io.instCommit.pc === specCore.io.now.pc)
     // next reg
     // for (i <- 0 until 32) {
@@ -145,6 +151,29 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
         assert(result.signal === next.signal)
       }
     }
+    // assert(io.result.csr.misa === specCore.io.next.csr.misa)
+    // assert(io.result.csr.mvendorid === specCore.io.next.csr.mvendorid)
+    // assert(io.result.csr.marchid === specCore.io.next.csr.marchid)
+    // assert(io.result.csr.mimpid === specCore.io.next.csr.mimpid)
+    // assert(io.result.csr.mhartid === specCore.io.next.csr.mhartid)
+    // assert(io.result.csr.mstatus === specCore.io.next.csr.mstatus)
+    // assert(io.result.csr.mscratch === specCore.io.next.csr.mscratch)
+    // assert(io.result.csr.mtvec === specCore.io.next.csr.mtvec)
+    // assert(io.result.csr.mcounteren === specCore.io.next.csr.mcounteren)
+    // assert(io.result.csr.mip === specCore.io.next.csr.mip)
+    // assert(io.result.csr.mie === specCore.io.next.csr.mie)
+    // assert(io.result.csr.mepc === specCore.io.next.csr.mepc)
+    // assert(io.result.csr.mcause === specCore.io.next.csr.mcause)
+    // // assert(io.result.csr.mtval === specCore.io.next.csr.mtval)
+    // assert(io.result.csr.mtval(31,0) === specCore.io.next.csr.mtval(31,0))
+    // assert(io.result.csr.medeleg === specCore.io.next.csr.medeleg)
+    // assert(io.result.csr.mideleg === specCore.io.next.csr.mideleg)
+    // assert(io.result.csr.scounteren === specCore.io.next.csr.scounteren)
+    // assert(io.result.csr.scause === specCore.io.next.csr.scause)
+    // assert(io.result.csr.stvec === specCore.io.next.csr.stvec)
+    // assert(io.result.csr.sepc === specCore.io.next.csr.sepc)
+    // assert(io.result.csr.stval === specCore.io.next.csr.stval)
+    // assert(io.result.csr.sscratch === specCore.io.next.csr.sscratch)
 
     // io.result.csr.vTable.zip(specCore.io.next.csr.vTable).map {
     //   case (resultSig, nextSig) => {

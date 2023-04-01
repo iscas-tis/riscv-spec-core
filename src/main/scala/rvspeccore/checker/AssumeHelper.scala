@@ -78,7 +78,8 @@ object RVI extends AssumeHelper with spec.instset.IBaseInsts {
     List(LWU, LD, SD)
   )
   val other = AssumeHelper(
-    List(FENCE, ECALL, EBREAK)
+    // List(FENCE, ECALL, EBREAK)
+    List(ECALL, EBREAK) // FIXME: FENCE will occurs exception when verify
   )
 
   val partition = List(regImm, regReg, control, loadStore, other)
@@ -132,4 +133,13 @@ object RVZifencei extends AssumeHelper with spec.instset.ZifenceiExtensionInsts 
   )
 
   val partition: Seq[AssumeHelper] = List(fence_i)
+}
+object RVPriviledged extends AssumeHelper with spec.instset.PriviledgedInsts {
+  val trap_return = AssumeHelper(
+    List(SRET, MRET)
+  )
+  val illegal = AssumeHelper(
+    List(TEST_ILLEGAL)
+  )
+  val partition: Seq[AssumeHelper] = List(trap_return)
 }

@@ -360,7 +360,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
         is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
       }
-      raiseException(MExceptionCode.environmentCallFromMmode)
       printf("IS ECALL\n")
     }
     

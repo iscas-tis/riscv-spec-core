@@ -135,7 +135,10 @@ trait ExceptionSupport extends BaseCore {
       raiseException(MExceptionCode.illegalInstruction)
     }
     when(raiseExceptionIntr) {
+      event.valid := true.B
       dealExceptionCode
+    }.otherwise{
+      event.valid := false.B
     }
   }
   def raiseException(exceptionCode: Int): Unit = {
@@ -143,7 +146,7 @@ trait ExceptionSupport extends BaseCore {
     raiseExceptionIntr := true.B
   }
   def dealExceptionCode : Unit = {
-    event.valid := true.B
+    
     // event.intrNO := exceptionNO
     event.cause  := exceptionNO
     event.exceptionPC     := now.pc
@@ -153,6 +156,8 @@ trait ExceptionSupport extends BaseCore {
     val delegS = (deleg(exceptionNO)) && (priviledgeMode < ModeM)
     printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, priviledgeMode)
     printf("[Debug] mstatus:%x %x\n", now.csr.mstatus, next.csr.mstatus)
+    printf("[Debug] mepc:%x %x\n", now.csr.mepc, next.csr.mepc)
+    printf("[Debug] mcause:%x %x Mode:%x\n", now.csr.mcause, next.csr.mcause, priviledgeMode)
     // TODO: def raise an Interrupt
     // FIXME: 需要对中断做出处理 但是当前只针对异常进行处理
     val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
@@ -200,8 +205,7 @@ trait ExceptionSupport extends BaseCore {
             .otherwise { next.csr.mtval := io.inst(31, 0) }          
         }
         is(MExceptionCode.environmentCallFromMmode.U){
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-            .otherwise { next.csr.mtval := io.inst(31, 0) }          
+          next.csr.mtval := 0.U      
         }
         is(MExceptionCode.storeOrAMOAddressMisaligned.U){
           next.csr.mtval := io.mem.write.addr
@@ -262,11 +266,12 @@ trait ExceptionSupport extends BaseCore {
           when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
             .otherwise { next.csr.stval := io.inst(31, 0) }
         }
-        // FIXME: 很奇怪 把这个删了代码就不能跑了 无法理解
-        // FIXME: 实际上已经不存在这种情况了
         is(MExceptionCode.environmentCallFromMmode.U){
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
-            .otherwise { next.csr.stval := io.inst(31, 0) }
+          // FIXME: 很奇怪 把这个删了代码就不能跑了 无法理解
+          // FIXME: 实际上已经不存在这种情况了
+          // when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
+          //   .otherwise { next.csr.stval := io.inst(31, 0) }
+          next.csr.stval := 0.U
         }
         // FIXME:三种非对齐访存 把非必要的Case进行合并
         is(MExceptionCode.storeOrAMOAddressMisaligned.U){
