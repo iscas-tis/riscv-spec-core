@@ -93,8 +93,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     // }.otherwise{
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-    val (resultStatus, resultPC) = iFetchTrans(now.pc)
-    printf("[Debug]iFetch Come on: Status:%d PC:%x \n", resultStatus, resultPC)
+    val (resultStatus, resultPC) = if(XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc(31, 0))    
     when(resultStatus){
       inst := io.inst
     }.otherwise{

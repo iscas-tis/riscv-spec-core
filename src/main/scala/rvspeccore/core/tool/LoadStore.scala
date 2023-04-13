@@ -34,49 +34,66 @@ trait LoadStore extends BaseCore with MMU{
     )
   }
   def memRead(addr: UInt, memWidth: UInt): UInt = {
-    val bytesWidth = log2Ceil(XLEN / 8)
-    val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-    val rMask = width2Mask(memWidth)
-    val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
-    val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
-    val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
-    printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
-    mem.read.valid    := true.B
-    when(vmEnable){
-        // mem.read.addr     := AddrTransRead(addr)
-        // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
-        val (success, finaladdr) = PageTableWalk(addr, Load)
-        when(success){
-            mem.read.addr := finaladdr
-        }.otherwise{
-            raiseException(MExceptionCode.loadPageFault)
-        }
-    }.otherwise{
+    if(XLEN == 32){
+        val bytesWidth = log2Ceil(XLEN / 8)
+        val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+        val rMask = width2Mask(memWidth)
+        mem.read.valid    := true.B
         mem.read.addr     := addr
+        mem.read.memWidth := memWidth
+        (mem.read.data >> rOff) & rMask
+    }else{
+        val bytesWidth = log2Ceil(XLEN / 8)
+        val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+        val rMask = width2Mask(memWidth)
+        val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
+        val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+        val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
+        printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
+        mem.read.valid    := true.B
+        when(vmEnable){
+            // mem.read.addr     := AddrTransRead(addr)
+            // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
+            val (success, finaladdr) = PageTableWalk(addr, Load)
+            when(success){
+                mem.read.addr := finaladdr
+            }.otherwise{
+                raiseException(MExceptionCode.loadPageFault)
+            }
+        }.otherwise{
+            mem.read.addr     := addr
+        }
+        mem.read.memWidth := memWidth
+        (mem.read.data >> rOff) & rMask
     }
-    mem.read.memWidth := memWidth
-    (mem.read.data >> rOff) & rMask
   }
   def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
-      // val pv = Mux(now.csr.mstatus)
-    val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
-    val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
-    val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
-    printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
-    mem.write.valid    := true.B
-    when(vmEnable){
-        // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
-        val (success, finaladdr) = PageTableWalk(addr, Store)
-        when(success){
-            mem.write.addr := finaladdr
+    if(XLEN == 32){
+        mem.write.valid    := true.B
+        mem.write.addr     := addr
+        mem.write.memWidth := memWidth
+        mem.write.data     := data
+    }else{
+        // val pv = Mux(now.csr.mstatus)
+        val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
+        val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+        val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
+        printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
+        mem.write.valid    := true.B
+        when(vmEnable){
+            // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
+            val (success, finaladdr) = PageTableWalk(addr, Store)
+            when(success){
+                mem.write.addr := finaladdr
+            }.otherwise{
+                raiseException(MExceptionCode.storeOrAMOPageFault)
+            }
         }.otherwise{
-            raiseException(MExceptionCode.storeOrAMOPageFault)
+            mem.write.addr := addr
         }
-    }.otherwise{
-        mem.write.addr := addr
+        mem.write.memWidth := memWidth
+        mem.write.data     := data
     }
-    mem.write.memWidth := memWidth
-    mem.write.data     := data
   }
 
   def iFetchTrans(addr: UInt) : (Bool, UInt) = {
