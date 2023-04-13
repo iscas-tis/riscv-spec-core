@@ -122,7 +122,7 @@ trait ExceptionSupport extends BaseCore {
   val exceptionVec = Wire(Vec(16, Bool()))
   exceptionVec.map(_ := false.B)
   val exceptionNO = Priority.excPriority.foldRight(0.U)((i: Int, sum: UInt) => Mux(exceptionVec(i), i.U, sum))
-  def exceptionSupportInit() {
+  def exceptionSupportInit() : UInt = {
     illegalInstruction := true.B
   }
   def legalInstruction(): Unit = {
@@ -190,7 +190,13 @@ trait ExceptionSupport extends BaseCore {
       // common part
       next.csr.mcause := Cat(0.U, zeroExt(exceptionCode, MXLEN - 1))
       next.csr.mepc   := now.pc
+      mstatusNew.mpp  := priviledgeMode
+      mstatusNew.mpie := mstatusOld.sie
+      mstatusNew.mie  := false.B
+      priviledgeMode  := ModeM // 之前写的大bug
+      //FIXME: tva此处写法欠妥
       next.csr.mtval  := 0.U // : For other traps, mtval is set to zero
+      next.csr.mstatus := mstatusNew.asUInt
       // TODO: modify the exception case
       // special part
       switch(exceptionCode) {
@@ -219,6 +225,15 @@ trait ExceptionSupport extends BaseCore {
           // next.csr.mtval := io.mem.read.addr
           printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
+        is(MExceptionCode.storeOrAMOAccessFault.U){
+          printf("[Debug]:storeOrAMOAccessFault %x %x\n",io.mem.write.addr,next.csr.mtval)
+        }
+        is(MExceptionCode.loadPageFault.U){
+          printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
+        is(MExceptionCode.instructionPageFault.U){
+          printf("[Debug]:instructionPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+        }
       }
       printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump
@@ -243,7 +258,13 @@ trait ExceptionSupport extends BaseCore {
       next.csr.scause := Cat(false.B, zeroExt(exceptionCode, MXLEN - 1))
       printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, zeroExt(exceptionCode, MXLEN - 1)))
       next.csr.sepc   := now.pc
+      mstatusNew.spp := priviledgeMode
+      mstatusNew.spie := mstatusOld.sie
+      mstatusNew.sie := false.B
+      priviledgeMode := ModeS
+      printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, exceptionCode.U((MXLEN - 1).W)))
       next.csr.stval  := 0.U // : For other traps, mtval is set to zero
+      next.csr.mstatus := mstatusNew.asUInt
       // TODO: modify the exception case
       // special part
       switch(exceptionCode) {
@@ -287,7 +308,6 @@ trait ExceptionSupport extends BaseCore {
           // next.csr.stval := io.mem.read.addr
           printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
         }
-
       }
       printf("Stvec mode:%x addr:%x\n",now.csr.stvec(1,0), now.csr.stvec(MXLEN - 1, 2) << 2)
       // jump
