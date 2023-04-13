@@ -122,7 +122,7 @@ trait ExceptionSupport extends BaseCore {
   val exceptionVec = Wire(Vec(16, Bool()))
   exceptionVec.map(_ := false.B)
   val exceptionNO = Priority.excPriority.foldRight(0.U)((i: Int, sum: UInt) => Mux(exceptionVec(i), i.U, sum))
-  def exceptionSupportInit() : UInt = {
+  def exceptionSupportInit() = {
     illegalInstruction := true.B
   }
   def legalInstruction(): Unit = {
@@ -262,7 +262,6 @@ trait ExceptionSupport extends BaseCore {
       mstatusNew.spie := mstatusOld.sie
       mstatusNew.sie := false.B
       priviledgeMode := ModeS
-      printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, exceptionCode.U((MXLEN - 1).W)))
       next.csr.stval  := 0.U // : For other traps, mtval is set to zero
       next.csr.mstatus := mstatusNew.asUInt
       // TODO: modify the exception case

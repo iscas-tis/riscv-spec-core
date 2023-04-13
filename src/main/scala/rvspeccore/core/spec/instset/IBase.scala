@@ -110,18 +110,7 @@ object SizeOp {
 }
 trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport with LoadStore{
   // val setPc = WireInit(false.B)
-  def width2Mask(width: UInt): UInt = {
-    MuxLookup(
-      width,
-      0.U(64.W),
-      Array(
-        8.U  -> "hff".U(64.W),
-        16.U -> "hffff".U(64.W),
-        32.U -> "hffff_ffff".U(64.W),
-        64.U -> "hffff_ffff_ffff_ffff".U(64.W)
-      )
-    )
-  }
+
   def alignedException(method: String, size: UInt, addr: UInt): Unit = {
     when(!addrAligned(size,addr)){
       method match {
@@ -150,21 +139,21 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         )
       )
   }
-  def memRead(addr: UInt, memWidth: UInt): UInt = {
-    val bytesWidth = log2Ceil(XLEN / 8)
-    val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-    val rMask = width2Mask(memWidth)
-    mem.read.valid    := true.B
-    mem.read.addr     := addr
-    mem.read.memWidth := memWidth
-    (mem.read.data >> rOff) & rMask
-  }
-  def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
-    mem.write.valid    := true.B
-    mem.write.addr     := addr
-    mem.write.memWidth := memWidth
-    mem.write.data     := data
-  }
+  // def memRead(addr: UInt, memWidth: UInt): UInt = {
+  //   val bytesWidth = log2Ceil(XLEN / 8)
+  //   val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+  //   val rMask = width2Mask(memWidth)
+  //   mem.read.valid    := true.B
+  //   mem.read.addr     := addr
+  //   mem.read.memWidth := memWidth
+  //   (mem.read.data >> rOff) & rMask
+  // }
+  // def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
+  //   mem.write.valid    := true.B
+  //   mem.write.addr     := addr
+  //   mem.write.memWidth := memWidth
+  //   mem.write.data     := data
+  // }
 
   /** RV32I Base Integer Instruction Set
     *
@@ -268,6 +257,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     }
     when(BNE(inst)) { 
       decodeB; 
+      printf("BNE: rs%d_left: %x, rs%d_right: %x\n", rs1, now.reg(rs1), rs2, now.reg(rs2))
       when(now.reg(rs1) =/= now.reg(rs2)) { 
         when(addrAligned(getfetchSize(), now.pc + imm)){
           global_data.setpc := true.B; 

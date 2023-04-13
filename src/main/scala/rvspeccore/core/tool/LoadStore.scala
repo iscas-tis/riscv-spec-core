@@ -21,7 +21,22 @@ trait LoadStore extends BaseCore with MMU{
   def iFetch = 0x0.U
   def Load   = 0x1.U
   def Store  = 0x2.U
+  def width2Mask(width: UInt): UInt = {
+    MuxLookup(
+      width,
+      0.U(64.W),
+      Array(
+        8.U  -> "hff".U(64.W),
+        16.U -> "hffff".U(64.W),
+        32.U -> "hffff_ffff".U(64.W),
+        64.U -> "hffff_ffff_ffff_ffff".U(64.W)
+      )
+    )
+  }
   def memRead(addr: UInt, memWidth: UInt): UInt = {
+    val bytesWidth = log2Ceil(XLEN / 8)
+    val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
+    val rMask = width2Mask(memWidth)
     val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
     val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
     val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
@@ -40,7 +55,7 @@ trait LoadStore extends BaseCore with MMU{
         mem.read.addr     := addr
     }
     mem.read.memWidth := memWidth
-    mem.read.data
+    (mem.read.data >> rOff) & rMask
   }
   def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
       // val pv = Mux(now.csr.mstatus)
