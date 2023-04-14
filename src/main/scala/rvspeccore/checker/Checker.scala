@@ -137,9 +137,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       !(
         RVI.loadStore(io.instCommit.inst) &&
         (
-          (io.result.csr.mtval(63,32) === 0.U) 
-          && (specCore.io.next.csr.mtval(31,0) === io.result.csr.mtval(31,0)) 
-          && (specCore.io.next.csr.mtval(63,32) =/= 0.U)
+          specCore.io.next.csr.mtval(63,39) =/=  io.result.csr.mtval(63,39)
         )
       )
     )
