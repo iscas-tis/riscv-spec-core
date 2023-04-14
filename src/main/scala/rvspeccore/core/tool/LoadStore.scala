@@ -49,7 +49,7 @@ trait LoadStore extends BaseCore with MMU{
         val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
         val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
         val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
-        printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
+        // printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
         mem.read.valid    := true.B
         when(vmEnable){
             // mem.read.addr     := AddrTransRead(addr)
@@ -78,7 +78,7 @@ trait LoadStore extends BaseCore with MMU{
         val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
         val pv = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
         val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
-        printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
+        // printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
         mem.write.valid    := true.B
         when(vmEnable){
             // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
@@ -98,7 +98,7 @@ trait LoadStore extends BaseCore with MMU{
 
   def iFetchTrans(addr: UInt) : (Bool, UInt) = {
     val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (priviledgeMode < 0x3.U)
-    printf("[Debug]iFetchTrans addr:%x, vm:%x \n", addr, vmEnable)
+    // printf("[Debug]iFetchTrans addr:%x, vm:%x \n", addr, vmEnable)
     val resultStatus = Wire(Bool())
     val resultPC = Wire(UInt(XLEN.W))
     when(vmEnable){
@@ -107,11 +107,11 @@ trait LoadStore extends BaseCore with MMU{
             // vm 转换成功
             resultPC := finaladdr
             resultStatus := true.B
-            printf("[Debug]iFetchTrans2 Final Addr: %x\n", finaladdr)
+            // printf("[Debug]iFetchTrans2 Final Addr: %x\n", finaladdr)
         }.otherwise{
             resultPC := 0.U
             resultStatus := false.B
-            printf("[Debug]iFetchTrans3 Final Addr Trans Fault \n")
+            // printf("[Debug]iFetchTrans3 Final Addr Trans Fault \n")
             raiseException(MExceptionCode.instructionPageFault)
         }
     }.otherwise{

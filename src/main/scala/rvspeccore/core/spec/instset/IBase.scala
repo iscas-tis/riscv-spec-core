@@ -257,7 +257,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     }
     when(BNE(inst)) { 
       decodeB; 
-      printf("BNE: rs%d_left: %x, rs%d_right: %x\n", rs1, now.reg(rs1), rs2, now.reg(rs2))
+      // printf("BNE: rs%d_left: %x, rs%d_right: %x\n", rs1, now.reg(rs1), rs2, now.reg(rs2))
       when(now.reg(rs1) =/= now.reg(rs2)) { 
         when(addrAligned(getfetchSize(), now.pc + imm)){
           global_data.setpc := true.B; 

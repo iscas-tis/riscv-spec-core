@@ -79,21 +79,21 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   event := 0.U.asTypeOf(new EventSig)
   iFetchpc  := now.pc
   next := now
-  printf("io.iFetchpc: %x %x\n", io.iFetchpc, iFetchpc)
+  // printf("io.iFetchpc: %x %x\n", io.iFetchpc, iFetchpc)
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
 
   // ID & EXE
   when(io.valid) {
-    printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
+    // printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
     // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
     //   raiseException(0)
     //   next.csr.mtval := now.pc
     // }.otherwise{
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-    val (resultStatus, resultPC) = if(XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc(31, 0))    
+    val (resultStatus, resultPC) = if(XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)    
     when(resultStatus){
       inst := io.inst
     }.otherwise{

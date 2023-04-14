@@ -48,6 +48,12 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   val specCore = Module(new RiscvCore)
   specCore.io.valid := io.instCommit.valid
   specCore.io.inst  := io.instCommit.inst
+
+  // initial another io.mem.get.Anotherread
+  for (i <- 0 until 6) {
+    specCore.io.mem.Anotherread(i).data := DontCare
+  }
+
   if (checkMem) {
     // printf("[specCore] Valid:%x PC: %x Inst: %x\n", specCore.io.valid, specCore.io.now.pc, specCore.io.inst)
     // specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
@@ -210,7 +216,11 @@ class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends
   specCore.io.inst  := io.instCommit.inst
 
   specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
-
+  
+  // initial another io.mem.get.Anotherread
+  for (i <- 0 until 6) {
+    specCore.io.mem.Anotherread(i).data := DontCare
+  }
   val specCoreWBValid = WireInit(false.B)
   val specCoreWBDest  = WireInit(0.U(5.W))
   for (i <- 0 until 32) {

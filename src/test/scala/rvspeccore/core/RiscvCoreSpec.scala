@@ -29,7 +29,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // val pc   = core.io.now.pc - "h8000_0000".U
   // val pc2  = core.io.iFetchpc - "h8000_0000".U
   val pc  = core.io.iFetchpc - "h8000_0000".U
-  printf("[Debug]From CoreSpec: PC : %x NowPC: %x iFetchpc: %x\n", pc , core.io.now.pc, core.io.iFetchpc)
+  // printf("[Debug]From CoreSpec: PC : %x NowPC: %x iFetchpc: %x\n", pc , core.io.now.pc, core.io.iFetchpc)
   // printf("[Debug]From CoreSpec: PC2: %x NowPC: %x iFetchpc: %x\n", pc2, core.io.now.pc, core.io.iFetchpc)
   val inst = Wire(UInt(32.W))
   val fetchAddr = Cat(mem.read((pc >> 2) + 1.U), mem.read(pc >> 2))
