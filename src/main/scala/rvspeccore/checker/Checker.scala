@@ -121,7 +121,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       assert(RegNext(io.result.reg(i.U), 0.U) === RegNext(specCore.io.next.reg(i.U), 0.U))
     }  
   }
-  printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
+  // printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
   when(io.event.valid || specCore.io.event.valid) {
   // when(io.event.valid) {
     assert(io.event.valid === specCore.io.event.valid) // Make sure DUT and specCore currently occur the same exception
