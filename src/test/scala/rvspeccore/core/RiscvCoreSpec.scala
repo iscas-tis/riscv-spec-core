@@ -85,12 +85,12 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     (rIdx,rOff,rMask)
   }
   val (rIdx, rOff, rMask)    = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
-  val (rIdx0, rOff0, rMask0) = readDatacalc(core.io.mem.Anotherread(0).addr, core.io.mem.Anotherread(0).memWidth)
-  val (rIdx1, rOff1, rMask1) = readDatacalc(core.io.mem.Anotherread(1).addr, core.io.mem.Anotherread(1).memWidth)
-  val (rIdx2, rOff2, rMask2) = readDatacalc(core.io.mem.Anotherread(2).addr, core.io.mem.Anotherread(2).memWidth)
-  val (rIdx3, rOff3, rMask3) = readDatacalc(core.io.mem.Anotherread(3).addr, core.io.mem.Anotherread(3).memWidth)
-  val (rIdx4, rOff4, rMask4) = readDatacalc(core.io.mem.Anotherread(4).addr, core.io.mem.Anotherread(4).memWidth)
-  val (rIdx5, rOff5, rMask5) = readDatacalc(core.io.mem.Anotherread(5).addr, core.io.mem.Anotherread(5).memWidth)
+  val (rIdx0, rOff0, rMask0) = readDatacalc(core.io.tlb.Anotherread(0).addr, core.io.tlb.Anotherread(0).memWidth)
+  val (rIdx1, rOff1, rMask1) = readDatacalc(core.io.tlb.Anotherread(1).addr, core.io.tlb.Anotherread(1).memWidth)
+  val (rIdx2, rOff2, rMask2) = readDatacalc(core.io.tlb.Anotherread(2).addr, core.io.tlb.Anotherread(2).memWidth)
+  val (rIdx3, rOff3, rMask3) = readDatacalc(core.io.tlb.Anotherread(3).addr, core.io.tlb.Anotherread(3).memWidth)
+  val (rIdx4, rOff4, rMask4) = readDatacalc(core.io.tlb.Anotherread(4).addr, core.io.tlb.Anotherread(4).memWidth)
+  val (rIdx5, rOff5, rMask5) = readDatacalc(core.io.tlb.Anotherread(5).addr, core.io.tlb.Anotherread(5).memWidth)
   // // read mem
   // val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
   // val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
@@ -101,40 +101,40 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     core.io.mem.read.data := 0.U
   }
 
-  when(core.io.mem.Anotherread(0).valid) {
-    core.io.mem.Anotherread(0).data := (mem.read(rIdx0) >> rOff0) & rMask0
+  when(core.io.tlb.Anotherread(0).valid) {
+    core.io.tlb.Anotherread(0).data := (mem.read(rIdx0) >> rOff0) & rMask0
   } otherwise {
-    core.io.mem.Anotherread(0).data := 0.U
+    core.io.tlb.Anotherread(0).data := 0.U
   }
 
-  when(core.io.mem.Anotherread(1).valid) {
-    core.io.mem.Anotherread(1).data := (mem.read(rIdx1) >> rOff1) & rMask1
+  when(core.io.tlb.Anotherread(1).valid) {
+    core.io.tlb.Anotherread(1).data := (mem.read(rIdx1) >> rOff1) & rMask1
   } otherwise {
-    core.io.mem.Anotherread(1).data := 0.U
+    core.io.tlb.Anotherread(1).data := 0.U
   }
 
-  when(core.io.mem.Anotherread(2).valid) {
-    core.io.mem.Anotherread(2).data := (mem.read(rIdx2) >> rOff2) & rMask2
+  when(core.io.tlb.Anotherread(2).valid) {
+    core.io.tlb.Anotherread(2).data := (mem.read(rIdx2) >> rOff2) & rMask2
   } otherwise {
-    core.io.mem.Anotherread(2).data := 0.U
+    core.io.tlb.Anotherread(2).data := 0.U
   }
 
-  when(core.io.mem.Anotherread(3).valid) {
-    core.io.mem.Anotherread(3).data := (mem.read(rIdx3) >> rOff3) & rMask3
+  when(core.io.tlb.Anotherread(3).valid) {
+    core.io.tlb.Anotherread(3).data := (mem.read(rIdx3) >> rOff3) & rMask3
   } otherwise {
-    core.io.mem.Anotherread(3).data := 0.U
+    core.io.tlb.Anotherread(3).data := 0.U
   }
 
-  when(core.io.mem.Anotherread(4).valid) {
-    core.io.mem.Anotherread(4).data := (mem.read(rIdx4) >> rOff4) & rMask4
+  when(core.io.tlb.Anotherread(4).valid) {
+    core.io.tlb.Anotherread(4).data := (mem.read(rIdx4) >> rOff4) & rMask4
   } otherwise {
-    core.io.mem.Anotherread(4).data := 0.U
+    core.io.tlb.Anotherread(4).data := 0.U
   }
 
-  when(core.io.mem.Anotherread(5).valid) {
-    core.io.mem.Anotherread(5).data := (mem.read(rIdx5) >> rOff5) & rMask5
+  when(core.io.tlb.Anotherread(5).valid) {
+    core.io.tlb.Anotherread(5).data := (mem.read(rIdx5) >> rOff5) & rMask5
   } otherwise {
-    core.io.mem.Anotherread(5).data := 0.U
+    core.io.tlb.Anotherread(5).data := 0.U
   }
 
 
@@ -156,11 +156,11 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // simulate write mask
   // val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
   val (wIdx, wData) = WriteDataCalc(core.io.mem.write.addr, core.io.mem.write.memWidth, core.io.mem.write.data)
-  val (wIdx0, wData0) = WriteDataCalc(core.io.mem.Anotherwrite(0).addr, core.io.mem.Anotherwrite(0).memWidth, core.io.mem.Anotherwrite(0).data)
+  val (wIdx0, wData0) = WriteDataCalc(core.io.tlb.Anotherwrite(0).addr, core.io.tlb.Anotherwrite(0).memWidth, core.io.tlb.Anotherwrite(0).data)
   when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }
-  when(core.io.mem.Anotherwrite(0).valid) {
+  when(core.io.tlb.Anotherwrite(0).valid) {
     mem.write(wIdx0, wData0)
   }
   // Begin multi port write

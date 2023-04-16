@@ -6,6 +6,19 @@ import chisel3.util._
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec.instset.csr._
 import java.awt.print.Book
+
+class TLBSig()(implicit XLEN: Int) extends Bundle {
+  val read  = new TLBMemInfo
+  val write = new TLBMemInfo
+}
+class TLBMemInfo()(implicit XLEN: Int) extends Bundle {
+  val valid = Bool()
+  val addr = UInt(XLEN.W)
+  val data = UInt(XLEN.W)
+  val memWidth = UInt(log2Ceil(XLEN + 1).W)
+  val access = Bool()
+  val level = UInt(2.W)
+}
 class PTWLevel()(implicit XLEN: Int) extends Bundle {
   val valid    = Bool()
   val success  = Bool()
@@ -135,10 +148,10 @@ trait MMU extends BaseCore with ExceptionSupport{
     }
 
     def PAReadMMU(addr: UInt, memWidth: UInt, no: Int): UInt = {
-        mem.Anotherread(no).valid    := true.B
-        mem.Anotherread(no).addr     := addr
-        mem.Anotherread(no).memWidth := memWidth
-        mem.Anotherread(no).data
+        tlb.Anotherread(no).valid    := true.B
+        tlb.Anotherread(no).addr     := addr
+        tlb.Anotherread(no).memWidth := memWidth
+        tlb.Anotherread(no).data
     }
     
     def PAWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
@@ -149,10 +162,10 @@ trait MMU extends BaseCore with ExceptionSupport{
     }
     def PAWriteMMU(addr: UInt, memWidth: UInt, data: UInt): Unit = {
         // 暂时先使用了一个端口 实际上 dirty操作的是最后找到的那个页 不像读页出现的问题
-        mem.Anotherwrite(0).valid    := true.B
-        mem.Anotherwrite(0).addr     := addr    
-        mem.Anotherwrite(0).memWidth := memWidth
-        mem.Anotherwrite(0).data     := data
+        tlb.Anotherwrite(0).valid    := true.B
+        tlb.Anotherwrite(0).addr     := addr    
+        tlb.Anotherwrite(0).memWidth := memWidth
+        tlb.Anotherwrite(0).data     := data
     }
 
     def LegalAddrStep5(isiFetch: Bool): Bool = {

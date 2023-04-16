@@ -24,8 +24,11 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     checker.io.event.exceptionInst := RegNext(io.event.exceptionInst)
     // printf("[  DUT   ] Valid:%x PC: %x Inst: %x\n", checker.io.instCommit.valid, checker.io.instCommit.pc, checker.io.instCommit.inst)
     checker.io.result := now
-    checker.io.mem.get.Anotherread := DontCare
-    checker.io.mem.get.Anotherwrite := DontCare
+
+    checker.io.dtlbmem.map(cm => {
+      cm := DontCare
+    })
+    // checker.io.tlb.get.Anotherwrite := DontCare
     checker.io.mem.map(cm => {
       cm.read.addr     := mem.read.addr
       cm.read.data     := mem.read.data

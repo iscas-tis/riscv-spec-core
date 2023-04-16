@@ -15,6 +15,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
     val mem = new MemIO
+    val tlb = new TLBIO
     val now  = Output(State())
     val next = Output(State())
     val event = Output(new EventSig)
@@ -24,6 +25,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
   val mem = Wire(new MemIO)
+  val tlb = Wire(new TLBIO)
   // Global Data
   val global_data = Wire(new GlobalData)
   val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
@@ -50,6 +52,9 @@ class WriteMemIO()(implicit XLEN: Int) extends Bundle {
 class MemIO()(implicit XLEN: Int) extends Bundle {
   val read  = new ReadMemIO
   val write = new WriteMemIO
+}
+
+class TLBIO()(implicit XLEN: Int) extends Bundle {
   val Anotherread  = Vec(3 + 3, new ReadMemIO())
   val Anotherwrite = Vec(3, new WriteMemIO())
 }
@@ -83,10 +88,10 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
-
+  tlb := 0.U.asTypeOf(new TLBIO)
   // ID & EXE
   when(io.valid) {
-    // printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
+    printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
     // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
     //   raiseException(0)
     //   next.csr.mtval := now.pc
@@ -140,6 +145,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // mem port
   io.mem <> mem
+  io.tlb <> tlb
 
   // update
   now := next

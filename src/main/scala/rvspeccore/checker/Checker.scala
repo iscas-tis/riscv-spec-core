@@ -5,6 +5,9 @@ import chisel3.util._
 
 import rvspeccore.core._
 import rvspeccore.core.spec.instset.csr.EventSig
+import rvspeccore.core.tool.TLBMemInfo
+import rvspeccore.core.tool.TLBSig
+
 abstract class Checker()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 }
@@ -22,10 +25,24 @@ class StoreOrLoadInfo(implicit XLEN: Int) extends Bundle {
   val data = UInt(XLEN.W)
   val memWidth = UInt(log2Ceil(XLEN + 1).W)
 }
+class StoreOrLoadInfoTLB(implicit XLEN: Int) extends Bundle {
+  val addr = UInt(XLEN.W)
+  val data = UInt(XLEN.W)
+  val level = UInt(log2Ceil(XLEN + 1).W)
+}
 class QueueModule(implicit XLEN: Int) extends Module{
   val io = IO (new Bundle{
     val in  = Flipped(Decoupled(new StoreOrLoadInfo()))
     val out = Decoupled(new StoreOrLoadInfo())
+  })
+
+  val queue = Queue(io.in, 2)
+  io.out <> queue
+}
+class QueueModuleTLB(implicit XLEN: Int) extends Module{
+  val io = IO (new Bundle{
+    val in  = Flipped(Decoupled(new StoreOrLoadInfoTLB()))
+    val out = Decoupled(new StoreOrLoadInfoTLB())
   })
 
   val queue = Queue(io.in, 2)
@@ -42,6 +59,8 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     val result     = Input(State())
     val mem        = if (checkMem) Some(Input(new MemIO)) else None
     val event      = Input(new EventSig())
+    val dtlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
+    val itlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
   })
 
   // link to spec core
@@ -51,12 +70,79 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
 
   // initial another io.mem.get.Anotherread
   for (i <- 0 until 6) {
-    specCore.io.mem.Anotherread(i).data := DontCare
+    specCore.io.tlb.Anotherread(i).data := DontCare
   }
 
   if (checkMem) {
     // printf("[specCore] Valid:%x PC: %x Inst: %x\n", specCore.io.valid, specCore.io.now.pc, specCore.io.inst)
     // specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
+    val TLBLoadQueue = Seq.fill(3)(Module(new QueueModuleTLB()))
+    val tlb_load_push  = Wire(new StoreOrLoadInfoTLB)
+
+    for (i <- 0 until 3) {
+      TLBLoadQueue(i).io.out.ready := false.B
+      TLBLoadQueue(i).io.in.valid :=false.B
+      TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+    }
+    when(io.dtlbmem.get.read.valid){
+      for (i <- 0 until 3) {
+        TLBLoadQueue(i).io.in.valid :=false.B
+        TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+      }
+      tlb_load_push.addr  := io.mem.get.read.addr
+      tlb_load_push.data  := io.mem.get.read.data
+      tlb_load_push.level := io.dtlbmem.get.read.level
+      switch(io.dtlbmem.get.read.level){
+        is(0.U){
+          TLBLoadQueue(0).io.in.valid := true.B
+          TLBLoadQueue(0).io.in.bits := tlb_load_push
+          TLBLoadQueue(1).io.in.valid := false.B
+          TLBLoadQueue(1).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(2).io.in.valid := false.B
+          TLBLoadQueue(2).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+        }
+        is(1.U){
+          TLBLoadQueue(0).io.in.valid := false.B
+          TLBLoadQueue(0).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(1).io.in.valid := true.B
+          TLBLoadQueue(1).io.in.bits := tlb_load_push
+          TLBLoadQueue(2).io.in.valid := false.B
+          TLBLoadQueue(2).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+        }
+        is(2.U){
+          TLBLoadQueue(0).io.in.valid := false.B
+          TLBLoadQueue(0).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(1).io.in.valid := false.B
+          TLBLoadQueue(1).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(2).io.in.valid := true.B
+          TLBLoadQueue(2).io.in.bits := tlb_load_push
+        }
+        is(3.U){
+          for (i <- 0 until 3) {
+            TLBLoadQueue(i).io.in.valid :=false.B
+            tlb_load_push := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+            TLBLoadQueue(i).io.in.bits := tlb_load_push
+          }          
+        }
+      }
+      // printf("Load into Queue.... valid: %x %x %x %x\n", LoadQueue.io.in.valid, load_push.addr, load_push.data, load_push.memWidth)
+    }.otherwise{
+      for (i <- 0 until 3) {
+        TLBLoadQueue(i).io.in.valid :=false.B
+        tlb_load_push := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+        TLBLoadQueue(i).io.in.bits := tlb_load_push
+      }
+    }
+    for (i <- 0 until 3) {
+      when(specCore.io.tlb.Anotherread(i).valid){
+        TLBLoadQueue(i).io.out.ready := true.B
+        // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
+        specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(0).io.out.bits.data else DontCare }
+        assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
+      }.otherwise{
+        specCore.io.tlb.Anotherread(i).data
+      }
+    }
 
     val LoadQueue  = Module(new QueueModule)
     val StoreQueue  = Module(new QueueModule)
@@ -217,7 +303,7 @@ class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends
   
   // initial another io.mem.get.Anotherread
   for (i <- 0 until 6) {
-    specCore.io.mem.Anotherread(i).data := DontCare
+    specCore.io.tlb.Anotherread(i).data := DontCare
   }
   val specCoreWBValid = WireInit(false.B)
   val specCoreWBDest  = WireInit(0.U(5.W))
