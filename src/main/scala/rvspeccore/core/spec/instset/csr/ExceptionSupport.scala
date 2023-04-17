@@ -191,7 +191,7 @@ trait ExceptionSupport extends BaseCore {
       next.csr.mcause := Cat(0.U, zeroExt(exceptionCode, MXLEN - 1))
       next.csr.mepc   := now.pc
       mstatusNew.mpp  := priviledgeMode
-      mstatusNew.mpie := mstatusOld.sie
+      mstatusNew.mpie := mstatusOld.mie
       mstatusNew.mie  := false.B
       priviledgeMode  := ModeM // 之前写的大bug
       //FIXME: tva此处写法欠妥
