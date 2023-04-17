@@ -143,3 +143,10 @@ object RVPriviledged extends AssumeHelper with spec.instset.PriviledgedInsts {
   )
   val partition: Seq[AssumeHelper] = List(trap_return)
 }
+
+object SV39Translate extends AssumeHelper with spec.instset.PriviledgedInsts with spec.instset.IBaseInsts with spec.instset.ZicsrExtensionInsts{
+  val regImm = AssumeHelper(
+    List(LW,  SW, SRET, MRET)
+  )
+  val partition: Seq[AssumeHelper] = List(regImm)
+}
