@@ -78,20 +78,28 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     // specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
     val TLBLoadQueue = Seq.fill(3)(Module(new QueueModuleTLB()))
     val tlb_load_push  = Wire(new StoreOrLoadInfoTLB)
-
+    // initial the queue
     for (i <- 0 until 3) {
       TLBLoadQueue(i).io.out.ready := false.B
       TLBLoadQueue(i).io.in.valid :=false.B
       TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
     }
     when(io.dtlbmem.get.read.valid){
-      for (i <- 0 until 3) {
-        TLBLoadQueue(i).io.in.valid :=false.B
-        TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-      }
-      tlb_load_push.addr  := io.mem.get.read.addr
-      tlb_load_push.data  := io.mem.get.read.data
+      tlb_load_push.addr  := io.dtlbmem.get.read.addr
+      tlb_load_push.data  := io.dtlbmem.get.read.data
       tlb_load_push.level := io.dtlbmem.get.read.level
+      assert(RegNext(TLBLoadQueue(0).io.in.valid     , false.B) === false.B)
+      assert(RegNext(TLBLoadQueue(0).io.in.bits.addr , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(0).io.in.bits.data , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(0).io.in.bits.level, 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(1).io.in.valid     , false.B) === false.B)
+      assert(RegNext(TLBLoadQueue(1).io.in.bits.addr , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(1).io.in.bits.data , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(1).io.in.bits.level, 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(2).io.in.valid     , false.B) === false.B)
+      assert(RegNext(TLBLoadQueue(2).io.in.bits.addr , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(2).io.in.bits.data , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(2).io.in.bits.level, 0.U) === 0.U)
       switch(io.dtlbmem.get.read.level){
         is(0.U){
           TLBLoadQueue(0).io.in.valid := true.B
@@ -120,8 +128,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
         is(3.U){
           for (i <- 0 until 3) {
             TLBLoadQueue(i).io.in.valid :=false.B
-            tlb_load_push := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-            TLBLoadQueue(i).io.in.bits := tlb_load_push
+            TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           }          
         }
       }
@@ -135,15 +142,28 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     }
     for (i <- 0 until 3) {
       when(specCore.io.tlb.Anotherread(i).valid){
-        TLBLoadQueue(i).io.out.ready := true.B
+        TLBLoadQueue(2 - i).io.out.ready := true.B
         // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
-        specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(0).io.out.bits.data else DontCare }
-        assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
+        specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(2 - i).io.out.bits.data else DontCare }
+        // FIXME: 第一级 assert不一致 nutshell 并且条件写的都是错的 
+        // assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
       }.otherwise{
-        specCore.io.tlb.Anotherread(i).data
+        TLBLoadQueue(2 - i).io.out.ready := false.B
       }
     }
-
+    for (i <- 0 until 3) {
+      when(RegNext(specCore.io.tlb.Anotherread(i).valid, false.B)){
+        assert(RegNext(TLBLoadQueue(2 - i).io.out.bits.addr, 0.U)      === RegNext(specCore.io.tlb.Anotherread(i).addr, 0.U))
+        // assert(RegNext(TLBLoadQueue(2).io.out.bits.addr, 0.U)      === RegNext(specCore.io.tlb.Anotherread(0).addr, 0.U))
+        // assert(RegNext(specCore.io.tlb.Anotherread(0).valid, false.B)     === RegNext(io.dtlbmem.get.read.valid, false.B))
+        // assert(RegNext(specCore.io.tlb.Anotherread(0).data, 0.U) === RegNext(io.dtlbmem.get.read.data, 0.U))
+        // assert(RegNext(specCore.io.tlb.Anotherread(0).addr, 0.U) === RegNext(io.dtlbmem.get.read.addr, 0.U))
+        // assert(RegNext(tlb_load_push.addr, 0.U)  === RegNext(io.dtlbmem.get.read.addr, 0.U))
+        // assert(RegNext(tlb_load_push.data, 0.U)  === RegNext(io.dtlbmem.get.read.data, 0.U))
+        // assert(RegNext(tlb_load_push.level, 0.U) === RegNext(io.dtlbmem.get.read.level, 0.U))
+        // assert(RegNext(TLBLoadQueue(0).io.out.bits.data, 0.U)      === RegNext(specCore.io.tlb.Anotherread(0).data, 0.U))
+      }
+    }
     val LoadQueue  = Module(new QueueModule)
     val StoreQueue  = Module(new QueueModule)
     LoadQueue.io.out.ready := false.B
@@ -208,13 +228,13 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     }  
   }
   // printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
-  when(io.event.valid || specCore.io.event.valid) {
+  when(RegNext(io.event.valid, false.B) || RegNext(specCore.io.event.valid, false.B)) {
   // when(io.event.valid) {
-    assert(io.event.valid === specCore.io.event.valid) // Make sure DUT and specCore currently occur the same exception
-    assert(io.event.intrNO === specCore.io.event.intrNO)
-    assert(io.event.cause === specCore.io.event.cause)
-    assert(io.event.exceptionPC === specCore.io.event.exceptionPC)
-    assert(io.event.exceptionInst === specCore.io.event.exceptionInst)
+    assert(RegNext(io.event.valid        , false.B) === RegNext(specCore.io.event.valid        , false.B)) // Make sure DUT and specCore currently occur the same exception
+    assert(RegNext(io.event.intrNO       , false.B) === RegNext(specCore.io.event.intrNO       , false.B))
+    assert(RegNext(io.event.cause        , false.B) === RegNext(specCore.io.event.cause        , false.B))
+    assert(RegNext(io.event.exceptionPC  , false.B) === RegNext(specCore.io.event.exceptionPC  , false.B))
+    assert(RegNext(io.event.exceptionInst, false.B) === RegNext(specCore.io.event.exceptionInst, false.B))
   }
   // assert in current clock
   when(io.instCommit.valid) {

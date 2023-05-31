@@ -92,6 +92,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // ID & EXE
   when(io.valid) {
     printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
+    printf("io.mem.read.valid:%x addr:%x data:%x\n", io.mem.read.valid, io.mem.read.addr, io.mem.read.data)
     // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
     //   raiseException(0)
     //   next.csr.mtval := now.pc

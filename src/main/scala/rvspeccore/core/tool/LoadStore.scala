@@ -64,6 +64,7 @@ trait LoadStore extends BaseCore with MMU{
         val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
         // printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
         mem.read.valid    := true.B
+        printf("[DEBUG] vmEnable: %x pv: %x mprv: %x mpp: %x pvmode:%x \n", vmEnable, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
         when(vmEnable){
             // mem.read.addr     := AddrTransRead(addr)
             // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
@@ -151,6 +152,7 @@ trait MMU extends BaseCore with ExceptionSupport{
         tlb.Anotherread(no).valid    := true.B
         tlb.Anotherread(no).addr     := addr
         tlb.Anotherread(no).memWidth := memWidth
+        printf("[Debug] Level: %x Addr: %x Data: %x\n", no.asUInt, addr, tlb.Anotherread(no).data)
         tlb.Anotherread(no).data
     }
     
@@ -172,6 +174,7 @@ trait MMU extends BaseCore with ExceptionSupport{
         // FIXME: 需要进一步改这个函数 看手册哈
         val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
         sum.asBool || isiFetch
+        // true.B
     }
 
     def ValidPage(PTE:PTEFlag): Bool = {
@@ -234,6 +237,7 @@ trait MMU extends BaseCore with ExceptionSupport{
         val mask = maskPPN(level)
         printf("[Debug]SuperPage mask:%x ppn:%x flag:%d\n", mask, ppn, ((mask & ppn) =/= 0.U))
         (mask & ppn) =/= 0.U
+        // false.B
     }
 
     def AddrRSWLegal(addr:UInt) : Bool = {
@@ -264,13 +268,13 @@ trait MMU extends BaseCore with ExceptionSupport{
             for(level <- 0 to 2){
                 // 循环生成三级页表的处理
                 when(LevelVec(2 - level).valid){
-                    printf("[Debug]LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
+                    printf("[Debug] LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
                     // 寻页且继续的那个函数 返回第二级的值
                     val PTE_PA = LevelVec(2 - level).addr
                     val PTE = PAReadMMU(LevelVec(2 - level).addr, 64.U, level).asTypeOf(new SV39PTE())
                     val PTEFlag = PTE.flag.asTypeOf(new PTEFlag())
-
-                    when(~PTEFlag.v | (~PTEFlag.r && PTEFlag.w)){
+                    when(!PTEFlag.v || (!PTEFlag.r && PTEFlag.w)){
+                        printf("[Debug] Faild flag1 %x \n",(!PTEFlag.v || (!PTEFlag.r && PTEFlag.w)))
                         // 失败了 后面也不继续找了 
                         if(2 - level - 1 >= 0){
                             LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
@@ -279,9 +283,10 @@ trait MMU extends BaseCore with ExceptionSupport{
                         LevelVec(2 - level).success := false.B  // 这一级的寻找失败了
                         LevelVec(2 - level).pte     := 0.U
                     }.otherwise{
-                        when(PTEFlag.r | PTEFlag.x){
+                        when(PTEFlag.r || PTEFlag.x){
                             // 成功了
                             if(2 - level - 1 >= 0){
+                                printf("[Debug] Faild flag2\n")
                                 LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
                                 LevelVec(2 - level - 1).addr    := 0.U
                             }
@@ -304,6 +309,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                         }
                     }
                 }.otherwise{
+                    printf("[Debug] Faild flag3\n")
                     // // 这一级无效 需要把这一级的success 和 下一级的有效信号给干掉
                     if(2 - level - 1 >= 0){
                         LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效关闭
@@ -328,8 +334,10 @@ trait MMU extends BaseCore with ExceptionSupport{
             val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
             when(~(successLevel === 3.U)){
                 // 翻译暂时成功了
+                printf("[Debug] Translate temporarily successful\n")
                 when(LegalAddrStep5(false.B)){
                     // 检测超大页
+                    printf("[Debug] Step5 Legal\n")
                     when(IsSuperPage(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, successLevel)){
                         // 是大页
                         finalSuccess := false.B
@@ -349,6 +357,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                     }
                 }.otherwise{
                     // 又失败了
+                    printf("[Debug] Step5 Faild\n")
                     finalSuccess := false.B
                     finaladdr := 0.U
                 }

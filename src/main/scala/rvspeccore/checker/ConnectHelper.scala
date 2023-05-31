@@ -35,19 +35,18 @@ object ConnectCheckerResult extends ConnectHelper {
   }
   def makeTLBSource(isDTLB: Boolean)(implicit XLEN: Int) : TLBSig = {
     val tlbmem = Wire(new TLBSig())
-      tlbmem.read.valid    := false.B
-      tlbmem.read.addr     := 0.U
-      tlbmem.read.data     := 0.U
-      tlbmem.read.memWidth := 0.U
-      tlbmem.read.access   := false.B
-      tlbmem.read.level:= 0.U
-
-      tlbmem.write.valid    := false.B
-      tlbmem.write.addr     := 0.U
-      tlbmem.write.data     := 0.U
-      tlbmem.write.memWidth := 0.U
-      tlbmem.write.access   := false.B
-      tlbmem.write.level:= 0.U
+    tlbmem.read.valid    := false.B
+    tlbmem.read.addr     := 0.U
+    tlbmem.read.data     := 0.U
+    tlbmem.read.memWidth := 0.U
+    tlbmem.read.access   := false.B
+    tlbmem.read.level    := 0.U
+    tlbmem.write.valid    := false.B
+    tlbmem.write.addr     := 0.U
+    tlbmem.write.data     := 0.U
+    tlbmem.write.memWidth := 0.U
+    tlbmem.write.access   := false.B
+    tlbmem.write.level    := 0.U
     
     if(isDTLB){
       BoringUtils.addSource(tlbmem, uniqueIdDTLB)
@@ -115,6 +114,11 @@ object ConnectCheckerResult extends ConnectHelper {
       checker.io.dtlbmem.get := dtlbmem
       checker.io.itlbmem.get := itlbmem
       checker.io.mem.get := regNextDelay(mem, memDelay)
+      // expose the signal below
+      // assert(RegNext(checker.io.dtlbmem.get.read.valid, false.B) === false.B)
+      // assert(RegNext(dtlbmem.read.valid, false.B) === false.B)
+      // assert(RegNext(dtlbmem.read.addr, 0.U) === 0.U)
+      // assert(RegNext(dtlbmem.read.data, 0.U) === 0.U)
     }
     // csr
     val csr = Wire(CSR())

@@ -351,6 +351,7 @@ object CSR {
     }else{
       // csr.mstatus   := zeroExt("h2000000ff".U, XLEN)
       csr.mstatus   := zeroExt("h00001800".U, XLEN)
+      // csr.mstatus   := zeroExt("h000E0800".U, XLEN)
     }
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
@@ -378,6 +379,13 @@ object CSR {
     csr.sscratch  := 0.U
     // Memory Protection
     csr.satp      := 0.U
+    // // for test
+    // // FIXME: need a correct if condition
+    // if(XLEN == 64){
+    //   csr.satp      :="h8000000000080002".U
+    // }else{
+    //   csr.satp      := 0.U
+    // }
     csr.pmpcfg0   := 0.U
     csr.pmpcfg1   := 0.U
     csr.pmpcfg2   := 0.U
