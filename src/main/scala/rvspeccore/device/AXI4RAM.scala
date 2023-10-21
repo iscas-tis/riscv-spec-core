@@ -41,7 +41,7 @@ class AXI4RAM[T <: AXI4Lite](_type: T = new AXI4, memByte: Int,
 
   val offsetBits = log2Up(memByte)
   val offsetMask = (1 << offsetBits) - 1
-  def index(addr: UInt) = (addr & offsetMask.U) >> log2Ceil(8)
+  def index(addr: UInt) = (addr & offsetMask.U) >> log2Ceil(4)
   def inRange(idx: UInt) = idx < (memByte / 8).U
 
   val wIdx = index(waddr) + writeBeatCnt
@@ -59,7 +59,7 @@ class AXI4RAM[T <: AXI4Lite](_type: T = new AXI4, memByte: Int,
     mem.io.en := true.B
     mem.io.rdata
   } else {
-    val mem = Mem(memByte, UInt(64.W))
+    val mem = Mem(memByte, UInt(32.W))
     
     if (memFile != ""){
       loadMemoryFromFile(mem, memFile)
@@ -78,7 +78,7 @@ class AXI4RAM[T <: AXI4Lite](_type: T = new AXI4, memByte: Int,
     Cat(mem.read(rIdx))
   }
   when(ren) {
-    printf("[AXI4RAM] rIdx = %d, rdata = %d\n", rIdx, rdata)
+    // printf("[AXI4RAM] raddr = %d rIdx = %d, rdata = %d\n", raddr, rIdx, rdata)
     // print in.r valid and ready
   }
   in.r.bits.data := RegEnable(rdata, ren)
