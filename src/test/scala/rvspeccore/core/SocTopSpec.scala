@@ -13,8 +13,8 @@ class SoC() extends Module {
     implicit val config = RV32Config("MC")
 
     // because we not have axi crossbar now
-    val imem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-add.hex"))
-    val dmem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-add.hex"))
+    val imem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-lw.hex"))
+    val dmem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-lw.hex"))
     val i_memdelay = Module(new AXI4Delayer(0))
     val d_memdelay = Module(new AXI4Delayer(0))
     val soc = Module(new SoCTop(new RiscvCore))

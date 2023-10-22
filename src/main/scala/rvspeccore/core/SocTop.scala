@@ -11,7 +11,9 @@ class SoCTop(genCore: => RiscvCore)(implicit config: RVConfig) extends Module {
     })
     val core = Module(genCore)
     val s_i_idle :: s_i_reading :: s_i_readend :: Nil = Enum(3)
-    val read_state = RegInit(s_i_idle)
+    val s_d_idle :: s_d_reading :: s_d_readend :: Nil = Enum(3)
+    val inst_read_state = RegInit(s_i_idle)
+    val data_read_state = RegInit(s_d_idle)
     val pc   = core.io.now.pc - "h8000_0000".U
     // printf("[SoCTop] pc = %d Bool = %d State = %d\n", pc, !reset.asBool, read_state)
     // val inst = Wire(UInt(32.W))
@@ -79,10 +81,10 @@ class SoCTop(genCore: => RiscvCore)(implicit config: RVConfig) extends Module {
     io.dmem.b.ready       := 0.U
 
     // 读-状态机
-    switch(read_state) {
+    switch(inst_read_state) {
         is(s_i_idle) {
             when(!reset.asBool){
-                read_state := s_i_reading
+                inst_read_state := s_i_reading
             }
         }
         is(s_i_reading) {
@@ -92,7 +94,7 @@ class SoCTop(genCore: => RiscvCore)(implicit config: RVConfig) extends Module {
             io.imem.ar.bits.burst := 1.U
             io.imem.ar.valid      := 1.U
             when(io.imem.ar.ready){
-                read_state := s_i_readend
+                inst_read_state := s_i_readend
             }
         }
         is(s_i_readend) {
@@ -100,8 +102,35 @@ class SoCTop(genCore: => RiscvCore)(implicit config: RVConfig) extends Module {
             when(io.imem.r.fire){
                 core.io.valid := true.B
                 core.io.inst := io.imem.r.bits.data
-                read_state := s_i_idle
+                inst_read_state := s_i_idle
             }
         }
     }
+
+    switch(data_read_state){
+            is(s_d_idle) {
+                when(core.io.mem.read.valid){
+                    data_read_state := s_d_reading
+                }
+            }
+            is(s_d_reading) {
+                io.dmem.ar.bits.id    := 0.U // For inst mem
+                io.dmem.ar.bits.addr  := pc
+                io.dmem.ar.bits.size  := 4.U
+                io.dmem.ar.bits.burst := 1.U
+                io.dmem.ar.valid      := 1.U
+                when(io.dmem.ar.ready){
+                    data_read_state := s_d_readend
+                }
+            }
+            is(s_d_readend) {
+                io.dmem.r.ready := 1.U
+                when(io.dmem.r.fire){
+                    // core.io.valid := true.B
+                    // core.io.inst := io.imem.r.bits.data
+                    data_read_state := s_d_idle
+                    printf("[SoCTop] dmem read data = %d\n", io.dmem.r.bits.data)
+                }   
+            }
+        }
 }
