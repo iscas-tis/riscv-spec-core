@@ -12,18 +12,31 @@ class SoC() extends Module {
     // val Spec = Module(new SpecCore)
     implicit val config = RV32Config("MC")
 
-    val mem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-add.hex"))
-    val memdelay = Module(new AXI4Delayer(0))
+    // because we not have axi crossbar now
+    val imem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-add.hex"))
+    val dmem = Module(new AXI4RAM(new AXI4, 1024 * 1024 * 4, false, "./testcase/riscv-tests-hex/rv32ui/rv32ui-add.hex"))
+    val i_memdelay = Module(new AXI4Delayer(0))
+    val d_memdelay = Module(new AXI4Delayer(0))
     val soc = Module(new SoCTop(new RiscvCore))
-    memdelay.io.in <> soc.io.mem
-    mem.io.in <> memdelay.io.out
+    i_memdelay.io.in <> soc.io.imem
+    imem.io.in <> i_memdelay.io.out
+
+    d_memdelay.io.in <> soc.io.dmem
+    dmem.io.in <> d_memdelay.io.out
 }
 
 class SocTopSpec extends AnyFreeSpec with ChiselScalatestTester {
   "SocTopSpec pass" in {
     test(new SoC()) { dut =>
-      dut.clock.setTimeout(2000)
-      dut.clock.step(1990)
+      dut.clock.setTimeout(300)
+      dut.clock.step(200)
     }
+  }
+}
+class GenerateSocVerilog extends AnyFreeSpec with ChiselScalatestTester {
+  "GenerateSocVerilog pass" in {
+    implicit val config = RV32Config("MC")
+    (new chisel3.stage.ChiselStage)
+      .emitVerilog(new SoCTop(new RiscvCore), Array("--target-dir", "test_run_dir/GenerateSocVerilog"))
   }
 }
