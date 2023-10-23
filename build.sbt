@@ -1,15 +1,33 @@
-// See README.md for license details.
-
+ThisBuild / version      := "0.1.0-SNAPSHOT"
+ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.12.15"
-ThisBuild / version      := "0.1.0"
-ThisBuild / organization := "com.github.liuyic00"
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),
   Resolver.sonatypeRepo("releases")
 )
 
+lazy val publishSettings = Seq(
+  versionScheme := {
+    if (version.value.contains("-")) Some("early-semver")
+    else Some("semver-spec")
+  },
+  isSnapshot := version.value.endsWith("-SNAPSHOT"),
+
+  // As of February 2021, all new projects began being provisioned on https://s01.oss.sonatype.org/
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
+  publishTo := {
+    val nexus = "https://s01.oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  }
+)
+
 lazy val root = (project in file("."))
+  .settings(publishSettings: _*)
   .settings(
     name := "RiscvSpecCore",
     libraryDependencies ++= Seq(

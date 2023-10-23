@@ -350,3 +350,4 @@ hs_err_pid*
 metals.sbt
 
 !testcase/riscv-tests-hex/*/*.hex
+*-dont-commit*
