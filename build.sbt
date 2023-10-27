@@ -16,14 +16,8 @@ lazy val publishSettings = Seq(
 
   // As of February 2021, all new projects began being provisioned on https://s01.oss.sonatype.org/
   sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
-  publishTo := {
-    val nexus = "https://s01.oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  }
+  sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
+  // publishTo should be defined by sbt-sonatype
 )
 
 lazy val root = (project in file("."))
