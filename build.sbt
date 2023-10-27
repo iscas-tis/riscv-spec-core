@@ -1,4 +1,4 @@
-ThisBuild / version      := "0.1.0-SNAPSHOT"
+ThisBuild / version      := "0.1-SNAPSHOT"
 ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.12.15"
 
