@@ -1,9 +1,26 @@
 # RISC-V Spec Core
 
-RISC-V 的最小规范实现
+This project is a framework for formal verification/testing the consistency
+between a Chisel-designed RISC-V processor and the instruction set
+specification.
+Including a configurable `RiscvCore` as a reference model to represent the
+semantics of the RISC-V ISA document, as well as several `Helper` and `Checker`
+to connect the user's processor design with the reference model and set
+verification conditions.
 
-## 特点
+## Usage
 
-1. 所有计算在一个时钟内完成，不涉及时序性质
-2. 不使用子模块，减少中间状态，分析指令后直接执行
-3. 在注释中注明指令执行对应的 [RISC-V Spec](https://riscv.org/technical/specifications/) 原文
+To use riscv-spec-core as a managed dependency, add this in your `build.sbt`:
+
+```scala
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "0.1-SNAPSHOT"
+```
+
+Specific usage see example [nutshell-fv](https://github.com/iscas-tis/nutshell-fv).
+
+## Verification Example
+
+[nutshell-fv](https://github.com/iscas-tis/nutshell-fv)  
+In this example of processor design, we modified the code to get a verifiable
+system with reference model.
+And then perform formal verification using BMC through ChiselTest.
