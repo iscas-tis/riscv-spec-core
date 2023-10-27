@@ -13,7 +13,7 @@ verification conditions.
 To use riscv-spec-core as a managed dependency, add this in your `build.sbt`:
 
 ```scala
-libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "0.1-SNAPSHOT"
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "0.1.0"
 ```
 
 Specific usage see example [nutshell-fv](https://github.com/iscas-tis/nutshell-fv).
