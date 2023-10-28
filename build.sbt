@@ -1,4 +1,4 @@
-ThisBuild / version      := "0.1-SNAPSHOT"
+ThisBuild / version      := "1.0-SNAPSHOT"
 ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.12.15"
 
@@ -17,13 +17,15 @@ lazy val publishSettings = Seq(
   // As of February 2021, all new projects began being provisioned on https://s01.oss.sonatype.org/
   sonatypeCredentialHost := "s01.oss.sonatype.org",
   sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
-  publishTo := {
-    val nexus = "https://s01.oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  }
+  // publishTo should be defined by sbt-sonatype
+
+  homepage             := Some(url("https://github.com/iscas-tis/riscv-spec-core")),
+  organizationHomepage := Some(url("https://tis.ios.ac.cn")),
+  licenses             := List(License.Apache2),
+  developers := List(
+    Developer("liuyic00", "Yicheng Liu", "liuyic00@gmail.com", url("https://github.com/liuyic00")),
+    Developer("SeddonShen", "Shidong Shen", "seddonshen2001@gmail.com", url("https://github.com/SeddonShen"))
+  )
 )
 
 lazy val root = (project in file("."))
