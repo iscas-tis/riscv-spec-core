@@ -16,8 +16,16 @@ lazy val publishSettings = Seq(
 
   // As of February 2021, all new projects began being provisioned on https://s01.oss.sonatype.org/
   sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository     := "https://s01.oss.sonatype.org/service/local"
+  sonatypeRepository     := "https://s01.oss.sonatype.org/service/local",
   // publishTo should be defined by sbt-sonatype
+
+  homepage             := Some(url("https://github.com/iscas-tis/riscv-spec-core")),
+  organizationHomepage := Some(url("https://tis.ios.ac.cn")),
+  licenses             := List(License.Apache2),
+  developers := List(
+    Developer("liuyic00", "Yicheng Liu", "liuyic00@gmail.com", url("https://github.com/liuyic00")),
+    Developer("SeddonShen", "Shidong Shen", "seddonshen2001@gmail.com", url("https://github.com/SeddonShen"))
+  )
 )
 
 lazy val root = (project in file("."))
