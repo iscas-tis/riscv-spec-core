@@ -6,7 +6,7 @@ import chisel3.util._
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec.instset.csr._
 import java.awt.print.Book
-
+// TODO: Optimize code writing style
 class TLBSig()(implicit XLEN: Int) extends Bundle {
   val read  = new TLBMemInfo
   val write = new TLBMemInfo
@@ -68,7 +68,7 @@ trait LoadStore extends BaseCore with MMU{
         when(vmEnable){
             // mem.read.addr     := AddrTransRead(addr)
             // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
-            val (success, finaladdr) = PageTableWalk(addr, Load)
+            val (success, finaladdr) = PageTableWalk(addr, Load, pv)
             when(success){
                 mem.read.addr := finaladdr
             }.otherwise{
@@ -95,8 +95,8 @@ trait LoadStore extends BaseCore with MMU{
         // printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
         mem.write.valid    := true.B
         when(vmEnable){
-            // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
-            val (success, finaladdr) = PageTableWalk(addr, Store)
+            // TODO: addr's bitwidth is lower than 64 bit, need to be modified
+            val (success, finaladdr) = PageTableWalk(addr, Store, pv)
             when(success){
                 mem.write.addr := finaladdr
             }.otherwise{
@@ -137,10 +137,6 @@ trait LoadStore extends BaseCore with MMU{
 }
 
 trait MMU extends BaseCore with ExceptionSupport{
-    // 地址转换 先搞一个临时的
-    // 0000_0000_8000_1000
-    // "hff".U
-    // "h8000_0000_0000_0000"
     def PARead(addr: UInt, memWidth: UInt): UInt = {
         mem.read.valid    := true.B
         mem.read.addr     := addr
@@ -152,7 +148,7 @@ trait MMU extends BaseCore with ExceptionSupport{
         tlb.Anotherread(no).valid    := true.B
         tlb.Anotherread(no).addr     := addr
         tlb.Anotherread(no).memWidth := memWidth
-        printf("[Debug] Level: %x Addr: %x Data: %x\n", no.asUInt, addr, tlb.Anotherread(no).data)
+        // printf("[Debug] Level: %x Addr: %x Data: %x\n", no.asUInt, addr, tlb.Anotherread(no).data)
         tlb.Anotherread(no).data
     }
     
@@ -171,9 +167,22 @@ trait MMU extends BaseCore with ExceptionSupport{
     }
 
     def LegalAddrStep5(isiFetch: Bool): Bool = {
-        // FIXME: 需要进一步改这个函数 看手册哈
+        // For inst translate
         val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
         sum.asBool || isiFetch
+        // true.B
+    }
+
+    def LegalAddrStep5(isiFetch: Bool, privMode: UInt, missflag: PTEFlag, accsessType:UInt): Bool = {
+        // FIXME: 需要进一步改这个函数 看手册哈
+        val mstatus_mxr = now.csr.mstatus.asTypeOf((new MstatusStruct)).mxr.asBool
+        val mstatus_sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum.asBool
+        // val permCheck = missflag.v && !(pf.priviledgeMode === ModeU && !missflag.u) && !(pf.priviledgeMode === ModeS && missflag.u && (!pf.status_sum || ifecth))
+        val permCheck = missflag.v && !(privMode === ModeU && !missflag.u) && !(privMode === ModeS && missflag.u && (!mstatus_sum || isiFetch))
+        val permExec = permCheck && missflag.x
+        val permLoad = permCheck && (missflag.r || mstatus_mxr && missflag.x)
+        val permStore = permCheck && missflag.w
+        (isiFetch && permExec) || (!isiFetch && ((permLoad && accsessType === 0x1.U) || (permStore && accsessType === 0x2.U)))
         // true.B
     }
 
@@ -193,7 +202,7 @@ trait MMU extends BaseCore with ExceptionSupport{
             FlagPTEnew.a := true.B
             FlagPTEnew.d := true.B
             val PTEnew = Cat(PTE.reserved.asUInt, PTE.ppn.asUInt, PTE.rsw.asUInt, FlagPTEnew.asUInt)
-            printf("[Debug]Is Dirty!!! Need Write Addr: %x old: %x -> new:%x \n", PA, PTE.asUInt, PTEnew.asUInt)
+            // printf("[Debug]Is Dirty!!! Need Write Addr: %x old: %x -> new:%x \n", PA, PTE.asUInt, PTEnew.asUInt)
             PAWriteMMU(PA, 64.U, PTEnew.asUInt)
         }
     }
@@ -235,7 +244,8 @@ trait MMU extends BaseCore with ExceptionSupport{
     }
     def IsSuperPage(ppn:UInt, level:UInt) : Bool = {
         val mask = maskPPN(level)
-        printf("[Debug]SuperPage mask:%x ppn:%x flag:%d\n", mask, ppn, ((mask & ppn) =/= 0.U))
+        // printf("[Debug]SuperPage mask:%x ppn:%x flag:%d\n", mask, ppn, ((mask & ppn) =/= 0.U))
+        // assume((mask & ppn) === 0.U)
         (mask & ppn) =/= 0.U
         // false.B
     }
@@ -253,13 +263,13 @@ trait MMU extends BaseCore with ExceptionSupport{
         flag
     }
 
-    def PageTableWalk(addr:UInt, accsessType: UInt): (Bool, UInt) = {
+    def PageTableWalk(addr:UInt, accsessType: UInt, privMode: UInt): (Bool, UInt) = {
         // Vaddr 前保留位校验 Begin
         // 失败 则Go bad
         val finalSuccess = Wire(Bool())
         val finaladdr = Wire(UInt(XLEN.W))
         when(AddrRSWLegal(addr)){
-            printf("[Debug] Vaddr Legal\n")
+            // printf("[Debug] Vaddr Legal\n")
             // 三级页表翻译 Begin
             val LevelVec = Wire(Vec(3, new PTWLevel()))
             val SatpNow = now.csr.satp.asTypeOf((new SatpStruct))
@@ -268,13 +278,13 @@ trait MMU extends BaseCore with ExceptionSupport{
             for(level <- 0 to 2){
                 // 循环生成三级页表的处理
                 when(LevelVec(2 - level).valid){
-                    printf("[Debug] LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
+                    // printf("[Debug] LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
                     // 寻页且继续的那个函数 返回第二级的值
                     val PTE_PA = LevelVec(2 - level).addr
                     val PTE = PAReadMMU(LevelVec(2 - level).addr, 64.U, level).asTypeOf(new SV39PTE())
                     val PTEFlag = PTE.flag.asTypeOf(new PTEFlag())
                     when(!PTEFlag.v || (!PTEFlag.r && PTEFlag.w)){
-                        printf("[Debug] Faild flag1 %x \n",(!PTEFlag.v || (!PTEFlag.r && PTEFlag.w)))
+                        // printf("[Debug] Faild flag1 %x \n",(!PTEFlag.v || (!PTEFlag.r && PTEFlag.w)))
                         // 失败了 后面也不继续找了 
                         if(2 - level - 1 >= 0){
                             LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
@@ -286,7 +296,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                         when(PTEFlag.r || PTEFlag.x){
                             // 成功了
                             if(2 - level - 1 >= 0){
-                                printf("[Debug] Faild flag2\n")
+                                // printf("[Debug] Faild flag2\n")
                                 LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效就不用打开了
                                 LevelVec(2 - level - 1).addr    := 0.U
                             }
@@ -309,7 +319,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                         }
                     }
                 }.otherwise{
-                    printf("[Debug] Faild flag3\n")
+                    // printf("[Debug] Faild flag3\n")
                     // // 这一级无效 需要把这一级的success 和 下一级的有效信号给干掉
                     if(2 - level - 1 >= 0){
                         LevelVec(2 - level - 1).valid   := false.B     // 下一级的有效关闭
@@ -323,10 +333,10 @@ trait MMU extends BaseCore with ExceptionSupport{
                 //     printf("[Debug]LevelTest:%d level success %x\n", (2-level).U, LevelVec(2 - level).success)
                 // }
             }
-            printf("[Debug]LevelSuccess : %d %d %d\n", LevelVec(2).success, LevelVec(1).success, LevelVec(0).success)
-            printf("[Debug]LevelPTE     : %x %x %x\n", LevelVec(2).pte, LevelVec(1).pte, LevelVec(0).pte)
-            printf("[Debug]LevelSuccess2: %x\n", Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
-            printf("[Debug]LevelSuccess3: %d\n", LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success)))
+            // printf("[Debug]LevelSuccess : %d %d %d\n", LevelVec(2).success, LevelVec(1).success, LevelVec(0).success)
+            // printf("[Debug]LevelPTE     : %x %x %x\n", LevelVec(2).pte, LevelVec(1).pte, LevelVec(0).pte)
+            // printf("[Debug]LevelSuccess2: %x\n", Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
+            // printf("[Debug]LevelSuccess3: %d\n", LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success)))
 
             
             // 三级页表翻译 End
@@ -334,10 +344,11 @@ trait MMU extends BaseCore with ExceptionSupport{
             val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
             when(~(successLevel === 3.U)){
                 // 翻译暂时成功了
-                printf("[Debug] Translate temporarily successful\n")
-                when(LegalAddrStep5(false.B)){
+                // printf("[Debug] Translate temporarily successful\n")
+                // when(LegalAddrStep5(false.B)){
+                when(LegalAddrStep5(false.B, privMode, LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).flag.asTypeOf(new PTEFlag()), accsessType)){
                     // 检测超大页
-                    printf("[Debug] Step5 Legal\n")
+                    // printf("[Debug] Step5 Legal\n")
                     when(IsSuperPage(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, successLevel)){
                         // 是大页
                         finalSuccess := false.B
@@ -345,7 +356,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                     }.otherwise{
                         // 成功了 但是还需要操作一下Dirty
                         // val PTE = PAReadMMU(LevelVec(2).addr, 64.U, 2).asTypeOf(new SV39PTE())
-                        printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
+                        // printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
                         when(accsessType === 0x2.U){
                             IsWriteDirty(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()), LevelVec(successLevel).addr)
                         }
@@ -357,7 +368,7 @@ trait MMU extends BaseCore with ExceptionSupport{
                     }
                 }.otherwise{
                     // 又失败了
-                    printf("[Debug] Step5 Faild\n")
+                    // printf("[Debug] Step5 Faild\n")
                     finalSuccess := false.B
                     finaladdr := 0.U
                 }
@@ -368,7 +379,7 @@ trait MMU extends BaseCore with ExceptionSupport{
             }
             // 这个时候失败是一定失败 成功可不一定成功
         }.otherwise{
-            printf("[Debug] Vaddr illegal\n")
+            // printf("[Debug] Vaddr illegal\n")
             finalSuccess := false.B
             finaladdr := 0.U
         }
@@ -382,7 +393,7 @@ trait MMU extends BaseCore with ExceptionSupport{
         val finalSuccess = Wire(Bool())
         val finaladdr = Wire(UInt(XLEN.W))
         when(AddrRSWLegal(addr)){
-            printf("[Debug] Vaddr Legal\n")
+            // printf("[Debug] Vaddr Legal\n")
             // 三级页表翻译 Begin
             val LevelVec = Wire(Vec(3, new PTWLevel()))
             val SatpNow = now.csr.satp.asTypeOf((new SatpStruct))
@@ -391,7 +402,7 @@ trait MMU extends BaseCore with ExceptionSupport{
             for(level <- 0 to 2){
                 // 循环生成三级页表的处理
                 when(LevelVec(2 - level).valid){
-                    printf("[Debug]LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
+                    // printf("[Debug]LevelTest:%d %x\n", (2-level).U, LevelVec(2 - level).valid)
                     // 寻页且继续的那个函数 返回第二级的值
                     val PTE_PA = LevelVec(2 - level).addr
                     val PTE = PAReadMMU(LevelVec(2 - level).addr, 64.U, 3 + level).asTypeOf(new SV39PTE())
@@ -441,10 +452,10 @@ trait MMU extends BaseCore with ExceptionSupport{
                 //     printf("[Debug]LevelTest:%d level success %x\n", (2-level).U, LevelVec(2 - level).success)
                 // }
             }
-            printf("[Debug]LevelSuccess : %d %d %d\n", LevelVec(2).success, LevelVec(1).success, LevelVec(0).success)
-            printf("[Debug]LevelPTE     : %x %x %x\n", LevelVec(2).pte, LevelVec(1).pte, LevelVec(0).pte)
-            printf("[Debug]LevelSuccess2: %x\n", Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
-            printf("[Debug]LevelSuccess3: %d\n", LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success)))
+            // printf("[Debug]LevelSuccess : %d %d %d\n", LevelVec(2).success, LevelVec(1).success, LevelVec(0).success)
+            // printf("[Debug]LevelPTE     : %x %x %x\n", LevelVec(2).pte, LevelVec(1).pte, LevelVec(0).pte)
+            // printf("[Debug]LevelSuccess2: %x\n", Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
+            // printf("[Debug]LevelSuccess3: %d\n", LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success)))
 
             
             // 三级页表翻译 End
@@ -452,17 +463,17 @@ trait MMU extends BaseCore with ExceptionSupport{
             val successLevel = LevelCalc(Cat(Cat(LevelVec(2).success, LevelVec(1).success), LevelVec(0).success))
             when(~(successLevel === 3.U)){
                 // 翻译暂时成功了
-                printf("[Debug]PTE Success\n")
+                // printf("[Debug]PTE Success\n")
                 when(LegalAddrStep5(true.B)){
                     // 检测超大页
-                    printf("[Debug]Legal Address Step5 True\n")
+                    // printf("[Debug]Legal Address Step5 True\n")
                     when(IsSuperPage(LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, successLevel)){
                         // 是大页
-                        printf("[Debug]SuperPage fault\n")
+                        // printf("[Debug]SuperPage fault\n")
                         finalSuccess := false.B
                         finaladdr := 0.U
                     }.otherwise{
-                        printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
+                        // printf("[Debug]PTE.d test: Addr:%x PTE:%x\n", LevelVec(successLevel).addr, LevelVec(successLevel).pte)
                         finalSuccess := true.B
                         // val adada_addr = ((Cat((LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn),0.U(12.W)) & (~maskPPN(successLevel)))) | (addr & maskVPN(successLevel))
                         // printf("[Debug]Final success ppn:%x addr:%x trans:%x\n", LevelVec(successLevel).pte.asTypeOf(new SV39PTE()).ppn, addr, adada_addr)
@@ -471,19 +482,19 @@ trait MMU extends BaseCore with ExceptionSupport{
                     }
                 }.otherwise{
                     // 又失败了
-                    printf("[Debug]Legal Address Step5 False\n")
+                    // printf("[Debug]Legal Address Step5 False\n")
                     finalSuccess := false.B
                     finaladdr := 0.U
                 }
             }.otherwise{
                 // 翻译失败了
-                printf("[Debug]PTE False\n")
+                // printf("[Debug]PTE False\n")
                 finalSuccess := false.B
                 finaladdr := 0.U
             }
             // 这个时候失败是一定失败 成功可不一定成功
         }.otherwise{
-            printf("[Debug] Vaddr illegal\n")
+            // printf("[Debug] Vaddr illegal\n")
             finalSuccess := false.B
             finaladdr := 0.U
         }

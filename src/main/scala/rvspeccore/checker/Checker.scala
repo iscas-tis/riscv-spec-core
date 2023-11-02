@@ -145,7 +145,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
         TLBLoadQueue(2 - i).io.out.ready := true.B
         // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
         specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(2 - i).io.out.bits.data else DontCare }
-        // FIXME: 第一级 assert不一致 nutshell 并且条件写的都是错的 
+        // TODO: 第Level 1 assert is inconsistent nutshell and the condition need to modify. 
         // assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
       }.otherwise{
         TLBLoadQueue(2 - i).io.out.ready := false.B
@@ -239,14 +239,16 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   // assert in current clock
   when(io.instCommit.valid) {
     // now pc
-    assume(
-      !(
-        RVI.loadStore(io.instCommit.inst) &&
-        (
-          specCore.io.next.csr.mtval(63,39) =/=  io.result.csr.mtval(63,39)
-        )
-      )
-    )
+    // For example, if the DUT have some bugs, can add assume to skip
+    // assume For NutShell mtval high-bit problem
+    // assume(
+    //   !(
+    //     RVI.loadStore(io.instCommit.inst) &&
+    //     (
+    //       specCore.io.next.csr.mtval(63,39) =/=  io.result.csr.mtval(63,39)
+    //     )
+    //   )
+    // )
     assert(io.instCommit.pc === specCore.io.now.pc)
     // next reg
     // for (i <- 0 until 32) {
