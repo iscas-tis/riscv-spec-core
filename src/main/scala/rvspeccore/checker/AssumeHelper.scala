@@ -138,9 +138,9 @@ object RVPriviledged extends AssumeHelper with spec.instset.PriviledgedInsts {
   val trap_return = AssumeHelper(
     List(SRET, MRET)
   )
-  val illegal = AssumeHelper(
-    List(TEST_ILLEGAL)
-  )
+  // val illegal = AssumeHelper(
+  //   List(TEST_ILLEGAL)
+  // )
   val partition: Seq[AssumeHelper] = List(trap_return)
 }
 

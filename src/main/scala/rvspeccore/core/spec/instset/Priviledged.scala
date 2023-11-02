@@ -16,7 +16,7 @@ trait PriviledgedInsts {
   val WFI        = Inst("b0001000_00101_00000_000_00000_1110011") 
   val SFANCE_VMA = Inst("b0001001_?????_?????_000_00000_1110011")
   // FIXME: need to remove
-  val TEST_ILLEGAL=Inst("b0000000_00000_00000_000_00000_1111011")
+  // val TEST_ILLEGAL=Inst("b0000000_00000_00000_000_00000_1111011")
   val TEST_TLBLW = Inst("b0000000_00000_00011_010_111010_000011")
   
   // The above are instructions for Nutshell
