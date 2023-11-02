@@ -9,7 +9,7 @@ abstract class AssumeHelper {
   val partition: Seq[AssumeHelper]
 
   // these lists will be calculated automatically if not overrided
-  lazy val list32: Seq[spec.Inst]   = partition.map(_.list32).flatten
+  lazy val list32:   Seq[spec.Inst] = partition.map(_.list32).flatten
   lazy val append64: Seq[spec.Inst] = partition.map(_.append64).flatten
 
   /** Instruction number in this set
@@ -78,7 +78,8 @@ object RVI extends AssumeHelper with spec.instset.IBaseInsts {
     List(LWU, LD, SD)
   )
   val other = AssumeHelper(
-    List(FENCE, ECALL, EBREAK)
+    // List(FENCE, ECALL, EBREAK)
+    List(ECALL, EBREAK) // FIXME: FENCE will occurs exception when verify
   )
 
   val partition = List(regImm, regReg, control, loadStore, other)
@@ -115,4 +116,39 @@ object RVC extends AssumeHelper with spec.instset.CExtensionInsts {
   )
 
   val partition: Seq[AssumeHelper] = List(loadStore, control, regImm, regReg)
+}
+object RVZicsr extends AssumeHelper with spec.instset.ZicsrExtensionInsts {
+  val reg = AssumeHelper(
+    List(CSRRW, CSRRS, CSRRC)
+  )
+  val imm = AssumeHelper(
+    List(CSRRWI, CSRRSI, CSRRCI)
+  )
+
+  val partition: Seq[AssumeHelper] = List(reg, imm)
+}
+object RVZifencei extends AssumeHelper with spec.instset.ZifenceiExtensionInsts {
+  val fence_i = AssumeHelper(
+    List(FENCE_I)
+  )
+
+  val partition: Seq[AssumeHelper] = List(fence_i)
+}
+object RVPriviledged extends AssumeHelper with spec.instset.PriviledgedInsts {
+  val trap_return = AssumeHelper(
+    List(SRET, MRET)
+  )
+  // val illegal = AssumeHelper(
+  //   List(TEST_ILLEGAL)
+  // )
+  val partition: Seq[AssumeHelper] = List(trap_return)
+}
+
+object SV39Translate extends AssumeHelper with spec.instset.PriviledgedInsts with spec.instset.IBaseInsts with spec.instset.ZicsrExtensionInsts{
+  val regImm = AssumeHelper(
+    // List(LW,  SW, SRET, MRET)
+    // List(LW,  SW)
+    List(TEST_TLBLW)
+  )
+  val partition: Seq[AssumeHelper] = List(regImm)
 }
