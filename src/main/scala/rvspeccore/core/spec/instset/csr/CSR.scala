@@ -345,8 +345,7 @@ object CSR {
     csr.mimpid    := 0.U
     csr.mhartid   := 0.U
     if(XLEN == 32){
-      // TODO: 事实上 此处需要根据Config文件配置 进一步完善mstatus的初始值和可供修改的位置
-      // FIXME: 默认值的FS位一个是01 好像有问题
+      // TODO: Add an config file for change every bits of  mstatus
       csr.mstatus   := zeroExt("h000000ff".U, XLEN)
     }else{
       // csr.mstatus   := zeroExt("h2000000ff".U, XLEN)
@@ -357,7 +356,6 @@ object CSR {
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
     csr.mstatush  := 0.U //310
-    // FIXME: Need to give mtvec a default BASE Addr and Mode
     csr.mscratch  := 0.U
     csr.mtvec     := 0.U
     csr.mcounteren:= 0.U
@@ -379,8 +377,8 @@ object CSR {
     csr.sscratch  := 0.U
     // Memory Protection
     csr.satp      := 0.U
-    // // for test
-    // // FIXME: need a correct if condition
+    // // for test in NutShell
+    // // TODO: need a correct if condition
     // if(XLEN == 64){
     //   csr.satp      :="h8000000000080002".U
     // }else{
