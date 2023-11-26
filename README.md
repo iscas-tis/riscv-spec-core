@@ -31,7 +31,7 @@ virtual-momory system with Sv39.
 To use riscv-spec-core as a managed dependency, add this in your `build.sbt`:
 
 ```scala
-libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.0.0"
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.1-SNAPSHOT"
 ```
 
 Then add verification code in your DUT as the following description.
