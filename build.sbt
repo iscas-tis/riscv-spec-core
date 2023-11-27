@@ -1,4 +1,4 @@
-ThisBuild / version      := "1.1-SNAPSHOT"
+ThisBuild / version      := "1.1-CHA-SNAPSHOT"
 ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.13.10"
 
@@ -33,8 +33,8 @@ lazy val root = (project in file("."))
   .settings(
     name := "RiscvSpecCore",
     libraryDependencies ++= Seq(
-      "edu.berkeley.cs" %% "chisel3"    % "3.6.0",
-      "edu.berkeley.cs" %% "chiseltest" % "0.6.2" % "test"
+      "cn.ac.ios.tis" %% "chisel3"    % "3.7-SNAPSHOT",
+      "cn.ac.ios.tis" %% "chiseltest" % "0.7-SNAPSHOT" % "test"
     ),
     scalacOptions ++= Seq(
       "-language:reflectiveCalls",
@@ -42,5 +42,5 @@ lazy val root = (project in file("."))
       "-feature",
       "-Xcheckinit"
     ),
-    addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.6.0" cross CrossVersion.full)
+    addCompilerPlugin("cn.ac.ios.tis" % "chisel3-plugin" % "3.7-SNAPSHOT" cross CrossVersion.full)
   )
