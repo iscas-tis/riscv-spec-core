@@ -14,12 +14,12 @@ abstract class ConnectHelper {}
 /** Connect RegFile to io.result.reg by BoringUtils
   */
 object ConnectCheckerResult extends ConnectHelper {
-  val uniqueIdReg: String = "ConnectCheckerResult-UniqueIdReg"
-  val uniqueIdMem: String = "ConnectCheckerResult-UniqueIdMem"
-  val uniqueIdCSR: String = "ConnectCheckerResult-UniqueIdCSR"
+  val uniqueIdReg: String   = "ConnectCheckerResult-UniqueIdReg"
+  val uniqueIdMem: String   = "ConnectCheckerResult-UniqueIdMem"
+  val uniqueIdCSR: String   = "ConnectCheckerResult-UniqueIdCSR"
   val uniqueIdEvent: String = "ConnectCheckerResult-UniqueIdEvent"
-  val uniqueIdDTLB: String = "ConnectCheckerResult-UniqueIdDTLB"
-  val uniqueIdITLB: String = "ConnectCheckerResult-UniqueIdITLB"
+  val uniqueIdDTLB: String  = "ConnectCheckerResult-UniqueIdDTLB"
+  val uniqueIdITLB: String  = "ConnectCheckerResult-UniqueIdITLB"
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
   }
@@ -33,24 +33,24 @@ object ConnectCheckerResult extends ConnectHelper {
     val read  = new MemOneSig
     val write = new MemOneSig
   }
-  def makeTLBSource(isDTLB: Boolean)(implicit XLEN: Int) : TLBSig = {
+  def makeTLBSource(isDTLB: Boolean)(implicit XLEN: Int): TLBSig = {
     val tlbmem = Wire(new TLBSig())
-    tlbmem.read.valid    := false.B
-    tlbmem.read.addr     := 0.U
-    tlbmem.read.data     := 0.U
-    tlbmem.read.memWidth := 0.U
-    tlbmem.read.access   := false.B
-    tlbmem.read.level    := 0.U
+    tlbmem.read.valid     := false.B
+    tlbmem.read.addr      := 0.U
+    tlbmem.read.data      := 0.U
+    tlbmem.read.memWidth  := 0.U
+    tlbmem.read.access    := false.B
+    tlbmem.read.level     := 0.U
     tlbmem.write.valid    := false.B
     tlbmem.write.addr     := 0.U
     tlbmem.write.data     := 0.U
     tlbmem.write.memWidth := 0.U
     tlbmem.write.access   := false.B
     tlbmem.write.level    := 0.U
-    
-    if(isDTLB){
+
+    if (isDTLB) {
       BoringUtils.addSource(tlbmem, uniqueIdDTLB)
-    }else{
+    } else {
       BoringUtils.addSource(tlbmem, uniqueIdITLB)
     }
     tlbmem
@@ -91,7 +91,7 @@ object ConnectCheckerResult extends ConnectHelper {
     BoringUtils.addSource(event, uniqueIdEvent)
     event
   }
-  
+
   def setChecker(checker: CheckerWithResult, memDelay: Int = 0)(implicit XLEN: Int, config: RVConfig) = {
     // reg
     val regVec = Wire(Vec(32, UInt(XLEN.W)))
@@ -102,10 +102,10 @@ object ConnectCheckerResult extends ConnectHelper {
     checker.io.result.pc  := DontCare
 
     if (checker.io.mem != None) {
-      val mem = Wire(new MemSig)
+      val mem     = Wire(new MemSig)
       val dtlbmem = Wire(new TLBSig)
       val itlbmem = Wire(new TLBSig)
-      mem := DontCare
+      mem     := DontCare
       dtlbmem := DontCare
       itlbmem := DontCare
       BoringUtils.addSink(mem, uniqueIdMem)
@@ -113,7 +113,7 @@ object ConnectCheckerResult extends ConnectHelper {
       BoringUtils.addSink(itlbmem, uniqueIdITLB)
       checker.io.dtlbmem.get := dtlbmem
       checker.io.itlbmem.get := itlbmem
-      checker.io.mem.get := regNextDelay(mem, memDelay)
+      checker.io.mem.get     := regNextDelay(mem, memDelay)
       // expose the signal below
       // assert(RegNext(checker.io.dtlbmem.get.read.valid, false.B) === false.B)
       // assert(RegNext(dtlbmem.read.valid, false.B) === false.B)

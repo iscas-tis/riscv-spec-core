@@ -12,28 +12,28 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   // Define Basic parts
   implicit val XLEN: Int = config.XLEN
   val io = IO(new Bundle {
-    val inst  = Input(UInt(32.W))
-    val valid = Input(Bool())
-    val mem = new MemIO
-    val tlb = new TLBIO
-    val now  = Output(State())
-    val next = Output(State())
-    val event = Output(new EventSig)
+    val inst     = Input(UInt(32.W))
+    val valid    = Input(Bool())
+    val mem      = new MemIO
+    val tlb      = new TLBIO
+    val now      = Output(State())
+    val next     = Output(State())
+    val event    = Output(new EventSig)
     val iFetchpc = Output(UInt(XLEN.W))
   })
   // Initial State
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
-  val mem = Wire(new MemIO)
-  val tlb = Wire(new TLBIO)
+  val mem  = Wire(new MemIO)
+  val tlb  = Wire(new TLBIO)
   // Global Data
-  val global_data = Wire(new GlobalData)
+  val global_data    = Wire(new GlobalData)
   val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
-  val event = Wire(new EventSig)
-  val iFetchpc = Wire(UInt(XLEN.W))
+  val event          = Wire(new EventSig)
+  val iFetchpc       = Wire(UInt(XLEN.W))
 }
 class GlobalData extends Bundle {
-  val setpc    = Bool()
+  val setpc = Bool()
 }
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
   val valid    = Output(Bool())
@@ -81,9 +81,9 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // if there no changes below
   // Initial the value of next
   global_data.setpc := false.B
-  event := 0.U.asTypeOf(new EventSig)
-  iFetchpc  := now.pc
-  next := now
+  event             := 0.U.asTypeOf(new EventSig)
+  iFetchpc          := now.pc
+  next              := now
   // printf("io.iFetchpc: %x %x\n", io.iFetchpc, iFetchpc)
   // dont read or write mem
   // if there no LOAD/STORE below
@@ -99,10 +99,10 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     // }.otherwise{
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-    val (resultStatus, resultPC) = if(XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)    
-    when(resultStatus){
+    val (resultStatus, resultPC) = if (XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)
+    when(resultStatus) {
       inst := io.inst
-    }.otherwise{
+    }.otherwise {
       // printf("[Debug]iFetch Fail and Give NOP:")
       inst := 0.U(XLEN.W) // With a NOP instruction
     }
@@ -152,8 +152,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   now := next
 
   // output
-  io.now  := now
-  io.next := next
-  io.event := event
+  io.now      := now
+  io.next     := next
+  io.event    := event
   io.iFetchpc := iFetchpc
 }

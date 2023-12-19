@@ -20,13 +20,13 @@ sealed abstract class RVConfig(extensions: String) {
   // Misa
   // var CSRMisaExtList = List('A', 'S', 'I', 'U')
   var CSRMisaExtList = List('A', 'I')
-  if(M){ CSRMisaExtList = CSRMisaExtList :+ 'M'}
-  if(C){ CSRMisaExtList = CSRMisaExtList :+ 'C'}
-  if(S){ 
+  if (M) { CSRMisaExtList = CSRMisaExtList :+ 'M' }
+  if (C) { CSRMisaExtList = CSRMisaExtList :+ 'C' }
+  if (S) {
     CSRMisaExtList = CSRMisaExtList :+ 'S'
-    if(!U){ CSRMisaExtList = CSRMisaExtList :+ 'U'} 
+    if (!U) { CSRMisaExtList = CSRMisaExtList :+ 'U' }
   }
-  if(U){ CSRMisaExtList = CSRMisaExtList :+ 'U'} 
+  if (U) { CSRMisaExtList = CSRMisaExtList :+ 'U' }
 
 }
 
