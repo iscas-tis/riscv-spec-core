@@ -47,8 +47,8 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
   def opDIV(divisor: UInt, dividend: UInt, L: Int): UInt = {
     MuxCase(
       (divisor.asSInt / dividend.asSInt)(L - 1, 0).asUInt, // (L-1, 0) cut extra bit in double sign bit
-      Array(
-        (dividend === 0.U(L.W))                                                        -> -1.S(L.W).asUInt,
+      Seq(
+        (dividend === 0.U(L.W))                                                      -> -1.S(L.W).asUInt,
         (divisor === -(1 << (L - 1)).S(L.W).asUInt && dividend === -1.S(L.W).asUInt) -> -(1 << (L - 1)).S(L.W).asUInt
       )
     )
@@ -56,7 +56,7 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
   def opDIVU(divisor: UInt, dividend: UInt, L: Int): UInt = {
     MuxCase(
       divisor / dividend,
-      Array(
+      Seq(
         (dividend === 0.U(L.W)) -> Fill(L, 1.U(1.W))
       )
     )
@@ -64,8 +64,8 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
   def opREM(divisor: UInt, dividend: UInt, L: Int): UInt = {
     MuxCase(
       (divisor.asSInt % dividend.asSInt).asUInt,
-      Array(
-        (dividend === 0.U(L.W))                                                        -> divisor,
+      Seq(
+        (dividend === 0.U(L.W))                                                      -> divisor,
         (divisor === -(1 << (L - 1)).S(L.W).asUInt && dividend === -1.S(L.W).asUInt) -> 0.U(L.W)
       )
     )
@@ -73,7 +73,7 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
   def opREMU(divisor: UInt, dividend: UInt, L: Int): UInt = {
     MuxCase(
       divisor % dividend,
-      Array(
+      Seq(
         (dividend === 0.U(L.W)) -> divisor
       )
     )

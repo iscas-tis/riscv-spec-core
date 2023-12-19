@@ -124,7 +124,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
       }
     }
     // do without config for now
-    doRVPriviledged
+    doRVPriviledged()
     doRVZicsr
     doRVZifencei
 

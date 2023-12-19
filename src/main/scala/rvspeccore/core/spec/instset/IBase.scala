@@ -128,10 +128,8 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
   }
   def addrAligned(size: UInt, addr: UInt): Bool = {
-      MuxLookup(
-        size,
-        false.B,
-        Array(
+      MuxLookup(size, false.B)(
+        Seq(
           "b00".U   -> true.B,              //b
           "b01".U   -> (addr(0)   === 0.U), //h
           "b10".U   -> (addr(1,0) === 0.U), //w
@@ -163,8 +161,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
   def getfetchSize():UInt = {
     MuxLookup(
       now.csr.misa(CSR.getMisaExtInt('C')),
-      SizeOp.w,
-      Array(
+      SizeOp.w
+    )(
+      Seq(
         "b0".U   -> SizeOp.w,
         "b1".U   -> SizeOp.h
       )
