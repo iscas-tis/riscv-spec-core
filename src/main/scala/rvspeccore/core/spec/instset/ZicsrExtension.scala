@@ -63,7 +63,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
     // printf("PC: %x Inst:%x\n",now.pc,inst)
     when(CSRRW(inst)) {
       // t = CSRs[csr]; CSRs[csr] = x[rs1]; x[rd] = t
-      printf("Is CSRRW:%x\n",inst)
+      // printf("Is CSRRW:%x\n",inst)
       decodeI
       when(!wen(imm(11, 0))){
         when(rd =/= 0.U) {
@@ -75,7 +75,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
     }
     when(CSRRS(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t | x[rs1]; x[rd] = t
-      printf("Is CSRRS:%x\n",inst)
+      // printf("Is CSRRS:%x\n",inst)
       decodeI
       when(!wen(imm(11, 0), now.reg(rs1) === 0.U)){
         // imm_11_0, rs1 , funct3, rd             , opcode ), inst); 
@@ -90,7 +90,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
     }
     when(CSRRC(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t &~x[rs1]; x[rd] = t
-      printf("Is CSRRC:%x\n",inst)
+      // printf("Is CSRRC:%x\n",inst)
       decodeI
       when(!wen(imm(11, 0))){
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -102,7 +102,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
     }
     when(CSRRWI(inst)) {
       // x[rd] = CSRs[csr]; CSRs[csr] = zimm
-      printf("Is CSRRWI:%x\n",inst)
+      // printf("Is CSRRWI:%x\n",inst)
       decodeI
       when(!wen(imm(11, 0))){
         when(rd =/= 0.U) {
@@ -113,7 +113,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
     }
     when(CSRRSI(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t | zimm; x[rd] = t
-      printf("Is CSRRSI:%x\n",inst)
+      // printf("Is CSRRSI:%x\n",inst)
       decodeI
       when(!wen(imm(11, 0), now.reg(rs1) === 0.U)){
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)
@@ -125,7 +125,7 @@ trait ZicsrExtension extends BaseCore with CommonDecode with ZicsrExtensionInsts
     }
     when(CSRRCI(inst)) {
       // t = CSRs[csr]; CSRs[csr] = t &~zimm; x[rd] = t
-      printf("Is CSRRCI:%x\n",inst)
+      // printf("Is CSRRCI:%x\n",inst)
       decodeI
       when(!wen(imm(11, 0))){
         next.reg(rd) := zeroExt(csrRead(imm(11, 0)), XLEN)

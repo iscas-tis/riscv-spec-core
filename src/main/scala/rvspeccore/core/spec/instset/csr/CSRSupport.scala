@@ -24,7 +24,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     val has:    Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
     val rmask : UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.info.rmask })
-    printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
+    // printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
@@ -67,11 +67,11 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
         when(addr === info.addr) {
           // 地址是当前寄存器的地址
-          printf("[Debug]Find ADDR, %x %x\n", (info.wfn != null).B, (info.wmask != UnwritableMask).B)
+          // printf("[Debug]Find ADDR, %x %x\n", (info.wfn != null).B, (info.wmask != UnwritableMask).B)
           if (info.wfn != null && info.wmask != UnwritableMask) {
             // 且该寄存器可写 使用mask
             nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
-            printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
+            // printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
           } else {
             // TODO: might cause some exception?
 
@@ -80,7 +80,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       }
     }.otherwise {
       // all unimplemented CSR registers return 0
-      printf("[Error]CSR_Write:Not have this reg...\n")
+      // printf("[Error]CSR_Write:Not have this reg...\n")
       raiseException(MExceptionCode.illegalInstruction)
     }
 
@@ -96,7 +96,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       mstatusNew.mie   := mstatusOld.mpie
       priviledgeMode   := mstatusOld.mpp
       mstatusNew.mpie  := true.B
-      printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
+      // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
       if(config.CSRMisaExtList.exists(s => s == 'U')) {
         mstatusNew.mpp := ModeU
       } else {
@@ -105,10 +105,10 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       next.csr.mstatus := mstatusNew.asUInt
       lr := false.B
       retTarget := next.csr.mepc(VAddrBits-1, 0)
-      printf("nextpc1:%x\n",now.csr.mepc)
+      // printf("nextpc1:%x\n",now.csr.mepc)
       global_data.setpc := true.B
       next.pc := now.csr.mepc
-      printf("nextpc2:%x\n",next.pc)
+      // printf("nextpc2:%x\n",next.pc)
     }.otherwise{
       raiseException(MExceptionCode.illegalInstruction)
     }
@@ -135,11 +135,11 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       next.csr.mstatus := mstatusNew.asUInt
       lr := false.B
       retTarget := next.csr.sepc(VAddrBits-1, 0)
-      printf("nextpc1:%x\n",now.csr.sepc)
+      // printf("nextpc1:%x\n",now.csr.sepc)
       global_data.setpc := true.B
       next.pc := now.csr.sepc
-      printf("nextpc2:%x\n",next.pc)
-      printf("next mstatus:%x\n", next.csr.mstatus)
+      // printf("nextpc2:%x\n",next.pc)
+      // printf("next mstatus:%x\n", next.csr.mstatus)
     }
   }
 }

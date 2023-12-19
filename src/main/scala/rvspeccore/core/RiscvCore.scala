@@ -91,8 +91,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   tlb := 0.U.asTypeOf(new TLBIO)
   // ID & EXE
   when(io.valid) {
-    printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
-    printf("io.mem.read.valid:%x addr:%x data:%x\n", io.mem.read.valid, io.mem.read.addr, io.mem.read.data)
+    // printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
+    // printf("io.mem.read.valid:%x addr:%x data:%x\n", io.mem.read.valid, io.mem.read.addr, io.mem.read.data)
     // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
     //   raiseException(0)
     //   next.csr.mtval := now.pc
@@ -103,7 +103,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     when(resultStatus){
       inst := io.inst
     }.otherwise{
-      printf("[Debug]iFetch Fail and Give NOP:")
+      // printf("[Debug]iFetch Fail and Give NOP:")
       inst := 0.U(XLEN.W) // With a NOP instruction
     }
     iFetchpc := resultPC
