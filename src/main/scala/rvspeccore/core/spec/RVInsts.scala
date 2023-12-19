@@ -21,6 +21,20 @@ object Inst {
   def apply(bits: String)                               = new Inst(Some(BitPat(bits)), None)
   def apply(checker: (UInt, Int) => Bool)               = new Inst(None, Some(checker))
   def apply(bits: String, checker: (UInt, Int) => Bool) = new Inst(Some(BitPat(bits)), Some(checker))
+
+  def apply(bitsPair0: (Int, String), bitsPairN: (Int, String)*) = new Inst(
+    None,
+    Some((inst: UInt, XLEN: Int) => {
+      val bitsMap = bitsPair0 +: bitsPairN
+      inst === BitPat(
+        bitsMap
+          .filter(_._1 == XLEN)
+          .headOption
+          .getOrElse(throw new Exception(s"XLEN `$XLEN` not matched"))
+          ._2
+      )
+    })
+  )
 }
 
 trait GSetInsts extends IBaseInsts with MExtensionInsts
