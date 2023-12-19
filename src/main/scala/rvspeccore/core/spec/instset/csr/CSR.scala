@@ -485,9 +485,9 @@ class PTEFlag() extends Bundle {
 
 // TODO: FIXME: Merge to ours tools csr
 // NutShell
-// io.imemMMU.priviledgeMode := priviledgeMode
-// io.dmemMMU.priviledgeMode := Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+// io.imemMMU.privilegeMode := privilegeMode
+// io.dmemMMU.privilegeMode := Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode)
 // XiangShan
-// tlbBundle.priv.imode := priviledgeMode
-// tlbBundle.priv.dmode := Mux(debugMode && dcsr.asTypeOf(new DcsrStruct).mprven, ModeM, Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode))
+// tlbBundle.priv.imode := privilegeMode
+// tlbBundle.priv.dmode := Mux(debugMode && dcsr.asTypeOf(new DcsrStruct).mprven, ModeM, Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode))
 // 当前还没有Debug Mode 因此按照NutShell 来讲 我认为是一致的

@@ -60,11 +60,11 @@ trait LoadStore extends BaseCore with MMU {
       val rOff          = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
       val rMask         = width2Mask(memWidth)
       val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
-      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode)
       val vmEnable      = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
-      // printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
+      // printf("[Debug]Read addr:%x, privilegeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode, vmEnable)
       mem.read.valid := true.B
-      // printf("[DEBUG] vmEnable: %x pv: %x mprv: %x mpp: %x pvmode:%x \n", vmEnable, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+      // printf("[DEBUG] vmEnable: %x pv: %x mprv: %x mpp: %x pvmode:%x \n", vmEnable, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode)
       when(vmEnable) {
         // mem.read.addr     := AddrTransRead(addr)
         // FIXME: addr 的虚实地址均并非64位 需进一步加以限制
@@ -90,9 +90,9 @@ trait LoadStore extends BaseCore with MMU {
     } else {
       // val pv = Mux(now.csr.mstatus)
       val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
-      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode)
       val vmEnable      = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
-      // printf("[Debug]Write addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
+      // printf("[Debug]Write addr:%x, privilegeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode, vmEnable)
       mem.write.valid := true.B
       when(vmEnable) {
         // TODO: addr's bitwidth is lower than 64 bit, need to be modified
@@ -111,7 +111,7 @@ trait LoadStore extends BaseCore with MMU {
   }
 
   def iFetchTrans(addr: UInt): (Bool, UInt) = {
-    val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (priviledgeMode < 0x3.U)
+    val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (privilegeMode < 0x3.U)
     // printf("[Debug]iFetchTrans addr:%x, vm:%x \n", addr, vmEnable)
     val resultStatus = Wire(Bool())
     val resultPC     = Wire(UInt(XLEN.W))
@@ -177,7 +177,7 @@ trait MMU extends BaseCore with ExceptionSupport {
     // FIXME: 需要进一步改这个函数 看手册哈
     val mstatus_mxr = now.csr.mstatus.asTypeOf((new MstatusStruct)).mxr.asBool
     val mstatus_sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum.asBool
-    // val permCheck = missflag.v && !(pf.priviledgeMode === ModeU && !missflag.u) && !(pf.priviledgeMode === ModeS && missflag.u && (!pf.status_sum || ifecth))
+    // val permCheck = missflag.v && !(pf.privilegeMode === ModeU && !missflag.u) && !(pf.privilegeMode === ModeS && missflag.u && (!pf.status_sum || ifecth))
     val permCheck =
       missflag.v && !(privMode === ModeU && !missflag.u) && !(privMode === ModeS && missflag.u && (!mstatus_sum || isiFetch))
     val permExec  = permCheck && missflag.x

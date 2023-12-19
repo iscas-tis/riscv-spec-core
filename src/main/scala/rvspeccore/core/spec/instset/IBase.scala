@@ -351,7 +351,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
     when(ECALL(inst)) {
       decodeI;
-      switch(priviledgeMode) {
+      switch(privilegeMode) {
         is(0x3.U) { raiseException(MExceptionCode.environmentCallFromMmode) }
         is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
         is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }

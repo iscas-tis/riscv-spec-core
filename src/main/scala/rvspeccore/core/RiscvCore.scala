@@ -27,10 +27,10 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val mem  = Wire(new MemIO)
   val tlb  = Wire(new TLBIO)
   // Global Data
-  val global_data    = Wire(new GlobalData)
-  val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
-  val event          = Wire(new EventSig)
-  val iFetchpc       = Wire(UInt(XLEN.W))
+  val global_data   = Wire(new GlobalData)
+  val privilegeMode = RegInit(UInt(2.W), 0x3.U)
+  val event         = Wire(new EventSig)
+  val iFetchpc      = Wire(UInt(XLEN.W))
 }
 class GlobalData extends Bundle {
   val setpc = Bool()
@@ -124,7 +124,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
       }
     }
     // do without config for now
-    doRVPriviledged()
+    doRVPrivileged()
     doRVZicsr
     doRVZifencei
 

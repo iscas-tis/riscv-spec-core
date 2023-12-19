@@ -9,8 +9,8 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import csr._
 
-trait PriviledgedInsts {
-  // - Priviledged Insts Volume II
+trait PrivilegedInsts {
+  // - Privileged Insts Volume II
   val SRET       = Inst("b000100000010_00000_000_00000_1110011")
   val MRET       = Inst("b001100000010_00000_000_00000_1110011")
   val WFI        = Inst("b0001000_00101_00000_000_00000_1110011")
@@ -34,15 +34,15 @@ trait PriviledgedInsts {
   // ......
 }
 
-/** “Priviledged” Instruction-Fetch Fence Volume II Insts
+/** “Privileged” Instruction-Fetch Fence Volume II Insts
   */
-trait PriviledgedExtension
+trait PrivilegedExtension
     extends BaseCore
     with CommonDecode
-    with PriviledgedInsts
+    with PrivilegedInsts
     with CSRSupport
     with ExceptionSupport {
-  def doRVPriviledged()(implicit config: RVConfig): Unit = {
+  def doRVPrivileged()(implicit config: RVConfig): Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
     when(SRET(inst)) {
       // printf("Is SRET:%x\n",inst)

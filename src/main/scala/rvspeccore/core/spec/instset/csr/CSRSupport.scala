@@ -89,13 +89,13 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
   }
 
   def Mret()(implicit config: RVConfig): Unit = {
-    when(priviledgeMode === ModeM) {
+    when(privilegeMode === ModeM) {
       val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
       val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
       mstatusNew.mie  := mstatusOld.mpie
-      priviledgeMode  := mstatusOld.mpp
+      privilegeMode   := mstatusOld.mpp
       mstatusNew.mpie := true.B
-      // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
+      // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, privilegeMode)
       if (config.CSRMisaExtList.exists(s => s == 'U')) {
         mstatusNew.mpp := ModeU
       } else {
@@ -120,14 +120,14 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     // return instruction, SRET. When TSR=1, attempts to execute SRET while executing in S-mode
     // will raise an illegal instruction exception. When TSR=0, this operation is permitted in S-mode.
     // TSR is read-only 0 when S-mode is not supported.
-    val illegalSret      = priviledgeMode < ModeS
-    val illegalSModeSret = priviledgeMode === ModeS && mstatusOld.tsr.asBool
+    val illegalSret      = privilegeMode < ModeS
+    val illegalSModeSret = privilegeMode === ModeS && mstatusOld.tsr.asBool
     when(illegalSret || illegalSModeSret) {
       raiseException(MExceptionCode.illegalInstruction)
     }.otherwise {
       // FIXME: is mstatus not sstatus ?
       mstatusNew.sie   := mstatusOld.spie
-      priviledgeMode   := Cat(0.U(1.W), mstatusOld.spp)
+      privilegeMode    := Cat(0.U(1.W), mstatusOld.spp)
       mstatusNew.spie  := true.B // 正确的
       mstatusNew.spp   := ModeU
       mstatusNew.mprv  := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "

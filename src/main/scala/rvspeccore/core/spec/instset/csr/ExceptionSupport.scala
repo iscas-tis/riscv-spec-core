@@ -153,11 +153,11 @@ trait ExceptionSupport extends BaseCore {
     event.exceptionInst := io.inst(31, 0)
     // FIXME: 目前仅仅考虑了异常
     val deleg  = now.csr.medeleg
-    val delegS = (deleg(exceptionNO)) && (priviledgeMode < ModeM)
-    // printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, priviledgeMode)
+    val delegS = (deleg(exceptionNO)) && (privilegeMode < ModeM)
+    // printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, privilegeMode)
     // printf("[Debug] mstatus:%x %x\n", now.csr.mstatus, next.csr.mstatus)
     // printf("[Debug] mepc:%x %x\n", now.csr.mepc, next.csr.mepc)
-    // printf("[Debug] mcause:%x %x Mode:%x\n", now.csr.mcause, next.csr.mcause, priviledgeMode)
+    // printf("[Debug] mcause:%x %x Mode:%x\n", now.csr.mcause, next.csr.mcause, privilegeMode)
     // TODO: def raise an Interrupt
     // FIXME: 需要对中断做出处理 但是当前只针对异常进行处理
     val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
@@ -165,20 +165,20 @@ trait ExceptionSupport extends BaseCore {
     when(delegS) {
       // printf("USE S Mode ing...\n")
       event.cause     := next.csr.scause
-      mstatusNew.spp  := priviledgeMode
+      mstatusNew.spp  := privilegeMode
       mstatusNew.spie := mstatusOld.sie
       mstatusNew.sie  := false.B
-      priviledgeMode  := ModeS
+      privilegeMode   := ModeS
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionS(exceptionNO, 32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionS(exceptionNO, 64) } }
       }
     }.otherwise {
       event.cause     := next.csr.mcause
-      mstatusNew.mpp  := priviledgeMode
+      mstatusNew.mpp  := privilegeMode
       mstatusNew.mpie := mstatusOld.mie
       mstatusNew.mie  := false.B
-      priviledgeMode  := ModeM
+      privilegeMode   := ModeM
       switch(now.csr.MXLEN) {
         is(32.U(8.W)) { doRaiseExceptionM(exceptionNO, 32) }
         is(64.U(8.W)) { if (XLEN >= 64) { doRaiseExceptionM(exceptionNO, 64) } }
@@ -190,10 +190,10 @@ trait ExceptionSupport extends BaseCore {
       // common part
       next.csr.mcause := Cat(0.U, zeroExt(exceptionCode, MXLEN - 1))
       next.csr.mepc   := now.pc
-      mstatusNew.mpp  := priviledgeMode
+      mstatusNew.mpp  := privilegeMode
       mstatusNew.mpie := mstatusOld.mie
       mstatusNew.mie  := false.B
-      priviledgeMode  := ModeM // 之前写的大bug
+      privilegeMode   := ModeM // 之前写的大bug
       // FIXME: tva此处写法欠妥
       next.csr.mtval   := 0.U // : For other traps, mtval is set to zero
       next.csr.mstatus := mstatusNew.asUInt
@@ -258,10 +258,10 @@ trait ExceptionSupport extends BaseCore {
       next.csr.scause := Cat(false.B, zeroExt(exceptionCode, MXLEN - 1))
       // printf("[Debug]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, zeroExt(exceptionCode, MXLEN - 1)))
       next.csr.sepc    := now.pc
-      mstatusNew.spp   := priviledgeMode
+      mstatusNew.spp   := privilegeMode
       mstatusNew.spie  := mstatusOld.sie
       mstatusNew.sie   := false.B
-      priviledgeMode   := ModeS
+      privilegeMode    := ModeS
       next.csr.stval   := 0.U // : For other traps, mtval is set to zero
       next.csr.mstatus := mstatusNew.asUInt
       // TODO: modify the exception case
