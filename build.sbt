@@ -2,7 +2,7 @@ ThisBuild / version      := "1.1-SNAPSHOT"
 ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.13.8"
 
-ThisBuild / crossScalaVersions := Seq("2.12.15", "2.13.8", "2.13.10")
+ThisBuild / crossScalaVersions := Seq("2.12.15", "2.13.8")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),
