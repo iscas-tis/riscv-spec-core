@@ -154,16 +154,16 @@ trait ExceptionSupport extends BaseCore {
     // FIXME: 目前仅仅考虑了异常
     val deleg = now.csr.medeleg
     val delegS = (deleg(exceptionNO)) && (priviledgeMode < ModeM)
-    printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, priviledgeMode)
-    printf("[Debug] mstatus:%x %x\n", now.csr.mstatus, next.csr.mstatus)
-    printf("[Debug] mepc:%x %x\n", now.csr.mepc, next.csr.mepc)
-    printf("[Debug] mcause:%x %x Mode:%x\n", now.csr.mcause, next.csr.mcause, priviledgeMode)
+    // printf("[Error]Exception:%d Deleg[hex]:%x DelegS[hex]:%x Mode:%x \n",exceptionNO, deleg, delegS, priviledgeMode)
+    // printf("[Debug] mstatus:%x %x\n", now.csr.mstatus, next.csr.mstatus)
+    // printf("[Debug] mepc:%x %x\n", now.csr.mepc, next.csr.mepc)
+    // printf("[Debug] mcause:%x %x Mode:%x\n", now.csr.mcause, next.csr.mcause, priviledgeMode)
     // TODO: def raise an Interrupt
     // FIXME: 需要对中断做出处理 但是当前只针对异常进行处理
     val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
     val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
     when(delegS){
-      printf("USE S Mode ing...\n")
+      // printf("USE S Mode ing...\n")
       event.cause := next.csr.scause
       mstatusNew.spp := priviledgeMode
       mstatusNew.spie := mstatusOld.sie
@@ -186,7 +186,7 @@ trait ExceptionSupport extends BaseCore {
     }
     next.csr.mstatus := mstatusNew.asUInt
     def doRaiseExceptionM(exceptionCode: UInt, MXLEN: Int): Unit = {
-      printf("[Debug]Mtval:%x\n", next.csr.mtval)
+      // printf("[Debug]Mtval:%x\n", next.csr.mtval)
       // common part
       next.csr.mcause := Cat(0.U, zeroExt(exceptionCode, MXLEN - 1))
       next.csr.mepc   := now.pc
@@ -215,39 +215,39 @@ trait ExceptionSupport extends BaseCore {
         }
         is(MExceptionCode.storeOrAMOAddressMisaligned.U){
           next.csr.mtval := io.mem.write.addr
-          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
+          // printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
         }
         is(MExceptionCode.loadAddressMisaligned.U){
           next.csr.mtval := io.mem.read.addr
-          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+          // printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
         is(MExceptionCode.instructionAddressMisaligned.U){
           // next.csr.mtval := io.mem.read.addr
-          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
+          // printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
         is(MExceptionCode.storeOrAMOAccessFault.U){
-          printf("[Debug]:storeOrAMOAccessFault %x %x\n",io.mem.write.addr,next.csr.mtval)
+          // printf("[Debug]:storeOrAMOAccessFault %x %x\n",io.mem.write.addr,next.csr.mtval)
         }
         is(MExceptionCode.loadPageFault.U){
-          printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+          // printf("[Debug]:loadPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
         is(MExceptionCode.instructionPageFault.U){
-          printf("[Debug]:instructionPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
+          // printf("[Debug]:instructionPageFault %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
       }
-      printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
+      // printf("Mtvec mode:%x addr:%x\n",now.csr.mtvec(1,0), now.csr.mtvec(MXLEN - 1, 2) << 2)
       // jump
       switch(now.csr.mtvec(1, 0)) {
         is(0.U(2.W)) { 
           // setPc := true.B
           global_data.setpc := true.B
           next.pc := (now.csr.mtvec(MXLEN - 1, 2)) << 2
-          printf("NextPC:%x\n", next.pc)
+          // printf("NextPC:%x\n", next.pc)
         }
         is(1.U(2.W)) { 
           global_data.setpc := true.B
           next.pc := now.csr.mtvec(MXLEN - 1, 2) + zeroExt(exceptionCode,MXLEN) << 2
-          printf("NextPC:%x\n", next.pc)
+          // printf("NextPC:%x\n", next.pc)
         }
         // >= 2 reserved
       }
@@ -256,7 +256,7 @@ trait ExceptionSupport extends BaseCore {
     def doRaiseExceptionS(exceptionCode: UInt, MXLEN: Int): Unit = {
       // common part
       next.csr.scause := Cat(false.B, zeroExt(exceptionCode, MXLEN - 1))
-      printf("[DEBUG]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, zeroExt(exceptionCode, MXLEN - 1)))
+      // printf("[Debug]:scause %x, normal %x \n", next.csr.scause, Cat(false.B, zeroExt(exceptionCode, MXLEN - 1)))
       next.csr.sepc   := now.pc
       mstatusNew.spp := priviledgeMode
       mstatusNew.spie := mstatusOld.sie
@@ -296,19 +296,19 @@ trait ExceptionSupport extends BaseCore {
         // FIXME:三种非对齐访存 把非必要的Case进行合并
         is(MExceptionCode.storeOrAMOAddressMisaligned.U){
           next.csr.stval := io.mem.write.addr
-          printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.stval)
+          // printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.stval)
         }
         is(MExceptionCode.loadAddressMisaligned.U){
           next.csr.stval := io.mem.read.addr
-          printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
+          // printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
 
         }
         is(MExceptionCode.instructionAddressMisaligned.U){
           // next.csr.stval := io.mem.read.addr
-          printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
+          // printf("[Debug]:instructionAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
         }
       }
-      printf("Stvec mode:%x addr:%x\n",now.csr.stvec(1,0), now.csr.stvec(MXLEN - 1, 2) << 2)
+      // printf("Stvec mode:%x addr:%x\n",now.csr.stvec(1,0), now.csr.stvec(MXLEN - 1, 2) << 2)
       // jump
       // 还需要使用不同的东西进行跳转
       switch(now.csr.stvec(1, 0)) {
@@ -316,12 +316,12 @@ trait ExceptionSupport extends BaseCore {
           // setPc := true.B
           global_data.setpc := true.B
           next.pc := (now.csr.stvec(MXLEN - 1, 2)) << 2
-          printf("NextPC:%x\n", next.pc)
+          // printf("NextPC:%x\n", next.pc)
         }
         is(1.U(2.W)) { 
           global_data.setpc := true.B
           next.pc := now.csr.stvec(MXLEN - 1, 2) + zeroExt(exceptionCode,MXLEN) << 2
-          printf("NextPC:%x\n", next.pc)
+          // printf("NextPC:%x\n", next.pc)
         }
         // >= 2 reserved
       }

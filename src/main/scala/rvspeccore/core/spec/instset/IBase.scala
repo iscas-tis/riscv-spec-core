@@ -128,7 +128,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
   }
   def addrAligned(size: UInt, addr: UInt): Bool = {
-      MuxLookup(size, false.B)(
+      MuxLookup(
+        size,
+        false.B,
         Seq(
           "b00".U   -> true.B,              //b
           "b01".U   -> (addr(0)   === 0.U), //h
@@ -161,8 +163,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
   def getfetchSize():UInt = {
     MuxLookup(
       now.csr.misa(CSR.getMisaExtInt('C')),
-      SizeOp.w
-    )(
+      SizeOp.w,
       Seq(
         "b0".U   -> SizeOp.w,
         "b1".U   -> SizeOp.h
@@ -289,7 +290,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     when(LH(inst))  { 
-      printf("[Debug]LH Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
+      // printf("[Debug]LH Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
       decodeI; 
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)){
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN) 
@@ -298,10 +299,10 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         raiseException(MExceptionCode.loadAddressMisaligned)
       }
       // alignedException("Load", SizeOp.h, now.reg(rs1) + imm); 
-      printf("[Debug]LH End: %x\n",next.reg(rd))
+      // printf("[Debug]LH End: %x\n",next.reg(rd))
     }
     when(LW(inst))  { 
-      printf("[Debug]LW Begin: Reg:%x, Addr: %x TargetReg: %x\n",rs1,now.reg(rs1) + imm,rd)
+      // printf("[Debug]LW Begin: Reg:%x, Addr: %x TargetReg: %x\n",rs1,now.reg(rs1) + imm,rd)
       decodeI; 
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)){
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN) 
@@ -309,7 +310,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
       }
-      printf("[Debug]LW End: %x\n", next.reg(rd))
+      // printf("[Debug]LW End: %x\n", next.reg(rd))
     }
     when(LBU(inst)) { decodeI; alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
     when(LHU(inst)) { 
@@ -344,7 +345,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(EBREAK(inst)) {
       decodeI;
       raiseException(MExceptionCode.breakpoint)
-      printf("IS EBREAK\n")
+      // printf("IS EBREAK\n")
     }
 
     when(ECALL(inst)) {
@@ -354,7 +355,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
         is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
       }
-      printf("IS ECALL\n")
+      // printf("IS ECALL\n")
     }
     when(FENCE(inst)) {
       decodeI /* then do nothing for now */

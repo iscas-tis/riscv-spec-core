@@ -43,8 +43,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
 
       inst := MuxLookup(
         pc(1),
-        0.U
-      )(
+        0.U,
         Seq(
           "b0".U(1.W) -> instMem(31, 0),
           "b1".U(1.W) -> instMem(47, 16)
@@ -55,8 +54,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
       val instMem = Cat(mem.read((pc >> 3) + 1.U), mem.read(pc >> 3))
       inst := MuxLookup(
         pc(2, 1),
-        0.U
-      )(
+        0.U,
         Seq(
           "b00".U(2.W) -> instMem(31, 0),
           "b01".U(2.W) -> instMem(47, 16),
@@ -71,8 +69,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   def width2Mask(width: UInt): UInt = {
     MuxLookup(
       width,
-      0.U(64.W)
-    )(
+      0.U(64.W),
       Seq(
         8.U  -> "hff".U(64.W),
         16.U -> "hffff".U(64.W),

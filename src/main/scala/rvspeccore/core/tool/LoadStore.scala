@@ -64,7 +64,7 @@ trait LoadStore extends BaseCore with MMU{
         val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
         // printf("[Debug]Read addr:%x, priviledgeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode, vmEnable)
         mem.read.valid    := true.B
-        printf("[DEBUG] vmEnable: %x pv: %x mprv: %x mpp: %x pvmode:%x \n", vmEnable, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
+        // printf("[DEBUG] vmEnable: %x pv: %x mprv: %x mpp: %x pvmode:%x \n", vmEnable, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, priviledgeMode)
         when(vmEnable){
             // mem.read.addr     := AddrTransRead(addr)
             // FIXME: addr 的虚实地址均并非64位 需进一步加以限制

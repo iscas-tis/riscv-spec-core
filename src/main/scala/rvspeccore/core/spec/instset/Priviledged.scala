@@ -41,20 +41,20 @@ trait PriviledgedExtension extends BaseCore with CommonDecode with PriviledgedIn
   def doRVPriviledged()(implicit config: RVConfig): Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
     when(SRET(inst)) { 
-      printf("Is SRET:%x\n",inst)
+      // printf("Is SRET:%x\n",inst)
       decodeI 
        Sret()
       /* then do nothing for now */ 
     }
     when(MRET(inst)) { 
-      printf("Is MRET:%x\n",inst)
+      // printf("Is MRET:%x\n",inst)
       decodeI
       Mret()
       /* then do nothing for now */ 
     }
     when(WFI(inst)) { decodeI /* then do nothing for now */ }
     when(NOP(inst)) { 
-      printf("Is NOP:%x\n",inst)
+      // printf("Is NOP:%x\n",inst)
       tryRaiseException()
       /* then do nothing for now */ 
     }
