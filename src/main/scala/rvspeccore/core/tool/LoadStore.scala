@@ -38,7 +38,7 @@ trait LoadStore extends BaseCore with MMU {
     MuxLookup(
       width,
       0.U(64.W),
-      Array(
+      Seq(
         8.U  -> "hff".U(64.W),
         16.U -> "hffff".U(64.W),
         32.U -> "hffff_ffff".U(64.W),
@@ -212,7 +212,7 @@ trait MMU extends BaseCore with ExceptionSupport {
     MuxLookup(
       data,
       3.U, // faild
-      Array(
+      Seq(
         "b100".U -> 2.U,
         "b010".U -> 1.U,
         "b001".U -> 0.U
@@ -223,7 +223,7 @@ trait MMU extends BaseCore with ExceptionSupport {
     val mask = MuxLookup(
       level,
       0.U(44.W),
-      Array(
+      Seq(
         2.U -> "b000000_0000000000_0000000000_111111111_111111111".U,
         1.U -> "b000000_0000000000_0000000000_000000000_111111111".U,
         0.U -> "b000000_0000000000_0000000000_000000000_000000000".U
@@ -235,7 +235,7 @@ trait MMU extends BaseCore with ExceptionSupport {
     val mask = MuxLookup(
       level,
       0.U(44.W),
-      Array(
+      Seq(
         2.U -> "b000000000_111111111_111111111".U,
         1.U -> "b000000000_000000000_111111111".U,
         0.U -> "b000000000_000000000_000000000".U
