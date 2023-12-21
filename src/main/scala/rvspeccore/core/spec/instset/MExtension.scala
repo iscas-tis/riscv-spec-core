@@ -42,8 +42,8 @@ trait MExtensionInsts {
   */
 trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
   // - Table 7.1: Semantics for division by zero and division overflow.
-  // : L is the width of the operation in bits:
-  // : XLEN for DIV[U] and REM[U], or 32 for DIV[U]W and REM[U]W.
+  // : L is the width of the operation in bits: XLEN for DIV[U] and REM[U],
+  // : or 32 for DIV[U]W and REM[U]W.
   def opDIV(divisor: UInt, dividend: UInt, L: Int): UInt = {
     MuxCase(
       (divisor.asSInt / dividend.asSInt)(L - 1, 0).asUInt, // (L-1, 0) cut extra bit in double sign bit

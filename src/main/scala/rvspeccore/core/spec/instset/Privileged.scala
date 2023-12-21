@@ -9,29 +9,38 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import csr._
 
+/** Privileged Instructions
+  *
+  *   - riscv-privileged-20211203
+  *   - Chapter 9: RISC-V Privileged Instruction Set Listings
+  *     - Table 9.1: RISC-V Privileged Instructions
+  */
 trait PrivilegedInsts {
-  // - Privileged Insts Volume II
-  val SRET       = Inst("b000100000010_00000_000_00000_1110011")
-  val MRET       = Inst("b001100000010_00000_000_00000_1110011")
-  val WFI        = Inst("b0001000_00101_00000_000_00000_1110011")
-  val SFANCE_VMA = Inst("b0001001_?????_?????_000_00000_1110011")
+  // - Trap-Return Instructions
+  val SRET = Inst("b0001000_00010_00000_000_00000_1110011")
+  val MRET = Inst("b0011000_00010_00000_000_00000_1110011")
+  // - Interrupt-Management Instructions
+  val WFI = Inst("b0001000_00101_00000_000_00000_1110011")
+  // - Supervisor Memory-Management Instructions
+  val SFANCE_VMA      = Inst("b0001001_?????_?????_000_00000_1110011")
+  val SINVAL_VMA      = Inst("b0001011_?????_?????_000_00000_1110011") // not support yet
+  val SFANCE_W_INVAL  = Inst("b0001100_00000_00000_000_00000_1110011") // not support yet
+  val SFANCE_INVAL_IR = Inst("b0001100_00001_00000_000_00000_1110011") // not support yet
+  // - Hypervisor Memory-Management Instructions
+  val HFANCE_VVMA = Inst("b0010001_?????_?????_000_00000_1110011") // not support yet
+  val HFANCE_GVMA = Inst("b0110001_?????_?????_000_00000_1110011") // not support yet
+  val HINVAL_VVMA = Inst("b0010011_?????_?????_000_00000_1110011") // not support yet
+  val HINVAL_GVMA = Inst("b0110011_?????_?????_000_00000_1110011") // not support yet
+  // - Hypervisor Virtual-Machine Load and Store Instructions
+  // ...
+  // - Hypervisor Virtual-Machine Load and Store Instructions, RV64 only
+  // ...
+
   // FIXME: need to remove
   // val TEST_ILLEGAL=Inst("b0000000_00000_00000_000_00000_1111011")
   val TEST_TLBLW = Inst("b0000000_00000_00011_010_111010_000011")
-
-  // The above are instructions for Nutshell
-
-  val SINVAL_VMA      = Inst("b0001011_?????_?????_000_00000_1110011")
-  val SFANCE_W_INVAL  = Inst("b0001100_00000_00000_000_00000_1110011")
-  val SFANCE_INVAL_IR = Inst("b0001100_00001_00000_000_00000_1110011")
-
-  val HFANCE_VVMA = Inst("b0010001_?????_?????_000_00000_1110011")
-  val HFANCE_GVMA = Inst("b0110001_?????_?????_000_00000_1110011")
-  val HINVAL_VVMA = Inst("b0010011_?????_?????_000_00000_1110011")
-  val HINVAL_GVMA = Inst("b0110011_?????_?????_000_00000_1110011")
-  val NOP         = Inst("b0000000_00000_00000_000_00000_0000000")
-  // TODO: For more insts
-  // ......
+  // TODO: why has NOP?
+  val NOP = Inst("b0000000_00000_00000_000_00000_0000000")
 }
 
 /** “Privileged” Instruction-Fetch Fence Volume II Insts

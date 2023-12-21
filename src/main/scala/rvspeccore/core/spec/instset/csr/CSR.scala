@@ -32,9 +32,6 @@ object CSRInfo {
   def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt): CSRInfo = {
     new CSRInfo(addrStr.U(12.W), width, rmask, wfn, wmask)
   }
-  // def apply(addrStr: String, width: Option[Int], rmask: UInt, wmask: UInt): CSRInfo = {
-  //   new CSRInfo(addrStr.U(12.W), width, rmask, x=>x, wmask)
-  // }
 }
 
 /** All CSR informations

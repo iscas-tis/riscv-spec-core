@@ -16,7 +16,7 @@ import rvspeccore.core.spec.instset.csr._
   *     - Table 24.2: Instruction listing for RISC-V
   */
 trait IBaseInsts {
-  // RV32I Base Instruction Set
+  // - RV32I Base Instruction Set
   val LUI   = Inst("b????????????????????_?????_0110111")
   val AUIPC = Inst("b????????????????????_?????_0010111")
   val JAL   = Inst("b????????????????????_?????_1101111")
@@ -74,7 +74,7 @@ trait IBaseInsts {
   val ECALL  = Inst("b000000000000_00000_000_00000_1110011")
   val EBREAK = Inst("b000000000001_00000_000_00000_1110011")
 
-  // RV64I Base Instruction Set (in addition to RV32I)
+  // - RV64I Base Instruction Set (in addition to RV32I)
   val LWU = Inst("b???????_?????_?????_110_?????_0000011")
   val LD  = Inst("b???????_?????_?????_011_?????_0000011")
   val SD  = Inst("b???????_?????_?????_011_?????_0100011")
@@ -132,11 +132,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     )
   }
 
-  /** RV32I Base Integer Instruction Set
-    *
-    *   - riscv-spec-20191213
-    *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
-    */
   def getfetchSize(): UInt = {
     MuxLookup(
       now.csr.misa(CSR.getMisaExtInt('C')),
@@ -147,6 +142,12 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       )
     )
   }
+
+  /** RV32I Base Integer Instruction Set
+    *
+    *   - riscv-spec-20191213
+    *   - Chapter 2: RV32I Base Integer Instruction Set, Version 2.1
+    */
   def doRV32I: Unit = {
     // - 2.4 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
