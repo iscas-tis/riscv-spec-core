@@ -8,7 +8,13 @@ import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 import rvspeccore.core.RVConfig
 
-case class CSRInfo(addr: UInt, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt) {
+case class CSRInfo(
+    addr: UInt,
+    width: Option[Int],
+    wfn: Option[Int => UInt => UInt],
+    rmask: Int => UInt,
+    wmask: Int => UInt
+) {
   def makeUInt(implicit XLEN: Int) = width match {
     case Some(value) => UInt(value.W)
     case None        => UInt(XLEN.W)
@@ -16,21 +22,14 @@ case class CSRInfo(addr: UInt, width: Option[Int], rmask: UInt, wfn: UInt => UIn
 }
 
 object CSRInfo {
-  // [last three] rmask: UInt, wfn: UInt => UInt,  wmask: UInt
-  def apply(addrStr: String)(implicit XLEN: Int): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), None, Fill(XLEN, 1.U(1.W)), x => x, Fill(XLEN, 1.U(1.W)))
-  }
-  def apply(addrStr: String, width: Option[Int])(implicit XLEN: Int): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), width, Fill(XLEN, 1.U(1.W)), x => x, Fill(XLEN, 1.U(1.W)))
-  }
-  def apply(addrStr: String, width: Option[Int], rmask: UInt)(implicit XLEN: Int): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), width, rmask, x => x, Fill(XLEN, 1.U(1.W)))
-  }
-  def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt)(implicit XLEN: Int): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), width, rmask, wfn, Fill(XLEN, 1.U(1.W)))
-  }
-  def apply(addrStr: String, width: Option[Int], rmask: UInt, wfn: UInt => UInt, wmask: UInt): CSRInfo = {
-    new CSRInfo(addrStr.U(12.W), width, rmask, wfn, wmask)
+  def apply(
+      addrStr: String,
+      width: Option[Int] = None,
+      wfn: Option[Int => UInt => UInt] = Some(_ => x => x),
+      rmask: Int => UInt = XLEN => Fill(XLEN, 1.U(1.W)),
+      wmask: Int => UInt = XLEN => Fill(XLEN, 1.U(1.W))
+  ): CSRInfo = {
+    new CSRInfo(addrStr.U(12.W), width, wfn, rmask, wmask)
   }
 }
 
@@ -46,26 +45,28 @@ object CSRInfo {
   *
   * width: The `xxx` CSR is a `xxx`-bit register
   */
-class CSRInfos()(implicit XLEN: Int, config: RVConfig) {
+trait CSRInfos {
   // SideEffect
-  def NoSideEffect: UInt => UInt = (x => x)
-  def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
-    val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
-    // mstatusOld.mpp := "b11".U
-    // if (XLEN == 64){
-    //   // FIXME: nutshell 认为u mode 的uxl为全0 存疑 暂时修改参考模型 使其不报错
-    //   if(config.CSRMisaExtList.contains('S')){
-    //     mstatusOld.sxl := "b10".U
-    //   }
-    //   if(config.CSRMisaExtList.contains('U')){
-    //     mstatusOld.uxl := "b10".U
-    //   }
-    // }
-    // FIXME: 临时mpp只能为M状态 之后要时刻保持其值为能够支持的状态
-    // 需要读Config来继续进行 当前三个模式都有 所以这一行要注释掉
-    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatusOld.asUInt(XLEN - 2, 0))
-    mstatusNew
-  }
+  val mstatusUpdateSideEffect: Option[Int => UInt => UInt] = Some(implicit XLEN =>
+    mstatus => {
+      val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusStruct))
+      // mstatusOld.mpp := "b11".U
+      // if (XLEN == 64){
+      //   // FIXME: nutshell 认为u mode 的uxl为全0 存疑 暂时修改参考模型 使其不报错
+      //   if(config.CSRMisaExtList.contains('S')){
+      //     mstatusOld.sxl := "b10".U
+      //   }
+      //   if(config.CSRMisaExtList.contains('U')){
+      //     mstatusOld.uxl := "b10".U
+      //   }
+      // }
+      // FIXME: 临时mpp只能为M状态 之后要时刻保持其值为能够支持的状态
+      // 需要读Config来继续进行 当前三个模式都有 所以这一行要注释掉
+      val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatusOld.asUInt(XLEN - 2, 0))
+      mstatusNew
+    }
+  )
+
   // Address Map
   // - User Trap Setup ???????????
   // User CSR has been delete in V20211203
@@ -82,24 +83,27 @@ class CSRInfos()(implicit XLEN: Int, config: RVConfig) {
   // - Unprivileged Counter/Timers
 
   // - Supervisor Trap Setup
-  val sstatusWmask = "hc6122".U(XLEN.W)
   // Sstatus Write Mask
   // -------------------------------------------------------
   //    19           9   5     2
   // 0  1100 0000 0001 0010 0010
   // 0  c    0    1    2    2
   // -------------------------------------------------------
-  val sstatusRmask = sstatusWmask | "h8000000300018000".U
   // val sieMask = "h222".U & mideleg
   // val sipMask = "h222".U & mideleg
-  val sipWMask = "h222".U(XLEN.W) // ssip is writeable in smode
   // MaskedRegMap(Sstatus, mstatus, sstatusWmask, mstatusUpdateSideEffect, sstatusRmask),
-  val sstatus = CSRInfo("h100", None, sstatusRmask, mstatusUpdateSideEffect(_), sstatusWmask) // TODO
+  val sstatus = CSRInfo(
+    "h100",
+    None,
+    mstatusUpdateSideEffect,
+    XLEN => "hc6122".U(XLEN.W) | "h8000000300018000".U,
+    XLEN => "hc6122".U(XLEN.W)
+  ) // TODO
 
   // MaskedRegMap(Sie, mie, sieMask, MaskedRegMap.NoSideEffect, sieMask),
-  val sie        = CSRInfo("h104", None, "h222".U, NoSideEffect, "h222".U) // TODO
-  val stvec      = CSRInfo("h105")                                         // TODO
-  val scounteren = CSRInfo("h106")                                         // TODO
+  val sie        = CSRInfo("h104", rmask = XLEN => "h222".U(XLEN.W), wmask = XLEN => "h222".U(XLEN.W)) // TODO
+  val stvec      = CSRInfo("h105")                                                                     // TODO
+  val scounteren = CSRInfo("h106")                                                                     // TODO
   // - Supervisor Configuration
   // senvcfg
   // - Supervisor Trap Handling
@@ -109,7 +113,11 @@ class CSRInfos()(implicit XLEN: Int, config: RVConfig) {
   val stval    = CSRInfo("h143") // TODO
 
   // MaskedRegMap(Sip, mip.asUInt, sipMask, MaskedRegMap.Unwritable, sipMask),
-  val sip = CSRInfo("h144", None, sipWMask, NoSideEffect, sipWMask) // FIXME: h222 is a error impl 忘了为啥说是错误的了
+  val sip = CSRInfo(
+    "h144",
+    rmask = XLEN => "h222".U(XLEN.W),
+    wmask = XLEN => "h222".U(XLEN.W)
+  ) // FIXME: h222 is a error impl 忘了为啥说是错误的了
   // - Supervisor Trap Handling
   val satp = CSRInfo("h180") // TODO
   // - Debug/Trace Registers
@@ -122,37 +130,30 @@ class CSRInfos()(implicit XLEN: Int, config: RVConfig) {
   // - Virtual Supervisor Registers
 
   // - Machine Information Registers
-  val mvendorid = CSRInfo("hf11", None, Fill(XLEN, 1.U(1.W)), null)
-  val marchid   = CSRInfo("hf12", None, Fill(XLEN, 1.U(1.W)), null)
-  val mimpid    = CSRInfo("hf13", None, Fill(XLEN, 1.U(1.W)), null)
-  val mhartid   = CSRInfo("hf14", None, Fill(XLEN, 1.U(1.W)), null)
+  val mvendorid = CSRInfo("hf11", wfn = None)
+  val marchid   = CSRInfo("hf12", wfn = None)
+  val mimpid    = CSRInfo("hf13", wfn = None)
+  val mhartid   = CSRInfo("hf14", wfn = None)
   // mconfigptr
   // - Machine Information Registers
-  val mstatus = CSRInfo("h300", None, Fill(XLEN, 1.U(1.W)), mstatusUpdateSideEffect) // TODO
+  val mstatus = CSRInfo("h300", wfn = mstatusUpdateSideEffect) // TODO
   // val misa       = CSRInfo("h301", None, Fill(XLEN, 1.U(1.W)), null, 0.U(XLEN.W)) // UnwritableMask implement
-  val misa = CSRInfo("h301")
-  val medeleg = CSRInfo(
-    "h302",
-    None,
-    Fill(XLEN, 1.U(1.W)),
-    NoSideEffect,
-    "hbbff".U
-  ) // FIXME: NutShell: medeleg[11] is read-only zero
-  val mideleg =
-    CSRInfo("h303", None, Fill(XLEN, 1.U(1.W)), NoSideEffect, "h222".U) // FIXME: simple impl use nutshell write mask
-  val mie        = CSRInfo("h304") // TODO
-  val mtvec      = CSRInfo("h305") // TODO
-  val mcounteren = CSRInfo("h306") // TODO
-  val mstatush   = CSRInfo("h310") // TODO
+  val misa       = CSRInfo("h301")
+  val medeleg    = CSRInfo("h302", wmask = XLEN => "hbbff".U) // FIXME: NutShell: medeleg[11] is read-only zero
+  val mideleg    = CSRInfo("h303", wmask = XLEN => "h222".U)  // FIXME: simple impl use nutshell write mask
+  val mie        = CSRInfo("h304")                            // TODO
+  val mtvec      = CSRInfo("h305")                            // TODO
+  val mcounteren = CSRInfo("h306")                            // TODO
+  val mstatush   = CSRInfo("h310")                            // TODO
   // mstatush
   // - Machine Trap Handling
-  val mscratch = CSRInfo("h340") // TODO
+  val mscratch = CSRInfo("h340")                           // TODO
   val mepc     = CSRInfo("h341")
-  val mcause   = CSRInfo("h342") // TODO
+  val mcause   = CSRInfo("h342")                           // TODO
   val mtval    = CSRInfo("h343")
-  val mip    = CSRInfo("h344", None, Fill(XLEN, 1.U(1.W)), NoSideEffect, "h77f".U) // FIXME: same as nutshell for wmask
-  val mtinst = CSRInfo("h34A")
-  val mtval2 = CSRInfo("h34B")
+  val mip      = CSRInfo("h344", wmask = XLEN => "h77f".U) // FIXME: same as nutshell for wmask
+  val mtinst   = CSRInfo("h34A")
+  val mtval2   = CSRInfo("h34B")
 
   // Machine Configuration
   val menvcfg  = CSRInfo("h30A")
@@ -191,6 +192,8 @@ class CSRInfos()(implicit XLEN: Int, config: RVConfig) {
 
 }
 
+object CSRInfos extends CSRInfos
+
 case class CSRInfoSignal(info: CSRInfo, signal: UInt)
 
 class EventSig()(implicit XLEN: Int) extends Bundle {
@@ -203,7 +206,6 @@ class EventSig()(implicit XLEN: Int) extends Bundle {
 
 class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqInBundle {
   // make default value for registers
-  val CSRInfos   = new CSRInfos()
   val misa       = CSRInfos.misa.makeUInt
   val mvendorid  = CSRInfos.mvendorid.makeUInt
   val marchid    = CSRInfos.marchid.makeUInt
@@ -249,29 +251,27 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
   /** Table for all CSR signals in this Bundle CSRs in this table can be read or
     * write
     */
-  val table_M = List(
-    CSRInfoSignal(CSRInfos.misa, misa),
-    CSRInfoSignal(CSRInfos.mvendorid, mvendorid),
-    CSRInfoSignal(CSRInfos.marchid, marchid),
-    CSRInfoSignal(CSRInfos.mimpid, mimpid),
-    CSRInfoSignal(CSRInfos.mhartid, mhartid),
-    CSRInfoSignal(CSRInfos.mstatus, mstatus),
-    // CSRInfoSignal(CSRInfos.mstatush,  mstatush),
-    CSRInfoSignal(CSRInfos.mscratch, mscratch),
-    CSRInfoSignal(CSRInfos.mtvec, mtvec),
-    CSRInfoSignal(CSRInfos.mcounteren, mcounteren),
-    CSRInfoSignal(CSRInfos.mip, mip),
-    CSRInfoSignal(CSRInfos.mie, mie),
-    CSRInfoSignal(CSRInfos.mepc, mepc),
-    CSRInfoSignal(CSRInfos.mcause, mcause),
-    CSRInfoSignal(CSRInfos.mtval, mtval)
-    // CSRInfoSignal(CSRInfos.cycle,     cycle)
-    // CSRInfoSignal(CSRInfos.time,      time),
-    // CSRInfoSignal(CSRInfos.instret,   instret)
-  )
-
-  var table = table_M
-  if (config.S) {
+  val table = {
+    val table_M = List(
+      CSRInfoSignal(CSRInfos.misa, misa),
+      CSRInfoSignal(CSRInfos.mvendorid, mvendorid),
+      CSRInfoSignal(CSRInfos.marchid, marchid),
+      CSRInfoSignal(CSRInfos.mimpid, mimpid),
+      CSRInfoSignal(CSRInfos.mhartid, mhartid),
+      CSRInfoSignal(CSRInfos.mstatus, mstatus),
+      // CSRInfoSignal(CSRInfos.mstatush,  mstatush),
+      CSRInfoSignal(CSRInfos.mscratch, mscratch),
+      CSRInfoSignal(CSRInfos.mtvec, mtvec),
+      CSRInfoSignal(CSRInfos.mcounteren, mcounteren),
+      CSRInfoSignal(CSRInfos.mip, mip),
+      CSRInfoSignal(CSRInfos.mie, mie),
+      CSRInfoSignal(CSRInfos.mepc, mepc),
+      CSRInfoSignal(CSRInfos.mcause, mcause),
+      CSRInfoSignal(CSRInfos.mtval, mtval)
+      // CSRInfoSignal(CSRInfos.cycle,     cycle)
+      // CSRInfoSignal(CSRInfos.time,      time),
+      // CSRInfoSignal(CSRInfos.instret,   instret)
+    )
     val table_S = List(
       // Ch3.1.8  In systems without S-mode, the medeleg and mideleg registers should not exist.
       CSRInfoSignal(CSRInfos.medeleg, medeleg),
@@ -296,7 +296,9 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
       CSRInfoSignal(CSRInfos.pmpaddr2, pmpaddr2),
       CSRInfoSignal(CSRInfos.pmpaddr3, pmpaddr3)
     )
-    table = table ++ table_S
+
+    table_M ++
+      (if (config.S) table_S else List())
   }
 
   val MXLEN  = UInt(8.W)
