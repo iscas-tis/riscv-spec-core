@@ -63,6 +63,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     val dtlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
     val itlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
   })
+  // TODO: io.result has .internal states now, consider use it or not
 
   // link to spec core
   val specCore = Module(new RiscvCore)

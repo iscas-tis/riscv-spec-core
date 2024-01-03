@@ -29,10 +29,9 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val mem  = Wire(new MemIO)
   val tlb  = Wire(new TLBIO)
   // Global Data
-  val global_data   = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
-  val privilegeMode = RegInit(UInt(2.W), 0x3.U)
-  val event         = Wire(new EventSig)
-  val iFetchpc      = Wire(UInt(XLEN.W))
+  val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
+  val event       = Wire(new EventSig)
+  val iFetchpc    = Wire(UInt(XLEN.W))
 }
 class GlobalData extends Bundle {
   val setpc = Bool()
@@ -61,19 +60,37 @@ class TLBIO()(implicit XLEN: Int) extends Bundle {
   val Anotherwrite = Vec(3, new WriteMemIO())
 }
 
+class Internal() extends Bundle {
+  val privilegeMode = UInt(2.W)
+}
+object Internal {
+  def apply(): Internal = new Internal
+  def wireInit(): Internal = {
+    val internal = Wire(new Internal)
+    internal.privilegeMode := 0x3.U
+    internal
+  }
+}
+
 class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
   val csr = CSR()
+
+  val internal = Internal()
 }
 
 object State {
   def apply()(implicit XLEN: Int, config: RVConfig): State = new State
   def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
+
     state.reg := Seq.fill(32)(0.U(XLEN.W))
     state.pc  := pcStr.U(XLEN.W)
     state.csr := CSR.wireInit()
+
+    state.internal := Internal.wireInit()
+
     state
   }
 }
