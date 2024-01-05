@@ -23,7 +23,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     require(addr.getWidth == 12)
     val has: Bool    = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-    val rmask: UInt  = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.info.rmask })
+    val rmask: UInt  = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.info.rmask(XLEN) })
     // printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
     val rData = WireInit(0.U(XLEN.W))
 
@@ -38,7 +38,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
 
       // special read
       switch(addr) {
-        is(now.csr.CSRInfos.mepc.addr) {
+        is(CSRInfos.mepc.addr) {
           // - 3.1.14 Machine Exception Program Counter (mepc)
           // : If an implementation allows IALIGN to be either 16 or 32 (by
           // : changing CSR misa, for example), then, whenever IALIGN=32, bit
@@ -68,9 +68,9 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
         when(addr === info.addr) {
           // 地址是当前寄存器的地址
           // printf("[Debug]Find ADDR, %x %x\n", (info.wfn != null).B, (info.wmask != UnwritableMask).B)
-          if (info.wfn != null && info.wmask != UnwritableMask) {
+          if (info.wfn.isDefined && info.wmask(XLEN) != UnwritableMask) {
             // 且该寄存器可写 使用mask
-            nextCSR := info.wfn((nowCSR & ~info.wmask) | (data & info.wmask))
+            nextCSR := info.wfn.get(XLEN)((nowCSR & ~info.wmask(XLEN)) | (data & info.wmask(XLEN)))
             // printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
           } else {
             // TODO: might cause some exception?
@@ -89,13 +89,13 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
   }
 
   def Mret()(implicit config: RVConfig): Unit = {
-    when(priviledgeMode === ModeM) {
+    when(now.internal.privilegeMode === ModeM) {
       val mstatusOld = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
       val mstatusNew = WireInit(now.csr.mstatus.asTypeOf(new MstatusStruct))
-      mstatusNew.mie  := mstatusOld.mpie
-      priviledgeMode  := mstatusOld.mpp
-      mstatusNew.mpie := true.B
-      // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, priviledgeMode)
+      mstatusNew.mie              := mstatusOld.mpie
+      next.internal.privilegeMode := mstatusOld.mpp
+      mstatusNew.mpie             := true.B
+      // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, privilegeMode)
       if (config.CSRMisaExtList.exists(s => s == 'U')) {
         mstatusNew.mpp := ModeU
       } else {
@@ -120,20 +120,20 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     // return instruction, SRET. When TSR=1, attempts to execute SRET while executing in S-mode
     // will raise an illegal instruction exception. When TSR=0, this operation is permitted in S-mode.
     // TSR is read-only 0 when S-mode is not supported.
-    val illegalSret      = priviledgeMode < ModeS
-    val illegalSModeSret = priviledgeMode === ModeS && mstatusOld.tsr.asBool
+    val illegalSret      = now.internal.privilegeMode < ModeS
+    val illegalSModeSret = now.internal.privilegeMode === ModeS && mstatusOld.tsr.asBool
     when(illegalSret || illegalSModeSret) {
       raiseException(MExceptionCode.illegalInstruction)
     }.otherwise {
       // FIXME: is mstatus not sstatus ?
-      mstatusNew.sie   := mstatusOld.spie
-      priviledgeMode   := Cat(0.U(1.W), mstatusOld.spp)
-      mstatusNew.spie  := true.B // 正确的
-      mstatusNew.spp   := ModeU
-      mstatusNew.mprv  := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
-      next.csr.mstatus := mstatusNew.asUInt
-      lr               := false.B
-      retTarget        := next.csr.sepc(VAddrBits - 1, 0)
+      mstatusNew.sie              := mstatusOld.spie
+      next.internal.privilegeMode := Cat(0.U(1.W), mstatusOld.spp)
+      mstatusNew.spie             := true.B // 正确的
+      mstatusNew.spp              := ModeU
+      mstatusNew.mprv             := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
+      next.csr.mstatus            := mstatusNew.asUInt
+      lr                          := false.B
+      retTarget                   := next.csr.sepc(VAddrBits - 1, 0)
       // printf("nextpc1:%x\n",now.csr.sepc)
       global_data.setpc := true.B
       next.pc           := now.csr.sepc

@@ -28,10 +28,10 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // map pc "h8000_0000".U to "h0000_0000".U
   // val pc   = core.io.now.pc - "h8000_0000".U
   // val pc2  = core.io.iFetchpc - "h8000_0000".U
-  val pc  = core.io.iFetchpc - "h8000_0000".U
+  val pc = core.io.iFetchpc - "h8000_0000".U
   // printf("[Debug]From CoreSpec: PC : %x NowPC: %x iFetchpc: %x\n", pc , core.io.now.pc, core.io.iFetchpc)
   // printf("[Debug]From CoreSpec: PC2: %x NowPC: %x iFetchpc: %x\n", pc2, core.io.now.pc, core.io.iFetchpc)
-  val inst = Wire(UInt(32.W))
+  val inst      = Wire(UInt(32.W))
   val fetchAddr = Cat(mem.read((pc >> 2) + 1.U), mem.read(pc >> 2))
   // val fetchAddr2 = Cat(mem.read((pc2 >> 2) + 1.U), mem.read(pc2 >> 2))
   // printf("[Debug] InstMEM: %x %x\n", fetchAddr, fetchAddr2)
@@ -78,11 +78,11 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
       )
     )
   }
-  def readDatacalc(addr: UInt, memWidth: UInt) : (UInt, UInt, UInt) = {
+  def readDatacalc(addr: UInt, memWidth: UInt): (UInt, UInt, UInt) = {
     val rIdx  = addr >> bytesWidth           // addr / (XLEN/8)
     val rOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
     val rMask = width2Mask(memWidth)
-    (rIdx,rOff,rMask)
+    (rIdx, rOff, rMask)
   }
   val (rIdx, rOff, rMask)    = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
   val (rIdx0, rOff0, rMask0) = readDatacalc(core.io.tlb.Anotherread(0).addr, core.io.tlb.Anotherread(0).memWidth)
@@ -137,9 +137,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     core.io.tlb.Anotherread(5).data := 0.U
   }
 
-
-
-  def WriteDataCalc(addr: UInt, memWidth: UInt, data: UInt) : (UInt, UInt) = {
+  def WriteDataCalc(addr: UInt, memWidth: UInt, data: UInt): (UInt, UInt) = {
     val wIdx  = addr >> bytesWidth           // addr / bytes
     val wOff  = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
     val wMask = (width2Mask(memWidth) << wOff)(XLEN - 1, 0)
@@ -156,7 +154,11 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // simulate write mask
   // val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
   val (wIdx, wData) = WriteDataCalc(core.io.mem.write.addr, core.io.mem.write.memWidth, core.io.mem.write.data)
-  val (wIdx0, wData0) = WriteDataCalc(core.io.tlb.Anotherwrite(0).addr, core.io.tlb.Anotherwrite(0).memWidth, core.io.tlb.Anotherwrite(0).data)
+  val (wIdx0, wData0) = WriteDataCalc(
+    core.io.tlb.Anotherwrite(0).addr,
+    core.io.tlb.Anotherwrite(0).memWidth,
+    core.io.tlb.Anotherwrite(0).data
+  )
   when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }

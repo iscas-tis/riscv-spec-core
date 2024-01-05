@@ -9,7 +9,7 @@ abstract class AssumeHelper {
   val partition: Seq[AssumeHelper]
 
   // these lists will be calculated automatically if not overrided
-  lazy val list32:   Seq[spec.Inst] = partition.map(_.list32).flatten
+  lazy val list32: Seq[spec.Inst]   = partition.map(_.list32).flatten
   lazy val append64: Seq[spec.Inst] = partition.map(_.append64).flatten
 
   /** Instruction number in this set
@@ -64,7 +64,7 @@ object RVI extends AssumeHelper with spec.instset.IBaseInsts {
   // - Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
   // or refer to IBase.scala
   val regImm = AssumeHelper(
-    List(ADDI,  SLTI,  SLTIU, ANDI,  ORI, XORI, SLLI, SRLI, SRAI, LUI, AUIPC),
+    List(ADDI, SLTI, SLTIU, ANDI, ORI, XORI, SLLI, SRLI, SRAI, LUI, AUIPC),
     List(ADDIW, SLLIW, SRLIW, SRLIW, SRAIW)
   )
   val regReg = AssumeHelper(
@@ -74,7 +74,7 @@ object RVI extends AssumeHelper with spec.instset.IBaseInsts {
     List(JAL, JALR, BEQ, BNE, BLT, BLTU, BGE, BGEU)
   )
   val loadStore = AssumeHelper(
-    List(LB,  LH, LW, LBU, LHU, SB, SH, SW),
+    List(LB, LH, LW, LBU, LHU, SB, SH, SW),
     List(LWU, LD, SD)
   )
   val other = AssumeHelper(
@@ -90,7 +90,7 @@ object RVM extends AssumeHelper with spec.instset.MExtensionInsts {
     List(MULW)
   )
   val divOp = AssumeHelper(
-    List(DIV,  DIVU,  REM,  REMU),
+    List(DIV, DIVU, REM, REMU),
     List(DIVW, DIVUW, REMW, REMUW)
   )
 
@@ -111,7 +111,7 @@ object RVC extends AssumeHelper with spec.instset.CExtensionInsts {
     List(C_ADDIW)
   )
   val regReg = AssumeHelper(
-    List(C_MV,   C_ADD, C_AND, C_OR, C_XOR, C_SUB),
+    List(C_MV, C_ADD, C_AND, C_OR, C_XOR, C_SUB),
     List(C_ADDW, C_SUBW)
   )
 
@@ -134,7 +134,7 @@ object RVZifencei extends AssumeHelper with spec.instset.ZifenceiExtensionInsts 
 
   val partition: Seq[AssumeHelper] = List(fence_i)
 }
-object RVPriviledged extends AssumeHelper with spec.instset.PriviledgedInsts {
+object RVPrivileged extends AssumeHelper with spec.instset.PrivilegedInsts {
   val trap_return = AssumeHelper(
     List(SRET, MRET)
   )
@@ -144,7 +144,11 @@ object RVPriviledged extends AssumeHelper with spec.instset.PriviledgedInsts {
   val partition: Seq[AssumeHelper] = List(trap_return)
 }
 
-object SV39Translate extends AssumeHelper with spec.instset.PriviledgedInsts with spec.instset.IBaseInsts with spec.instset.ZicsrExtensionInsts{
+object SV39Translate
+    extends AssumeHelper
+    with spec.instset.PrivilegedInsts
+    with spec.instset.IBaseInsts
+    with spec.instset.ZicsrExtensionInsts {
   val regImm = AssumeHelper(
     // List(LW,  SW, SRET, MRET)
     // List(LW,  SW)

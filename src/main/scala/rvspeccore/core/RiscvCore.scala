@@ -12,28 +12,29 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   // Define Basic parts
   implicit val XLEN: Int = config.XLEN
   val io = IO(new Bundle {
+    // Processor IO
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
-    val mem = new MemIO
-    val tlb = new TLBIO
-    val now  = Output(State())
-    val next = Output(State())
-    val event = Output(new EventSig)
+    val mem   = new MemIO
+    val tlb   = new TLBIO
+    // Exposed processor status
+    val now      = Output(State())
+    val next     = Output(State())
+    val event    = Output(new EventSig)
     val iFetchpc = Output(UInt(XLEN.W))
   })
   // Initial State
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
-  val mem = Wire(new MemIO)
-  val tlb = Wire(new TLBIO)
+  val mem  = Wire(new MemIO)
+  val tlb  = Wire(new TLBIO)
   // Global Data
-  val global_data = Wire(new GlobalData)
-  val priviledgeMode = RegInit(UInt(2.W), 0x3.U)
-  val event = Wire(new EventSig)
-  val iFetchpc = Wire(UInt(XLEN.W))
+  val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
+  val event       = Wire(new EventSig)
+  val iFetchpc    = Wire(UInt(XLEN.W))
 }
 class GlobalData extends Bundle {
-  val setpc    = Bool()
+  val setpc = Bool()
 }
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
   val valid    = Output(Bool())
@@ -59,58 +60,68 @@ class TLBIO()(implicit XLEN: Int) extends Bundle {
   val Anotherwrite = Vec(3, new WriteMemIO())
 }
 
+class Internal() extends Bundle {
+  val privilegeMode = UInt(2.W)
+}
+object Internal {
+  def apply(): Internal = new Internal
+  def wireInit(): Internal = {
+    val internal = Wire(new Internal)
+    internal.privilegeMode := 0x3.U
+    internal
+  }
+}
+
 class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
   val csr = CSR()
+
+  val internal = Internal()
 }
 
 object State {
   def apply()(implicit XLEN: Int, config: RVConfig): State = new State
   def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
+
     state.reg := Seq.fill(32)(0.U(XLEN.W))
     state.pc  := pcStr.U(XLEN.W)
     state.csr := CSR.wireInit()
+
+    state.internal := Internal.wireInit()
+
     state
   }
 }
 
 class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
-  // should keep the value in the next clock
-  // if there no changes below
-  // Initial the value of next
+  // Initial the value
+  // these signals should keep the value in the next clock if there no changes below
+  next              := now
   global_data.setpc := false.B
-  event := 0.U.asTypeOf(new EventSig)
-  iFetchpc  := now.pc
-  next := now
-  // printf("io.iFetchpc: %x %x\n", io.iFetchpc, iFetchpc)
+  event             := 0.U.asTypeOf(new EventSig)
+  iFetchpc          := now.pc
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
   tlb := 0.U.asTypeOf(new TLBIO)
+
   // ID & EXE
   when(io.valid) {
-    // printf("PC: %x Inst:%x io.PC:%x \n", now.pc, inst, io.now.pc)
-    // printf("io.mem.read.valid:%x addr:%x data:%x\n", io.mem.read.valid, io.mem.read.addr, io.mem.read.data)
-    // when(now.pc(1,0) =/= "b00".U & !now.csr.misa(CSR.getMisaExtInt('C'))){
-    //   raiseException(0)
-    //   next.csr.mtval := now.pc
-    // }.otherwise{
+    // CSR
+    // TODO: merge into a function?
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-    val (resultStatus, resultPC) = if(XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)    
-    when(resultStatus){
+    val (resultStatus, resultPC) = if (XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)
+    when(resultStatus) {
       inst := io.inst
-    }.otherwise{
-      // printf("[Debug]iFetch Fail and Give NOP:")
+    }.otherwise {
       inst := 0.U(XLEN.W) // With a NOP instruction
     }
     iFetchpc := resultPC
+
     // Decode and Excute
-    // Attention: Config(_) "_" means Config(__have_some_value__)
-    // Debug
-    // printf("Current Inst:%x\n",inst)
     config match {
       case RV32Config(_) => {
         doRV32I
@@ -123,11 +134,12 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
         if (config.C) { doRV64C }
       }
     }
-    // do without config for now
-    doRVPriviledged()
+    // TODO: add config for privileged instruction
+    doRVPrivileged()
     doRVZicsr
     doRVZifencei
 
+    // End excute
     next.reg(0) := 0.U
 
     when(!global_data.setpc) {
@@ -141,7 +153,6 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     }
 
     tryRaiseException()
-    // }
   }
 
   // mem port
@@ -152,8 +163,8 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   now := next
 
   // output
-  io.now  := now
-  io.next := next
-  io.event := event
+  io.now      := now
+  io.next     := next
+  io.event    := event
   io.iFetchpc := iFetchpc
 }

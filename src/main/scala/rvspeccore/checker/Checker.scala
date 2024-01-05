@@ -21,17 +21,17 @@ object InstCommit {
   def apply()(implicit XLEN: Int) = new InstCommit
 }
 class StoreOrLoadInfo(implicit XLEN: Int) extends Bundle {
-  val addr = UInt(XLEN.W)
-  val data = UInt(XLEN.W)
+  val addr     = UInt(XLEN.W)
+  val data     = UInt(XLEN.W)
   val memWidth = UInt(log2Ceil(XLEN + 1).W)
 }
 class StoreOrLoadInfoTLB(implicit XLEN: Int) extends Bundle {
-  val addr = UInt(XLEN.W)
-  val data = UInt(XLEN.W)
+  val addr  = UInt(XLEN.W)
+  val data  = UInt(XLEN.W)
   val level = UInt(log2Ceil(XLEN + 1).W)
 }
-class QueueModule(implicit XLEN: Int) extends Module{
-  val io = IO (new Bundle{
+class QueueModule(implicit XLEN: Int) extends Module {
+  val io = IO(new Bundle {
     val in  = Flipped(Decoupled(new StoreOrLoadInfo()))
     val out = Decoupled(new StoreOrLoadInfo())
   })
@@ -39,8 +39,8 @@ class QueueModule(implicit XLEN: Int) extends Module{
   val queue = Queue(io.in, 2)
   io.out <> queue
 }
-class QueueModuleTLB(implicit XLEN: Int) extends Module{
-  val io = IO (new Bundle{
+class QueueModuleTLB(implicit XLEN: Int) extends Module {
+  val io = IO(new Bundle {
     val in  = Flipped(Decoupled(new StoreOrLoadInfoTLB()))
     val out = Decoupled(new StoreOrLoadInfoTLB())
   })
@@ -48,6 +48,7 @@ class QueueModuleTLB(implicit XLEN: Int) extends Module{
   val queue = Queue(io.in, 2)
   io.out <> queue
 }
+
 /** Checker with result port.
   *
   * Check pc of commited instruction and next value of all register. Although
@@ -62,6 +63,7 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
     val dtlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
     val itlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
   })
+  // TODO: io.result has .internal states now, consider use it or not
 
   // link to spec core
   val specCore = Module(new RiscvCore)
@@ -76,84 +78,84 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   if (checkMem) {
     // printf("[specCore] Valid:%x PC: %x Inst: %x\n", specCore.io.valid, specCore.io.now.pc, specCore.io.inst)
     // specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
-    val TLBLoadQueue = Seq.fill(3)(Module(new QueueModuleTLB()))
-    val tlb_load_push  = Wire(new StoreOrLoadInfoTLB)
+    val TLBLoadQueue  = Seq.fill(3)(Module(new QueueModuleTLB()))
+    val tlb_load_push = Wire(new StoreOrLoadInfoTLB)
     // initial the queue
     for (i <- 0 until 3) {
       TLBLoadQueue(i).io.out.ready := false.B
-      TLBLoadQueue(i).io.in.valid :=false.B
-      TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+      TLBLoadQueue(i).io.in.valid  := false.B
+      TLBLoadQueue(i).io.in.bits   := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
     }
-    when(io.dtlbmem.get.read.valid){
+    when(io.dtlbmem.get.read.valid) {
       tlb_load_push.addr  := io.dtlbmem.get.read.addr
       tlb_load_push.data  := io.dtlbmem.get.read.data
       tlb_load_push.level := io.dtlbmem.get.read.level
-      assert(RegNext(TLBLoadQueue(0).io.in.valid     , false.B) === false.B)
-      assert(RegNext(TLBLoadQueue(0).io.in.bits.addr , 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(0).io.in.bits.data , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(0).io.in.valid, false.B) === false.B)
+      assert(RegNext(TLBLoadQueue(0).io.in.bits.addr, 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(0).io.in.bits.data, 0.U) === 0.U)
       assert(RegNext(TLBLoadQueue(0).io.in.bits.level, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(1).io.in.valid     , false.B) === false.B)
-      assert(RegNext(TLBLoadQueue(1).io.in.bits.addr , 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(1).io.in.bits.data , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(1).io.in.valid, false.B) === false.B)
+      assert(RegNext(TLBLoadQueue(1).io.in.bits.addr, 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(1).io.in.bits.data, 0.U) === 0.U)
       assert(RegNext(TLBLoadQueue(1).io.in.bits.level, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(2).io.in.valid     , false.B) === false.B)
-      assert(RegNext(TLBLoadQueue(2).io.in.bits.addr , 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(2).io.in.bits.data , 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(2).io.in.valid, false.B) === false.B)
+      assert(RegNext(TLBLoadQueue(2).io.in.bits.addr, 0.U) === 0.U)
+      assert(RegNext(TLBLoadQueue(2).io.in.bits.data, 0.U) === 0.U)
       assert(RegNext(TLBLoadQueue(2).io.in.bits.level, 0.U) === 0.U)
-      switch(io.dtlbmem.get.read.level){
-        is(0.U){
+      switch(io.dtlbmem.get.read.level) {
+        is(0.U) {
           TLBLoadQueue(0).io.in.valid := true.B
-          TLBLoadQueue(0).io.in.bits := tlb_load_push
+          TLBLoadQueue(0).io.in.bits  := tlb_load_push
           TLBLoadQueue(1).io.in.valid := false.B
-          TLBLoadQueue(1).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(1).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           TLBLoadQueue(2).io.in.valid := false.B
-          TLBLoadQueue(2).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(2).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
         }
-        is(1.U){
+        is(1.U) {
           TLBLoadQueue(0).io.in.valid := false.B
-          TLBLoadQueue(0).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(0).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           TLBLoadQueue(1).io.in.valid := true.B
-          TLBLoadQueue(1).io.in.bits := tlb_load_push
+          TLBLoadQueue(1).io.in.bits  := tlb_load_push
           TLBLoadQueue(2).io.in.valid := false.B
-          TLBLoadQueue(2).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(2).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
         }
-        is(2.U){
+        is(2.U) {
           TLBLoadQueue(0).io.in.valid := false.B
-          TLBLoadQueue(0).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(0).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           TLBLoadQueue(1).io.in.valid := false.B
-          TLBLoadQueue(1).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          TLBLoadQueue(1).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           TLBLoadQueue(2).io.in.valid := true.B
-          TLBLoadQueue(2).io.in.bits := tlb_load_push
+          TLBLoadQueue(2).io.in.bits  := tlb_load_push
         }
-        is(3.U){
+        is(3.U) {
           for (i <- 0 until 3) {
-            TLBLoadQueue(i).io.in.valid :=false.B
-            TLBLoadQueue(i).io.in.bits := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-          }          
+            TLBLoadQueue(i).io.in.valid := false.B
+            TLBLoadQueue(i).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+          }
         }
       }
       // printf("Load into Queue.... valid: %x %x %x %x\n", LoadQueue.io.in.valid, load_push.addr, load_push.data, load_push.memWidth)
-    }.otherwise{
+    }.otherwise {
       for (i <- 0 until 3) {
-        TLBLoadQueue(i).io.in.valid :=false.B
-        tlb_load_push := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-        TLBLoadQueue(i).io.in.bits := tlb_load_push
+        TLBLoadQueue(i).io.in.valid := false.B
+        tlb_load_push               := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+        TLBLoadQueue(i).io.in.bits  := tlb_load_push
       }
     }
     for (i <- 0 until 3) {
-      when(specCore.io.tlb.Anotherread(i).valid){
+      when(specCore.io.tlb.Anotherread(i).valid) {
         TLBLoadQueue(2 - i).io.out.ready := true.B
         // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
         specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(2 - i).io.out.bits.data else DontCare }
-        // TODO: 第Level 1 assert is inconsistent nutshell and the condition need to modify. 
+        // TODO: 第Level 1 assert is inconsistent nutshell and the condition need to modify.
         // assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
-      }.otherwise{
+      }.otherwise {
         TLBLoadQueue(2 - i).io.out.ready := false.B
       }
     }
     for (i <- 0 until 3) {
-      when(RegNext(specCore.io.tlb.Anotherread(i).valid, false.B)){
-        assert(RegNext(TLBLoadQueue(2 - i).io.out.bits.addr, 0.U)      === RegNext(specCore.io.tlb.Anotherread(i).addr, 0.U))
+      when(RegNext(specCore.io.tlb.Anotherread(i).valid, false.B)) {
+        assert(RegNext(TLBLoadQueue(2 - i).io.out.bits.addr, 0.U) === RegNext(specCore.io.tlb.Anotherread(i).addr, 0.U))
         // assert(RegNext(TLBLoadQueue(2).io.out.bits.addr, 0.U)      === RegNext(specCore.io.tlb.Anotherread(0).addr, 0.U))
         // assert(RegNext(specCore.io.tlb.Anotherread(0).valid, false.B)     === RegNext(io.dtlbmem.get.read.valid, false.B))
         // assert(RegNext(specCore.io.tlb.Anotherread(0).data, 0.U) === RegNext(io.dtlbmem.get.read.data, 0.U))
@@ -165,75 +167,77 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       }
     }
     val LoadQueue  = Module(new QueueModule)
-    val StoreQueue  = Module(new QueueModule)
-    LoadQueue.io.out.ready := false.B
+    val StoreQueue = Module(new QueueModule)
+    LoadQueue.io.out.ready  := false.B
     StoreQueue.io.out.ready := false.B
     // Load Queue
     val load_push  = Wire(new StoreOrLoadInfo)
     val store_push = Wire(new StoreOrLoadInfo)
     // LOAD
-    when(io.mem.get.read.valid){
+    when(io.mem.get.read.valid) {
       LoadQueue.io.in.valid := true.B
-      load_push.addr := io.mem.get.read.addr
-      load_push.data := io.mem.get.read.data
-      load_push.memWidth := io.mem.get.read.memWidth
-      LoadQueue.io.in.bits := load_push
+      load_push.addr        := io.mem.get.read.addr
+      load_push.data        := io.mem.get.read.data
+      load_push.memWidth    := io.mem.get.read.memWidth
+      LoadQueue.io.in.bits  := load_push
       // printf("Load into Queue.... valid: %x %x %x %x\n", LoadQueue.io.in.valid, load_push.addr, load_push.data, load_push.memWidth)
-    }.otherwise{
+    }.otherwise {
       LoadQueue.io.in.valid := false.B
-      load_push.addr := 0.U
-      load_push.data := 0.U
-      load_push.memWidth := 0.U
-      LoadQueue.io.in.bits := load_push
+      load_push.addr        := 0.U
+      load_push.data        := 0.U
+      load_push.memWidth    := 0.U
+      LoadQueue.io.in.bits  := load_push
     }
-    when(specCore.io.mem.read.valid){
+    when(specCore.io.mem.read.valid) {
       LoadQueue.io.out.ready := true.B
       // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
       specCore.io.mem.read.data := { if (checkMem) LoadQueue.io.out.bits.data else DontCare }
-      assert(LoadQueue.io.out.bits.addr      === specCore.io.mem.read.addr)
-      assert(LoadQueue.io.out.bits.memWidth  === specCore.io.mem.read.memWidth)
-    }.otherwise{
+      assert(LoadQueue.io.out.bits.addr === specCore.io.mem.read.addr)
+      assert(LoadQueue.io.out.bits.memWidth === specCore.io.mem.read.memWidth)
+    }.otherwise {
       specCore.io.mem.read.data := 0.U
     }
 
-    // Store 
-    when(io.mem.get.write.valid){
+    // Store
+    when(io.mem.get.write.valid) {
       StoreQueue.io.in.valid := true.B
-      store_push.addr := io.mem.get.write.addr
-      store_push.data := io.mem.get.write.data
-      store_push.memWidth := io.mem.get.write.memWidth
-      StoreQueue.io.in.bits := store_push
+      store_push.addr        := io.mem.get.write.addr
+      store_push.data        := io.mem.get.write.data
+      store_push.memWidth    := io.mem.get.write.memWidth
+      StoreQueue.io.in.bits  := store_push
       // printf("Store into Queue.... valid: %x %x %x %x\n", StoreQueue.io.in.valid, store_push.addr, store_push.data, store_push.memWidth)
-    }.otherwise{
+    }.otherwise {
       StoreQueue.io.in.valid := false.B
-      store_push.addr := 0.U
-      store_push.data := 0.U
-      store_push.memWidth := 0.U
-      StoreQueue.io.in.bits := store_push
+      store_push.addr        := 0.U
+      store_push.data        := 0.U
+      store_push.memWidth    := 0.U
+      StoreQueue.io.in.bits  := store_push
     }
-    when(specCore.io.mem.write.valid){
+    when(specCore.io.mem.write.valid) {
       StoreQueue.io.out.ready := true.B
       // printf("Store out Queue....  valid: %x %x %x %x\n", StoreQueue.io.out.valid, StoreQueue.io.out.bits.addr, StoreQueue.io.out.bits.data, StoreQueue.io.out.bits.memWidth)
-      assert(StoreQueue.io.out.bits.addr      === specCore.io.mem.write.addr)
-      assert(StoreQueue.io.out.bits.data      === specCore.io.mem.write.data)
-      assert(StoreQueue.io.out.bits.memWidth  === specCore.io.mem.write.memWidth)
+      assert(StoreQueue.io.out.bits.addr === specCore.io.mem.write.addr)
+      assert(StoreQueue.io.out.bits.data === specCore.io.mem.write.data)
+      assert(StoreQueue.io.out.bits.memWidth === specCore.io.mem.write.memWidth)
     }
-  }else{
+  } else {
     specCore.io.mem.read.data := DontCare
   }
   // Initial false default
   when(RegNext(io.instCommit.valid, false.B)) {
     for (i <- 0 until 32) {
       assert(RegNext(io.result.reg(i.U), 0.U) === RegNext(specCore.io.next.reg(i.U), 0.U))
-    }  
+    }
   }
   // printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
   when(RegNext(io.event.valid, false.B) || RegNext(specCore.io.event.valid, false.B)) {
-  // when(io.event.valid) {
-    assert(RegNext(io.event.valid        , false.B) === RegNext(specCore.io.event.valid        , false.B)) // Make sure DUT and specCore currently occur the same exception
-    assert(RegNext(io.event.intrNO       , false.B) === RegNext(specCore.io.event.intrNO       , false.B))
-    assert(RegNext(io.event.cause        , false.B) === RegNext(specCore.io.event.cause        , false.B))
-    assert(RegNext(io.event.exceptionPC  , false.B) === RegNext(specCore.io.event.exceptionPC  , false.B))
+    // when(io.event.valid) {
+    assert(
+      RegNext(io.event.valid, false.B) === RegNext(specCore.io.event.valid, false.B)
+    ) // Make sure DUT and specCore currently occur the same exception
+    assert(RegNext(io.event.intrNO, false.B) === RegNext(specCore.io.event.intrNO, false.B))
+    assert(RegNext(io.event.cause, false.B) === RegNext(specCore.io.event.cause, false.B))
+    assert(RegNext(io.event.exceptionPC, false.B) === RegNext(specCore.io.event.exceptionPC, false.B))
     assert(RegNext(io.event.exceptionInst, false.B) === RegNext(specCore.io.event.exceptionInst, false.B))
   }
   // assert in current clock
@@ -322,7 +326,7 @@ class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends
   specCore.io.inst  := io.instCommit.inst
 
   specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
-  
+
   // initial another io.mem.get.Anotherread
   for (i <- 0 until 6) {
     specCore.io.tlb.Anotherread(i).data := DontCare

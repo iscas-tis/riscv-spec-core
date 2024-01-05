@@ -159,16 +159,16 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     // - 16.4 Control Transfer Instructions
     when(C_J(inst)) {
       decodeCJ
-      imm     := signExt(reorder(11, 4, (9, 8), 10, 6, 7, (3, 1), 5)(inst, (12, 2)), XLEN)
-      global_data.setpc   := true.B
-      next.pc := now.pc + imm
+      imm               := signExt(reorder(11, 4, (9, 8), 10, 6, 7, (3, 1), 5)(inst, (12, 2)), XLEN)
+      global_data.setpc := true.B
+      next.pc           := now.pc + imm
     }
     when(C_JAL(inst)) {
       decodeCJ
-      imm           := signExt(reorder(11, 4, (9, 8), 10, 6, 7, (3, 1), 5)(inst, (12, 2)), XLEN)
-      global_data.setpc         := true.B
-      next.pc       := now.pc + imm
-      next.reg(1.U) := now.pc + 2.U
+      imm               := signExt(reorder(11, 4, (9, 8), 10, 6, 7, (3, 1), 5)(inst, (12, 2)), XLEN)
+      global_data.setpc := true.B
+      next.pc           := now.pc + imm
+      next.reg(1.U)     := now.pc + 2.U
     }
     when(C_JR(inst)) {
       decodeCR
@@ -187,16 +187,16 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
       decodeCB
       imm := signExt(reorder(8, (4, 3), (7, 6), (2, 1), 5)(inst, (12, 10), (6, 2)), XLEN)
       when(now.reg(cat01(rs1_)) === 0.U) {
-        global_data.setpc   := true.B
-        next.pc := now.pc + imm
+        global_data.setpc := true.B
+        next.pc           := now.pc + imm
       }
     }
     when(C_BNEZ(inst)) {
       decodeCB
       imm := signExt(reorder(8, (4, 3), (7, 6), (2, 1), 5)(inst, (12, 10), (6, 2)), XLEN)
       when(now.reg(cat01(rs1_)) =/= 0.U) {
-        global_data.setpc   := true.B
-        next.pc := now.pc + imm
+        global_data.setpc := true.B
+        next.pc           := now.pc + imm
       }
     }
     // - 16.5 Integer Computational Instructions
