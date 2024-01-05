@@ -101,6 +101,8 @@ object ConnectCheckerResult extends ConnectHelper {
     checker.io.result.reg := regVec
     checker.io.result.pc  := DontCare
 
+    checker.io.result.internal := DontCare
+
     if (checker.io.mem != None) {
       val mem     = Wire(new MemSig)
       val dtlbmem = Wire(new TLBSig)

@@ -22,8 +22,6 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
     val csr = ConnectCheckerResult.makeCSRSource()
     csr := now.csr
     ConnectCheckerResult.setChecker(checker)
-
-    checker.io.result.internal := DontCare
   }
 
   it should "pass RiscvTests without mem check" in {
