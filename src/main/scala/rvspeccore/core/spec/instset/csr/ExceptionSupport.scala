@@ -120,7 +120,7 @@ trait ExceptionSupport extends BaseCore {
   // 看看产生的是中断还是异常
   // 仲裁之后的统一执行 尾部折叠判断优先级
   val exceptionVec = WireInit(VecInit(Seq.fill(16)(false.B)))
-  val exceptionNO  = MuxCase(0.U, Priority.excPriority.map(i => exceptionVec(i) -> i.U))
+  val exceptionNO  = MuxCase(0.U, Priority.excPriority.map(i => exceptionVec(i) -> i.U(5.W)))
   def exceptionSupportInit() = {
     illegalInstruction := true.B
   }
