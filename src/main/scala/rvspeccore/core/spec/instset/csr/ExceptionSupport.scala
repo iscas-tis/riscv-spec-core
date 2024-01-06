@@ -149,7 +149,7 @@ trait ExceptionSupport extends BaseCore {
     // event.intrNO := exceptionNO
     event.cause         := exceptionNO
     event.exceptionPC   := now.pc
-    event.exceptionInst := io.inst(31, 0)
+    event.exceptionInst := inst(31, 0)
     // FIXME: 目前仅仅考虑了异常
     val deleg  = now.csr.medeleg
     val delegS = (deleg(exceptionNO)) && (now.internal.privilegeMode < ModeM)
@@ -201,18 +201,18 @@ trait ExceptionSupport extends BaseCore {
           //   .otherwise { next.csr.mtval := io.inst(31, 0) }
         }
         is(MExceptionCode.instructionAccessFault.U) {
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := io.inst(15, 0) }
-            .otherwise { next.csr.mtval := io.inst(31, 0) }
+          when(inst(1, 0) =/= "b11".U(2.W)) { next.csr.mtval := inst(15, 0) }
+            .otherwise { next.csr.mtval := inst(31, 0) }
         }
         is(MExceptionCode.environmentCallFromMmode.U) {
           next.csr.mtval := 0.U
         }
         is(MExceptionCode.storeOrAMOAddressMisaligned.U) {
-          next.csr.mtval := io.mem.write.addr
+          next.csr.mtval := mem.write.addr
           // printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.mtval)
         }
         is(MExceptionCode.loadAddressMisaligned.U) {
-          next.csr.mtval := io.mem.read.addr
+          next.csr.mtval := mem.read.addr
           // printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.mtval)
         }
         is(MExceptionCode.instructionAddressMisaligned.U) {
@@ -268,17 +268,17 @@ trait ExceptionSupport extends BaseCore {
           // : * the first MXLEN bits of the faulting instruction
           // simply implement it for now
           // FIXME: 实际上 非法指令存的是指令本身 其他的错误并非存储指令到mtval中 其他的也需要改
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
-            .otherwise { next.csr.stval := io.inst(31, 0) }
+          when(inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := inst(15, 0) }
+            .otherwise { next.csr.stval := inst(31, 0) }
         }
         is(MExceptionCode.instructionAccessFault.U) {
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
-            .otherwise { next.csr.stval := io.inst(31, 0) }
+          when(inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := inst(15, 0) }
+            .otherwise { next.csr.stval := inst(31, 0) }
         }
         // 实际上是S Mode
         is(MExceptionCode.breakpoint.U) {
-          when(io.inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := io.inst(15, 0) }
-            .otherwise { next.csr.stval := io.inst(31, 0) }
+          when(inst(1, 0) =/= "b11".U(2.W)) { next.csr.stval := inst(15, 0) }
+            .otherwise { next.csr.stval := inst(31, 0) }
         }
         is(MExceptionCode.environmentCallFromMmode.U) {
           // FIXME: 很奇怪 把这个删了代码就不能跑了 无法理解
@@ -289,11 +289,11 @@ trait ExceptionSupport extends BaseCore {
         }
         // FIXME:三种非对齐访存 把非必要的Case进行合并
         is(MExceptionCode.storeOrAMOAddressMisaligned.U) {
-          next.csr.stval := io.mem.write.addr
+          next.csr.stval := mem.write.addr
           // printf("[Debug]:storeOrAMOAddressMisaligned %x %x\n",io.mem.write.addr,next.csr.stval)
         }
         is(MExceptionCode.loadAddressMisaligned.U) {
-          next.csr.stval := io.mem.read.addr
+          next.csr.stval := mem.read.addr
           // printf("[Debug]:loadAddressMisaligned %x %x\n",io.mem.read.addr,next.csr.stval)
 
         }
