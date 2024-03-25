@@ -1,6 +1,6 @@
-ThisBuild / version      := "1.1-SNAPSHOT"
+ThisBuild / version      := "1.1-chisel3.5.4-SNAPSHOT"
 ThisBuild / organization := "cn.ac.ios.tis"
-ThisBuild / scalaVersion := "2.13.8"
+ThisBuild / scalaVersion := "2.12.15"
 
 ThisBuild / crossScalaVersions := Seq("2.12.15", "2.13.8")
 
@@ -35,7 +35,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "RiscvSpecCore",
     libraryDependencies ++= Seq(
-      "edu.berkeley.cs" %% "chisel3" % "3.6.0"
+      "edu.berkeley.cs" %% "chisel3" % "3.5.4"
     ),
     scalacOptions ++= Seq(
       "-language:reflectiveCalls",
@@ -43,13 +43,7 @@ lazy val root = (project in file("."))
       "-feature",
       "-Xcheckinit"
     ),
-    addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.6.0" cross CrossVersion.full),
-    // special test configuration to avoid bug in chisel3.6
-    // use `sbt "++ 2.12.15! test"` to run tests, should finish in 15 minutes
-    dependencyOverrides ++= Seq(
-      "edu.berkeley.cs" %% "chisel3" % "3.5.4" % "test",
-      compilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.5.4" % "test" cross CrossVersion.full)
-    ),
+    addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.5.4" cross CrossVersion.full),
     libraryDependencies ++= Seq(
       "edu.berkeley.cs" %% "chiseltest" % "0.5.4" % "test"
     )
