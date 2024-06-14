@@ -14,12 +14,12 @@ abstract class ConnectHelper {}
 /** Connect RegFile to io.result.reg by BoringUtils
   */
 object ConnectCheckerResult extends ConnectHelper {
-  val uniqueIdReg: String   = "ConnectCheckerResult-UniqueIdReg"
-  val uniqueIdMem: String   = "ConnectCheckerResult-UniqueIdMem"
-  val uniqueIdCSR: String   = "ConnectCheckerResult-UniqueIdCSR"
-  val uniqueIdEvent: String = "ConnectCheckerResult-UniqueIdEvent"
-  val uniqueIdDTLB: String  = "ConnectCheckerResult-UniqueIdDTLB"
-  val uniqueIdITLB: String  = "ConnectCheckerResult-UniqueIdITLB"
+  val uniqueIdReg: String   = "ConnectCheckerResult_UniqueIdReg"
+  val uniqueIdMem: String   = "ConnectCheckerResult_UniqueIdMem"
+  val uniqueIdCSR: String   = "ConnectCheckerResult_UniqueIdCSR"
+  val uniqueIdEvent: String = "ConnectCheckerResult_UniqueIdEvent"
+  val uniqueIdDTLB: String  = "ConnectCheckerResult_UniqueIdDTLB"
+  val uniqueIdITLB: String  = "ConnectCheckerResult_UniqueIdITLB"
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
   }

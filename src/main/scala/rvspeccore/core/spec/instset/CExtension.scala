@@ -95,9 +95,9 @@ trait CDecode extends BaseCore with CommonDecode {
   val funct4 = WireInit(0.U(4.W))
   val funct6 = WireInit(0.U(6.W))
   val op     = WireInit(0.U(2.W))
-  val rd_    = WireInit(0.U(3.W))
-  val rs1_   = WireInit(0.U(3.W))
-  val rs2_   = WireInit(0.U(3.W))
+  val rdP    = WireInit(0.U(3.W))
+  val rs1P   = WireInit(0.U(3.W))
+  val rs2P   = WireInit(0.U(3.W))
 
   // ph for placeholder, should not be used after decode
   val ph1  = WireInit(0.U(1.W)); val ph5 = WireInit(0.U(5.W))
@@ -109,15 +109,15 @@ trait CDecode extends BaseCore with CommonDecode {
   // Table 16.1: Compressed 16-bit RVC instruction formats.
   // format: off
   //                                       / 15  13 | 12  | 11   7 | 6           2 | 1 0 \
-  def decodeCR  = { decodeInit; unpack(List(    funct4    ,  rs1   ,      rs2      , op  ), inst(15, 0)); rd := rs1   }
-  def decodeCI  = { decodeInit; unpack(List( funct3 , ph1 ,  rs1   ,      ph5      , op  ), inst(15, 0)); rd := rs1   }
-  def decodeCSS = { decodeInit; unpack(List( funct3 ,     ph6      ,      rs2      , op  ), inst(15, 0))              }
-  def decodeCIW = { decodeInit; unpack(List( funct3 ,         ph8           , rd_  , op  ), inst(15, 0))              }
-  def decodeCL  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rd_  , op  ), inst(15, 0))              }
-  def decodeCS  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1_ ,  ph2   , rs2_ , op  ), inst(15, 0))              }
-  def decodeCA  = { decodeInit; unpack(List(     funct6     , rs1_ , funct2 , rs2_ , op  ), inst(15, 0)); rd_ := rs1_ }
-  def decodeCB  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1_ ,      ph5      , op  ), inst(15, 0)); rd_ := rs1_ } // rd_ := rs1_ described in C.SRLI
-  def decodeCJ  = { decodeInit; unpack(List( funct3 ,             ph11             , op  ), inst(15, 0))              }
+  def decodeCR  = { decodeInit; unpack(List(    funct4    ,  rs1   ,      rs2      , op  ), inst(15, 0)); rd := rs1     }
+  def decodeCI  = { decodeInit; unpack(List( funct3 , ph1 ,  rs1   ,      ph5      , op  ), inst(15, 0)); rd := rs1     }
+  def decodeCSS = { decodeInit; unpack(List( funct3 ,     ph6      ,      rs2      , op  ), inst(15, 0))                }
+  def decodeCIW = { decodeInit; unpack(List( funct3 ,         ph8           , rdP  , op  ), inst(15, 0))                }
+  def decodeCL  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1P ,  ph2   , rdP  , op  ), inst(15, 0))                }
+  def decodeCS  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1P ,  ph2   , rs2P , op  ), inst(15, 0))                }
+  def decodeCA  = { decodeInit; unpack(List(     funct6     , rs1P , funct2 , rs2P , op  ), inst(15, 0)); rdP := rs1P }
+  def decodeCB  = { decodeInit; unpack(List( funct3 ,  ph3  , rs1P ,      ph5      , op  ), inst(15, 0)); rdP := rs1P } // rdP := rs1P described in C.SRLI
+  def decodeCJ  = { decodeInit; unpack(List( funct3 ,             ph11             , op  ), inst(15, 0))                }
   //                                       \ 15  13 | 12 10 | 9  7 | 6    5 | 4  2 | 1 0 /
   // format: on
 }
@@ -149,12 +149,12 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_LW(inst)) {
       decodeCL
       imm                  := zeroExt(reorder((5, 3), 2, (6, 6))(inst, (12, 10), (6, 5)), XLEN)
-      next.reg(cat01(rd_)) := signExt(memRead(now.reg(cat01(rs1_)) + imm, 32.U)(31, 0), XLEN)
+      next.reg(cat01(rdP)) := signExt(memRead(now.reg(cat01(rs1P)) + imm, 32.U)(31, 0), XLEN)
     }
     when(C_SW(inst)) {
       decodeCS
       imm := zeroExt(reorder((5, 3), 2, 6)(inst, (12, 10), (6, 5)), XLEN)
-      memWrite(now.reg(cat01(rs1_)) + imm, 32.U, now.reg(cat01(rs2_)))
+      memWrite(now.reg(cat01(rs1P)) + imm, 32.U, now.reg(cat01(rs2P)))
     }
     // - 16.4 Control Transfer Instructions
     when(C_J(inst)) {
@@ -186,7 +186,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_BEQZ(inst)) {
       decodeCB
       imm := signExt(reorder(8, (4, 3), (7, 6), (2, 1), 5)(inst, (12, 10), (6, 2)), XLEN)
-      when(now.reg(cat01(rs1_)) === 0.U) {
+      when(now.reg(cat01(rs1P)) === 0.U) {
         global_data.setpc := true.B
         next.pc           := now.pc + imm
       }
@@ -194,7 +194,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_BNEZ(inst)) {
       decodeCB
       imm := signExt(reorder(8, (4, 3), (7, 6), (2, 1), 5)(inst, (12, 10), (6, 2)), XLEN)
-      when(now.reg(cat01(rs1_)) =/= 0.U) {
+      when(now.reg(cat01(rs1P)) =/= 0.U) {
         global_data.setpc := true.B
         next.pc           := now.pc + imm
       }
@@ -225,7 +225,7 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_ADDI4SPN(inst)) {
       decodeCIW
       val nzimm_C_ADDI4SPN = zeroExt(reorder((5, 4), (9, 6), 2, 3)(inst, (12, 5)), XLEN)
-      next.reg(cat01(rd_)) := now.reg(2.U) + nzimm_C_ADDI4SPN
+      next.reg(cat01(rdP)) := now.reg(2.U) + nzimm_C_ADDI4SPN
     }
     when(C_SLLI(inst)) {
       decodeCI
@@ -235,25 +235,25 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_SRLI(inst)) {
       decodeCB
       imm                  := reorder(5, (4, 0))(inst, 12, (6, 2))
-      next.reg(cat01(rd_)) := now.reg(cat01(rd_)) >> imm(5, 0)
+      next.reg(cat01(rdP)) := now.reg(cat01(rdP)) >> imm(5, 0)
     }
     when(C_SRAI(inst)) {
       decodeCB
       imm                  := reorder(5, (4, 0))(inst, 12, (6, 2))
-      next.reg(cat01(rd_)) := (now.reg(cat01(rd_)).asSInt >> imm(5, 0)).asUInt
+      next.reg(cat01(rdP)) := (now.reg(cat01(rdP)).asSInt >> imm(5, 0)).asUInt
     }
     when(C_ANDI(inst)) {
       decodeCB
       imm                  := signExt(reorder(5, (4, 0))(inst, 12, (6, 2)), XLEN)
-      next.reg(cat01(rd_)) := now.reg(cat01(rd_)) & imm
+      next.reg(cat01(rdP)) := now.reg(cat01(rdP)) & imm
     }
     // - Integer Register-Register Operations
     when(C_MV(inst))  { decodeCR; next.reg(rd) := now.reg(0.U) + now.reg(rs2) }
     when(C_ADD(inst)) { decodeCR; next.reg(rd) := now.reg(rd) + now.reg(rs2) }
-    when(C_AND(inst)) { decodeCA; next.reg(cat01(rd_)) := now.reg(cat01(rd_)) & now.reg(cat01(rs2_)) }
-    when(C_OR(inst))  { decodeCA; next.reg(cat01(rd_)) := now.reg(cat01(rd_)) | now.reg(cat01(rs2_)) }
-    when(C_XOR(inst)) { decodeCA; next.reg(cat01(rd_)) := now.reg(cat01(rd_)) ^ now.reg(cat01(rs2_)) }
-    when(C_SUB(inst)) { decodeCA; next.reg(cat01(rd_)) := now.reg(cat01(rd_)) - now.reg(cat01(rs2_)) }
+    when(C_AND(inst)) { decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) & now.reg(cat01(rs2P)) }
+    when(C_OR(inst))  { decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) | now.reg(cat01(rs2P)) }
+    when(C_XOR(inst)) { decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) ^ now.reg(cat01(rs2P)) }
+    when(C_SUB(inst)) { decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) - now.reg(cat01(rs2P)) }
     // - Defined Illegal Instruction
     // - NOP Instruction
     when(C_NOP(inst)) { decodeCI /* then do nothing */ }
@@ -278,12 +278,12 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     when(C_LD(inst)) {
       decodeCL
       imm                  := zeroExt(reorder((5, 3), (7, 6))(inst, (12, 10), (6, 5)), XLEN)
-      next.reg(cat01(rd_)) := signExt(memRead(now.reg(cat01(rs1_)) + imm, 64.U)(63, 0), XLEN)
+      next.reg(cat01(rdP)) := signExt(memRead(now.reg(cat01(rs1P)) + imm, 64.U)(63, 0), XLEN)
     }
     when(C_SD(inst)) {
       decodeCS
       imm := zeroExt(reorder((5, 3), (7, 6))(inst, (12, 10), (6, 5)), XLEN)
-      memWrite(now.reg(cat01(rs1_)) + imm, 64.U, now.reg(cat01(rs2_)))
+      memWrite(now.reg(cat01(rs1P)) + imm, 64.U, now.reg(cat01(rs2P)))
     }
     // - 16.5 Integer Computational Instructions
     // - Integer Register-Immediate Operations
@@ -296,11 +296,11 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
     // - Integer Register-Register Operations
     when(C_ADDW(inst)) {
       decodeCA
-      next.reg(cat01(rd_)) := signExt(now.reg(cat01(rd_))(31, 0) + now.reg(cat01(rs2_))(31, 0), XLEN)
+      next.reg(cat01(rdP)) := signExt(now.reg(cat01(rdP))(31, 0) + now.reg(cat01(rs2P))(31, 0), XLEN)
     }
     when(C_SUBW(inst)) {
       decodeCA
-      next.reg(cat01(rd_)) := signExt(now.reg(cat01(rd_))(31, 0) - now.reg(cat01(rs2_))(31, 0), XLEN)
+      next.reg(cat01(rdP)) := signExt(now.reg(cat01(rdP))(31, 0) - now.reg(cat01(rs2P))(31, 0), XLEN)
     }
   }
 }
