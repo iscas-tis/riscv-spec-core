@@ -21,6 +21,7 @@
     - [获取 TLB 访存相关信号值](#获取-tlb-访存相关信号值)
     - [获取访存信号值](#获取访存信号值)
   - [设置验证条件](#设置验证条件)
+  - [通过 ChiselTest 调用形式化验证](#通过-chiseltest-调用形式化验证)
 - [验证实例](#验证实例)
 
 ## 安装
@@ -221,6 +222,30 @@ assume(RVI.ADDI(inst) || RVI.ADD(inst))
 ```
 
 更多指令分类见代码。
+
+### 通过 ChiselTest 调用形式化验证
+
+待验证处理器和参考模型连接之后，可以使用测试方法，也可以使用形式化验证在约束的范围内进行检查。
+
+下面通过 ChiselTest 对连接好参考模型的 `DUT` 进行形式化验证，调用了
+[BtorMC](https://github.com/Boolector/btor2tools)
+模型检测工具，使用 BMC 算法检查了 12 个时钟周期内的指令集一致性：
+
+```scala
+import chisel3._
+import chiseltest._
+import chiseltest.formal._
+import org.scalatest.flatspec.AnyFlatSpec
+
+import dut._
+
+class DUTFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTester {
+  behavior of "DUT"
+  it should "pass BMC check" in {
+    verify(new DUT(), Seq(BoundedCheck(12), BtormcEngineAnnotation))
+  }
+}
+```
 
 ## 验证实例
 
