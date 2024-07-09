@@ -11,7 +11,7 @@ verification conditions.
 Reference model support RV32/64IMAC, Zicsr, Zifencei, MSU privilege level,
 virtual-momory system with Sv39.
 
-[中文说明](readme_cn.md)
+[中文说明](README.zh-CN.md)
 
 ## Table of Contents <!-- omit in toc -->
 
