@@ -16,4 +16,4 @@ jobs:
       - name: Cache Scala
         uses: coursier/cache-action@v5
       - name: SBT Test
-        run: sbt "++ 2.12.15! test"
+        run: sbt test
