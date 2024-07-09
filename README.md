@@ -8,10 +8,10 @@ semantics of the RISC-V ISA document, as well as several `Helper` and `Checker`
 to connect the user's processor design with the reference model and set
 verification conditions.
 
-Reference model support RV32/64IMAC, Zicsr, Zifencei, MSU privilege level,
+Reference model support RV32/64IMC, Zicsr, MSU privilege level,
 virtual-momory system with Sv39.
 
-[中文说明](README.zh-CN.md)
+Read more detailed Chinese README: [中文说明](README.zh-CN.md).
 
 ## Table of Contents <!-- omit in toc -->
 
