@@ -103,6 +103,8 @@ import rvspeccore.checker._
 ConnectCheckerResult.setChecker(checker)(XLEN, FormalConfig)
 ```
 
+目前 `Checker` 中只有 `CheckerWithResult` 经过了验证，推荐使用。
+
 #### 参考模型配置选项
 
 参考模型具体支持的配置选项如下：
