@@ -122,13 +122,13 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     iFetchpc := resultPC
 
     // Decode and Excute
-    config match {
-      case RV32Config(_) => {
+    config.XLEN match {
+      case 32 => {
         doRV32I
         if (config.M) { doRV32M }
         if (config.C) { doRV32C }
       }
-      case RV64Config(_) => {
+      case 64 => {
         doRV64I
         if (config.M) { doRV64M }
         if (config.C) { doRV64C }

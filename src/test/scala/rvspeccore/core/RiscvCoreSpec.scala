@@ -37,8 +37,8 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   // printf("[Debug] InstMEM: %x %x\n", fetchAddr, fetchAddr2)
   // inst
   core.io.valid := !reset.asBool
-  config match {
-    case RV32Config(_) => {
+  config.XLEN match {
+    case 32 => {
       val instMem = fetchAddr
 
       inst := MuxLookup(
@@ -50,7 +50,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
         )
       )
     }
-    case RV64Config(_) => {
+    case 64 => {
       val instMem = Cat(mem.read((pc >> 3) + 1.U), mem.read(pc >> 3))
       inst := MuxLookup(
         pc(2, 1),
@@ -208,10 +208,10 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   it should "pass RV64Config firrtl emit" in {
     // generate Firrtl Code
     (new chisel3.stage.ChiselStage)
-      .emitFirrtl(new RiscvCore()(RV64Config()), Array("--target-dir", "test_run_dir/" + getTestName))
+      .emitFirrtl(new RiscvCore()(RVConfig(64)), Array("--target-dir", "test_run_dir/" + getTestName))
   }
   it should "pass manual test" in {
-    test(new RiscvCore()(RV64Config("MC"))).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+    test(new RiscvCore()(RVConfig(64, "MC"))).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
       c.io.valid.poke(true.B)
       c.io.inst.poke("h8391_4441".U)
       c.clock.step()
@@ -220,7 +220,7 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
       c.io.inst.poke("h0000_0000".U)
       c.clock.step()
     }
-    implicit val config = RV64Config("MC")
+    implicit val config = RVConfig(64, "MC")
     test(new CoreTester(new RiscvCore, "./testcase/riscv-tests-hex/rv64uc/rv64uc-rvc.hex"))
       .withAnnotations(Seq(WriteVcdAnnotation)) { c =>
         RiscvTests.stepTest(c, RiscvTests.maxStep)
@@ -230,7 +230,7 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RV64Config("MCS")
+  implicit val config = RVConfig(64, "MCS")
 
   val tests = Seq("rv64ui", "rv64um", "rv64uc")
 
@@ -251,7 +251,7 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RV32Config("MC")
+  implicit val config = RVConfig(32, "MC")
 
   val tests = Seq("rv32ui", "rv32um", "rv32uc")
   // val tests = Seq("tempcsr32")
