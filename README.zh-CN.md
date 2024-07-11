@@ -79,14 +79,16 @@ libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.1-SNAPSHOT"
 ```scala
 
 // 1. 设置 Checker 中参考模型 `RiscvCore` 支持的功能
-// 此处配置为：RV64I 基础指令集，支持 M、C 指令扩展，支持 M/S 两个特权级
-import rvspeccore.core.RV64Config
-val FormalConfig = RV64Config("MCS")
+// 此处配置为：
+// RV64I 基础指令集，支持 M、C 指令扩展，支持 M/S 两个特权级在
+// 在 misa 寄存器中显示支持 A 扩展，但参考模型实际不支持
+import rvspeccore.core.RVConfig
+val rvConfig = RVConfig(64, "MCS", "A")
 
 // 2. 实例化 Checker
 // 此处实例化一个检查完整寄存器值的 Checker，启用内存检查，使用之前设置的参考模型设置
 import rvspeccore.checker._
-val checker = Module(new CheckerWithResult(checkMem = true)(FormalConfig))
+val checker = Module(new CheckerWithResult(checkMem = true)(rvConfig))
 
 // 3. 设置指令提交信号
 // 当一条指令完全执行结束，所有所需的数据应该准备好，`instCommit.valid` 应该为 true.B
@@ -100,7 +102,7 @@ checker.io.instCommit.pc    := XXX
 // 在其他模块中获取的信号将通过 ConnectHelper 传递给 checker
 // 此处为 CheckerWithResult 类型 Checker 专用的连接工具 ConnectCheckerResult
 import rvspeccore.checker._
-ConnectCheckerResult.setChecker(checker)(XLEN, FormalConfig)
+ConnectCheckerResult.setChecker(checker)(XLEN, rvConfig)
 ```
 
 目前 `Checker` 中只有 `CheckerWithResult` 经过了验证，推荐使用。
@@ -110,8 +112,8 @@ ConnectCheckerResult.setChecker(checker)(XLEN, FormalConfig)
 参考模型具体支持的配置选项如下：
 
 - 位宽和基础指令集
-  - `RV64Config`：64位，包含基础指令集 I
-  - `RV32Config`：32位，包含基础指令集 I
+  - 默认支持基础指令集 I
+  - 位宽支持：32、64
 - 扩展指令集
   - "M"：乘除法扩展指令集 M
   - "C"：压缩扩展指令集 C
@@ -147,13 +149,13 @@ ConnectCheckerResult.setRegSource(resultRegWire)
 
 ```scala
 // CSR寄存器
-val resultCSRWire = ConnectCheckerResult.makeCSRSource()(64, FormalConfig)
+val resultCSRWire = ConnectCheckerResult.makeCSRSource()(64, rvConfig)
 resultCSRWire.misa      := RegNext(misa)
 resultCSRWire.mvendorid := XXX
 resultCSRWire.marchid   := XXX
 // ······
 // 异常处理
-val resultEventWire = ConnectCheckerResult.makeEventSource()(64, FormalConfig)
+val resultEventWire = ConnectCheckerResult.makeEventSource()(64, rvConfig)
 resultEventWire.valid := XXX
 resultEventWire.intrNO := XXX
 resultEventWire.cause := XXX

@@ -43,14 +43,14 @@ Instantiation a `checker`, and set the supportted instruction set of reference
 module at the instruction commit level.
 
 ```scala
-val FormalConfig = RV64Config("MCS")
-val checker = Module(new CheckerWithResult(checkMem = true)(FormalConfig))
+val rvConfig = RVConfig(64, "MCS", "A")
+val checker = Module(new CheckerWithResult(checkMem = true)(rvConfig))
 
 checker.io.instCommit.valid := XXX
 checker.io.instCommit.inst  := XXX
 checker.io.instCommit.pc    := XXX
 
-ConnectCheckerResult.setChecker(checker)(XLEN, FormalConfig)
+ConnectCheckerResult.setChecker(checker)(XLEN, rvConfig)
 ```
 
 ### General Register
@@ -66,13 +66,13 @@ ConnectCheckerResult.setRegSource(resultRegWire)
 
 ```scala
 // CSR
-val resultCSRWire = rvspeccore.checker.ConnectCheckerResult.makeCSRSource()(64, FormalConfig)
+val resultCSRWire = rvspeccore.checker.ConnectCheckerResult.makeCSRSource()(64, rvConfig)
 resultCSRWire.misa      := RegNext(misa)
 resultCSRWire.mvendorid := XXX
 resultCSRWire.marchid   := XXX
 // ······
 // exception
-val resultEventWire = rvspeccore.checker.ConnectCheckerResult.makeEventSource()(64, FormalConfig)
+val resultEventWire = rvspeccore.checker.ConnectCheckerResult.makeEventSource()(64, rvConfig)
 resultEventWire.valid := XXX
 resultEventWire.intrNO := XXX
 resultEventWire.cause := XXX
