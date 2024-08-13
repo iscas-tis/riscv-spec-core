@@ -54,7 +54,8 @@ class QueueModuleTLB(implicit XLEN: Int) extends Module {
   * Check pc of commited instruction and next value of all register. Although
   * `pc` in the result port, but it won't be checked.
   */
-class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) extends Checker {
+class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(implicit config: RVConfig)
+    extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val result     = Input(State())
@@ -65,6 +66,15 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   })
   // TODO: io.result has .internal states now, consider use it or not
 
+  /** Delay input data by a register if `delay` is true.
+    *
+    * This function helps to get signal values from the counterexample that only
+    * contains values of registers from model checking.
+    */
+  def regDelay[T <: Data](data: T): T = {
+    if (enableReg) RegNext(data, 0.U.asTypeOf(data.cloneType)) else data
+  }
+
   // link to spec core
   val specCore = Module(new RiscvCore)
   specCore.io.valid := io.instCommit.valid
@@ -74,6 +84,8 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   for (i <- 0 until 6) {
     specCore.io.tlb.Anotherread(i).data := DontCare
   }
+
+  // assertions
 
   if (checkMem) {
     // printf("[specCore] Valid:%x PC: %x Inst: %x\n", specCore.io.valid, specCore.io.now.pc, specCore.io.inst)
@@ -102,39 +114,26 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       assert(RegNext(TLBLoadQueue(2).io.in.bits.addr, 0.U) === 0.U)
       assert(RegNext(TLBLoadQueue(2).io.in.bits.data, 0.U) === 0.U)
       assert(RegNext(TLBLoadQueue(2).io.in.bits.level, 0.U) === 0.U)
+
+      for (i <- 0 until 3) {
+        TLBLoadQueue(i).io.in.valid := false.B
+        TLBLoadQueue(i).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+      }
       switch(io.dtlbmem.get.read.level) {
         is(0.U) {
           TLBLoadQueue(0).io.in.valid := true.B
           TLBLoadQueue(0).io.in.bits  := tlb_load_push
-          TLBLoadQueue(1).io.in.valid := false.B
-          TLBLoadQueue(1).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-          TLBLoadQueue(2).io.in.valid := false.B
-          TLBLoadQueue(2).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
         }
         is(1.U) {
-          TLBLoadQueue(0).io.in.valid := false.B
-          TLBLoadQueue(0).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           TLBLoadQueue(1).io.in.valid := true.B
           TLBLoadQueue(1).io.in.bits  := tlb_load_push
-          TLBLoadQueue(2).io.in.valid := false.B
-          TLBLoadQueue(2).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
         }
         is(2.U) {
-          TLBLoadQueue(0).io.in.valid := false.B
-          TLBLoadQueue(0).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-          TLBLoadQueue(1).io.in.valid := false.B
-          TLBLoadQueue(1).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
           TLBLoadQueue(2).io.in.valid := true.B
           TLBLoadQueue(2).io.in.bits  := tlb_load_push
         }
-        is(3.U) {
-          for (i <- 0 until 3) {
-            TLBLoadQueue(i).io.in.valid := false.B
-            TLBLoadQueue(i).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-          }
-        }
+        is(3.U) {}
       }
-      // printf("Load into Queue.... valid: %x %x %x %x\n", LoadQueue.io.in.valid, load_push.addr, load_push.data, load_push.memWidth)
     }.otherwise {
       for (i <- 0 until 3) {
         TLBLoadQueue(i).io.in.valid := false.B
@@ -152,18 +151,8 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
       }.otherwise {
         TLBLoadQueue(2 - i).io.out.ready := false.B
       }
-    }
-    for (i <- 0 until 3) {
-      when(RegNext(specCore.io.tlb.Anotherread(i).valid, false.B)) {
-        assert(RegNext(TLBLoadQueue(2 - i).io.out.bits.addr, 0.U) === RegNext(specCore.io.tlb.Anotherread(i).addr, 0.U))
-        // assert(RegNext(TLBLoadQueue(2).io.out.bits.addr, 0.U)      === RegNext(specCore.io.tlb.Anotherread(0).addr, 0.U))
-        // assert(RegNext(specCore.io.tlb.Anotherread(0).valid, false.B)     === RegNext(io.dtlbmem.get.read.valid, false.B))
-        // assert(RegNext(specCore.io.tlb.Anotherread(0).data, 0.U) === RegNext(io.dtlbmem.get.read.data, 0.U))
-        // assert(RegNext(specCore.io.tlb.Anotherread(0).addr, 0.U) === RegNext(io.dtlbmem.get.read.addr, 0.U))
-        // assert(RegNext(tlb_load_push.addr, 0.U)  === RegNext(io.dtlbmem.get.read.addr, 0.U))
-        // assert(RegNext(tlb_load_push.data, 0.U)  === RegNext(io.dtlbmem.get.read.data, 0.U))
-        // assert(RegNext(tlb_load_push.level, 0.U) === RegNext(io.dtlbmem.get.read.level, 0.U))
-        // assert(RegNext(TLBLoadQueue(0).io.out.bits.data, 0.U)      === RegNext(specCore.io.tlb.Anotherread(0).data, 0.U))
+      when(regDelay(specCore.io.tlb.Anotherread(i).valid)) {
+        assert(regDelay(TLBLoadQueue(2 - i).io.out.bits.addr) === regDelay(specCore.io.tlb.Anotherread(i).addr))
       }
     }
     val LoadQueue  = Module(new QueueModule)
@@ -223,80 +212,35 @@ class CheckerWithResult(checkMem: Boolean = true)(implicit config: RVConfig) ext
   } else {
     specCore.io.mem.read.data := DontCare
   }
-  // Initial false default
-  when(RegNext(io.instCommit.valid, false.B)) {
+
+  when(regDelay(io.instCommit.valid)) {
+    // next reg
     for (i <- 0 until 32) {
-      assert(RegNext(io.result.reg(i.U), 0.U) === RegNext(specCore.io.next.reg(i.U), 0.U))
+      assert(regDelay(io.result.reg(i.U)) === regDelay(specCore.io.next.reg(i.U)))
     }
   }
   // printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
-  when(RegNext(io.event.valid, false.B) || RegNext(specCore.io.event.valid, false.B)) {
-    // when(io.event.valid) {
-    assert(
-      RegNext(io.event.valid, false.B) === RegNext(specCore.io.event.valid, false.B)
-    ) // Make sure DUT and specCore currently occur the same exception
-    assert(RegNext(io.event.intrNO, false.B) === RegNext(specCore.io.event.intrNO, false.B))
-    assert(RegNext(io.event.cause, false.B) === RegNext(specCore.io.event.cause, false.B))
-    assert(RegNext(io.event.exceptionPC, false.B) === RegNext(specCore.io.event.exceptionPC, false.B))
-    assert(RegNext(io.event.exceptionInst, false.B) === RegNext(specCore.io.event.exceptionInst, false.B))
-  }
-  // assert in current clock
   when(io.instCommit.valid) {
-    // now pc
-    // For example, if the DUT have some bugs, can add assume to skip
-    // assume For NutShell mtval high-bit problem
-    // assume(
-    //   !(
-    //     RVI.loadStore(io.instCommit.inst) &&
-    //     (
-    //       specCore.io.next.csr.mtval(63,39) =/=  io.result.csr.mtval(63,39)
-    //     )
-    //   )
-    // )
+    // now pc:
     assert(io.instCommit.pc === specCore.io.now.pc)
-    // next reg
-    // for (i <- 0 until 32) {
-    //   assert(io.result.reg(i.U) === specCore.io.next.reg(i.U))
-    // }
-    // next pc: hard to get next pc in a pipeline
-    // check it at next instruction
+    // next pc: hard to get next pc in a pipeline, check it at next instruction
 
-    // next csr
+    // next csr:
     io.result.csr.table.zip(specCore.io.next.csr.table).map {
       case (result, next) => {
         assert(result.signal === next.signal)
       }
     }
-    // assert(io.result.csr.misa === specCore.io.next.csr.misa)
-    // assert(io.result.csr.mvendorid === specCore.io.next.csr.mvendorid)
-    // assert(io.result.csr.marchid === specCore.io.next.csr.marchid)
-    // assert(io.result.csr.mimpid === specCore.io.next.csr.mimpid)
-    // assert(io.result.csr.mhartid === specCore.io.next.csr.mhartid)
-    // assert(io.result.csr.mstatus === specCore.io.next.csr.mstatus)
-    // assert(io.result.csr.mscratch === specCore.io.next.csr.mscratch)
-    // assert(io.result.csr.mtvec === specCore.io.next.csr.mtvec)
-    // assert(io.result.csr.mcounteren === specCore.io.next.csr.mcounteren)
-    // assert(io.result.csr.mip === specCore.io.next.csr.mip)
-    // assert(io.result.csr.mie === specCore.io.next.csr.mie)
-    // assert(io.result.csr.mepc === specCore.io.next.csr.mepc)
-    // assert(io.result.csr.mcause === specCore.io.next.csr.mcause)
-    // assert(io.result.csr.mtval === specCore.io.next.csr.mtval)
-    // // assert(io.result.csr.mtval(31,0) === specCore.io.next.csr.mtval(31,0))
-    // assert(io.result.csr.medeleg === specCore.io.next.csr.medeleg)
-    // assert(io.result.csr.mideleg === specCore.io.next.csr.mideleg)
-    // assert(io.result.csr.scounteren === specCore.io.next.csr.scounteren)
-    // assert(io.result.csr.scause === specCore.io.next.csr.scause)
-    // assert(io.result.csr.stvec === specCore.io.next.csr.stvec)
-    // assert(io.result.csr.sepc === specCore.io.next.csr.sepc)
-    // assert(io.result.csr.stval === specCore.io.next.csr.stval)
-    // assert(io.result.csr.sscratch === specCore.io.next.csr.sscratch)
+  }
 
-    // io.result.csr.vTable.zip(specCore.io.next.csr.vTable).map {
-    //   case (resultSig, nextSig) => {
-    //     assert(resultSig === nextSig)
-    //   }
-    // }
-
+  when(regDelay(io.event.valid) || regDelay(specCore.io.event.valid)) {
+    assert(
+      regDelay(io.event.valid) === regDelay(specCore.io.event.valid)
+    ) // Make sure DUT and specCore currently occur the same exception
+    assert(regDelay(io.event.intrNO) === regDelay(specCore.io.event.intrNO))
+    assert(regDelay(io.event.cause) === regDelay(specCore.io.event.cause))
+    assert(regDelay(io.event.exceptionPC) === regDelay(specCore.io.event.exceptionPC))
+    assert(regDelay(io.event.exceptionInst) === regDelay(specCore.io.event.exceptionInst))
   }
 }
 
