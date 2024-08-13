@@ -13,7 +13,7 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RVConfig(64)
 
   class TestCore extends RiscvCore {
-    val checker = Module(new CheckerWithResult(false))
+    val checker = Module(new CheckerWithResult(false, false))
     checker.io.instCommit.valid := RegNext(io.valid, false.B)
     checker.io.instCommit.inst  := RegNext(io.inst)
     checker.io.instCommit.pc    := RegNext(now.pc)

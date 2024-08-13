@@ -13,7 +13,7 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RVConfig(64)
 
   class TestCore(checkMem: Boolean = true) extends RiscvCore {
-    val checker = Module(new CheckerWithResult(checkMem))
+    val checker = Module(new CheckerWithResult(checkMem = checkMem, enableReg = false))
     checker.io.instCommit.valid    := RegNext(io.valid, false.B)
     checker.io.instCommit.inst     := RegNext(io.inst)
     checker.io.instCommit.pc       := RegNext(now.pc)
