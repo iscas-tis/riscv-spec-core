@@ -16,14 +16,14 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     val checker = Module(new CheckerWithResult(checkMem = checkMem, enableReg = false))
     checker.io.instCommit.valid    := RegNext(io.valid, false.B)
     checker.io.instCommit.inst     := RegNext(io.inst)
-    checker.io.instCommit.pc       := RegNext(now.pc)
+    checker.io.instCommit.pc       := RegNext(state.pc)
     checker.io.event.valid         := RegNext(io.event.valid, false.B)
     checker.io.event.intrNO        := RegNext(io.event.intrNO)
     checker.io.event.cause         := RegNext(io.event.cause)
     checker.io.event.exceptionPC   := RegNext(io.event.exceptionPC)
     checker.io.event.exceptionInst := RegNext(io.event.exceptionInst)
     // printf("[  DUT   ] Valid:%x PC: %x Inst: %x\n", checker.io.instCommit.valid, checker.io.instCommit.pc, checker.io.instCommit.inst)
-    checker.io.result := now
+    checker.io.result := state
 
     checker.io.itlbmem.map(cm => {
       cm := DontCare
@@ -34,15 +34,15 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     })
     // checker.io.tlb.get.Anotherwrite := DontCare
     checker.io.mem.map(cm => {
-      cm.read.addr     := mem.read.addr
-      cm.read.data     := mem.read.data
-      cm.read.memWidth := mem.read.memWidth
-      cm.read.valid    := mem.read.valid
+      cm.read.addr     := trans.io.mem.read.addr
+      cm.read.data     := trans.io.mem.read.data
+      cm.read.memWidth := trans.io.mem.read.memWidth
+      cm.read.valid    := trans.io.mem.read.valid
 
-      cm.write.addr     := mem.write.addr
-      cm.write.data     := mem.write.data
-      cm.write.memWidth := mem.write.memWidth
-      cm.write.valid    := mem.write.valid
+      cm.write.addr     := trans.io.mem.write.addr
+      cm.write.data     := trans.io.mem.write.data
+      cm.write.memWidth := trans.io.mem.write.memWidth
+      cm.write.valid    := trans.io.mem.write.valid
     })
   }
 
@@ -80,21 +80,21 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     wb.data  := 0.U
 
     for (i <- 0 until 32) {
-      when(now.reg(i.U) =/= next.reg(i.U)) {
+      when(state.reg(i.U) =/= trans.io.next.reg(i.U)) {
         wb.valid := true.B
         wb.dest  := i.U
-        wb.data  := next.reg(i.U)
+        wb.data  := trans.io.next.reg(i.U)
       }
     }
 
     val checker = Module(new CheckerWithWB(checkMem))
     checker.io.instCommit.valid := io.valid
     checker.io.instCommit.inst  := io.inst
-    checker.io.instCommit.pc    := now.pc
+    checker.io.instCommit.pc    := state.pc
 
     checker.io.wb := wb
 
-    checker.io.mem.map(_ := mem)
+    checker.io.mem.map(_ := trans.io.mem)
   }
 
   it should "pass RiscvTests" in {

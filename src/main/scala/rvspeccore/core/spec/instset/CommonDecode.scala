@@ -13,8 +13,6 @@ import rvspeccore.core.tool.BitTool._
   *   - 2.3 Immediate Encoding Variants
   */
 trait CommonDecode extends BaseCore with csr.ExceptionSupport {
-  val inst = WireInit(0.U(32.W))
-
   val opcode = WireInit(0.U(7.W))
   val rd     = WireInit(0.U(5.W))
   val funct3 = WireInit(0.U(3.W))

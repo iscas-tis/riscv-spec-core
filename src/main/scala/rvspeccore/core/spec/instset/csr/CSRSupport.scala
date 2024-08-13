@@ -13,7 +13,6 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
   // def ModeS     = 0x1.U // 01 Supervisor
   // def ModeR     = 0x2.U // 10 Reserved
   // def ModeM     = 0x3.U // 11 Machine
-  val lr        = RegInit(Bool(), false.B)
   val VAddrBits = if (XLEN == 32) 32 else 39
   val retTarget = Wire(UInt(VAddrBits.W))
   retTarget := DontCare
@@ -102,7 +101,6 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
         mstatusNew.mpp := ModeM
       }
       next.csr.mstatus := mstatusNew.asUInt
-      lr               := false.B
       retTarget        := next.csr.mepc(VAddrBits - 1, 0)
       // printf("nextpc1:%x\n",now.csr.mepc)
       global_data.setpc := true.B
@@ -132,7 +130,6 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       mstatusNew.spp              := ModeU
       mstatusNew.mprv             := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
       next.csr.mstatus            := mstatusNew.asUInt
-      lr                          := false.B
       retTarget                   := next.csr.sepc(VAddrBits - 1, 0)
       // printf("nextpc1:%x\n",now.csr.sepc)
       global_data.setpc := true.B

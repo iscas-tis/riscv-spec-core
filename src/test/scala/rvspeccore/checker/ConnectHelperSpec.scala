@@ -16,11 +16,11 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
     val checker = Module(new CheckerWithResult(false, false))
     checker.io.instCommit.valid := RegNext(io.valid, false.B)
     checker.io.instCommit.inst  := RegNext(io.inst)
-    checker.io.instCommit.pc    := RegNext(now.pc)
+    checker.io.instCommit.pc    := RegNext(state.pc)
 
-    ConnectCheckerResult.setRegSource(now.reg)
+    ConnectCheckerResult.setRegSource(state.reg)
     val csr = ConnectCheckerResult.makeCSRSource()
-    csr := now.csr
+    csr := state.csr
     ConnectCheckerResult.setChecker(checker)
   }
 
