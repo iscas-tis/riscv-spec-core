@@ -41,9 +41,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     case 32 => {
       val instMem = fetchAddr
 
-      inst := MuxLookup(
-        pc(1),
-        0.U,
+      inst := MuxLookup(pc(1), 0.U)(
         Seq(
           "b0".U(1.W) -> instMem(31, 0),
           "b1".U(1.W) -> instMem(47, 16)
@@ -52,9 +50,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     }
     case 64 => {
       val instMem = Cat(mem.read((pc >> 3) + 1.U), mem.read(pc >> 3))
-      inst := MuxLookup(
-        pc(2, 1),
-        0.U,
+      inst := MuxLookup(pc(2, 1), 0.U)(
         Seq(
           "b00".U(2.W) -> instMem(31, 0),
           "b01".U(2.W) -> instMem(47, 16),
@@ -67,9 +63,7 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   core.io.inst := inst
 
   def width2Mask(width: UInt): UInt = {
-    MuxLookup(
-      width,
-      0.U(64.W),
+    MuxLookup(width, 0.U(64.W))(
       Seq(
         8.U  -> "hff".U(64.W),
         16.U -> "hffff".U(64.W),
@@ -205,10 +199,14 @@ object RiscvTests {
 
 class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "RiscvCore"
-  it should "pass RV64Config firrtl emit" in {
-    // generate Firrtl Code
-    (new chisel3.stage.ChiselStage)
-      .emitFirrtl(new RiscvCore()(RVConfig(64)), Array("--target-dir", "test_run_dir/" + getTestName))
+  it should "emit CHIRRTL with 64-bits RVConfig" in {
+    val dirPath = "test_run_dir/" + getTestName
+    new java.io.File(dirPath).mkdirs()
+    val file = s"$dirPath/RiscvCore.fir"
+
+    val writer = new java.io.PrintWriter(file)
+    writer.write(_root_.circt.stage.ChiselStage.emitCHIRRTL(new RiscvCore()(RVConfig(64))))
+    writer.close()
   }
   it should "pass manual test" in {
     test(new RiscvCore()(RVConfig(64, "MC"))).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
