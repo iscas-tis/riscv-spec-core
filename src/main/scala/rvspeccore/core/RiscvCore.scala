@@ -82,7 +82,7 @@ class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
 
 object State {
   def apply()(implicit XLEN: Int, config: RVConfig): State = new State
-  def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
+  def wireInit(pcStr: String = "h0000_0200")(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
 
     state.reg := Seq.fill(32)(0.U(XLEN.W))

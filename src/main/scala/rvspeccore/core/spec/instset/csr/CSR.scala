@@ -363,7 +363,7 @@ object CSR {
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
     csr.mstatush   := 0.U // 310
     csr.mscratch   := 0.U
-    csr.mtvec      := 0.U
+    csr.mtvec      := "h0000_01c0".U
     csr.mcounteren := 0.U
     csr.medeleg    := 0.U // 302
     csr.mideleg    := 0.U // 303

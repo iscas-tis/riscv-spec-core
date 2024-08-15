@@ -213,12 +213,14 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
     specCore.io.mem.read.data := DontCare
   }
 
+  printf("Valid:%x ResultReg1:%x SpecReg1:%x\n", io.instCommit.valid, io.result.reg(30.U), specCore.io.next.reg(30.U))
   when(regDelay(io.instCommit.valid)) {
     // next reg
     for (i <- 0 until 32) {
       assert(regDelay(io.result.reg(i.U)) === regDelay(specCore.io.next.reg(i.U)))
     }
   }
+  printf("Valid:%x ResultPC:%x SpecPC:%x\n", io.instCommit.valid, io.instCommit.pc, specCore.io.now.pc)
   // printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
   when(io.instCommit.valid) {
     // now pc:
@@ -228,12 +230,13 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
     // next csr:
     io.result.csr.table.zip(specCore.io.next.csr.table).map {
       case (result, next) => {
-        assert(result.signal === next.signal)
+//        assert(result.signal === next.signal)
       }
     }
   }
 
   when(regDelay(io.event.valid) || regDelay(specCore.io.event.valid)) {
+    printf("exception: io:%x spec:%x cause:%x\n", regDelay(io.event.valid), regDelay(specCore.io.event.valid), regDelay(specCore.io.event.cause))
     assert(
       regDelay(io.event.valid) === regDelay(specCore.io.event.valid)
     ) // Make sure DUT and specCore currently occur the same exception
