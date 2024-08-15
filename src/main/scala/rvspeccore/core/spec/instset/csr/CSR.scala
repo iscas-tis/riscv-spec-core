@@ -298,7 +298,7 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
     )
 
     table_M ++
-      (if (config.S) table_S else List())
+      (if (config.extensions.S) table_S else List())
   }
 
   val MXLEN  = UInt(8.W)
@@ -338,7 +338,7 @@ object CSR {
       }
     }
     val misaInitVal =
-      getMisaMxl() | config.CSRMisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) // "h8000000000141105".U
+      getMisaMxl() | config.csr.MisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) // "h8000000000141105".U
     // val valid = csr.io.in.valid
     csr.misa := misaInitVal
     // Misa Initial End -----------------
@@ -404,7 +404,7 @@ object CSR {
     // // TODO: Need Merge End
     csr.MXLEN := XLEN.U
     csr.IALIGN := {
-      if (config.C) 16.U
+      if (config.extensions.C) 16.U
       else 32.U
     }
     csr.ILEN := 32.U

@@ -107,6 +107,13 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
     when(REMW(inst))  { decodeR; next.reg(rd) := signExt(opREM(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
     when(REMUW(inst)) { decodeR; next.reg(rd) := signExt(opREMU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN) }
   }
+
+  def doRVM: Unit = {
+    XLEN match {
+      case 32 => doRV32M
+      case 64 => doRV64M
+    }
+  }
 }
 
 // scalafmt: { maxColumn = 120 } (back to defaults)

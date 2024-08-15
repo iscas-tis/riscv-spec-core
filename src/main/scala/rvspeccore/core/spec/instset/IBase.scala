@@ -411,6 +411,13 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
     // - 5.4 HINT Instructions
   }
+
+  def doRVI: Unit = {
+    config.XLEN match {
+      case 32 => doRV32I
+      case 64 => doRV64I
+    }
+  }
 }
 
 // scalafmt: { maxColumn = 120 } (back to defaults)

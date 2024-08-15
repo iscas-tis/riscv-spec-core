@@ -95,7 +95,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       next.internal.privilegeMode := mstatusOld.mpp
       mstatusNew.mpie             := true.B
       // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, privilegeMode)
-      if (config.CSRMisaExtList.exists(s => s == 'U')) {
+      if (config.csr.MisaExtList.contains('U')) {
         mstatusNew.mpp := ModeU
       } else {
         mstatusNew.mpp := ModeM

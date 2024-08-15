@@ -205,20 +205,25 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
     val file = s"$dirPath/RiscvCore.fir"
 
     val writer = new java.io.PrintWriter(file)
-    writer.write(_root_.circt.stage.ChiselStage.emitCHIRRTL(new RiscvCore()(RVConfig(64))))
+    writer.write(
+      _root_.circt.stage.ChiselStage.emitCHIRRTL(
+        new RiscvCore()(RVConfig("XLEN" -> 64, "extensions" -> "MC"))
+      )
+    )
     writer.close()
   }
   it should "pass manual test" in {
-    test(new RiscvCore()(RVConfig(64, "MC"))).withAnnotations(Seq(WriteVcdAnnotation)) { c =>
-      c.io.valid.poke(true.B)
-      c.io.inst.poke("h8391_4441".U)
-      c.clock.step()
-      c.io.inst.poke("h0000_8391".U)
-      c.clock.step()
-      c.io.inst.poke("h0000_0000".U)
-      c.clock.step()
-    }
-    implicit val config = RVConfig(64, "MC")
+    test(new RiscvCore()(RVConfig("XLEN" -> 64, "extensions" -> "MC")))
+      .withAnnotations(Seq(WriteVcdAnnotation)) { c =>
+        c.io.valid.poke(true.B)
+        c.io.inst.poke("h8391_4441".U)
+        c.clock.step()
+        c.io.inst.poke("h0000_8391".U)
+        c.clock.step()
+        c.io.inst.poke("h0000_0000".U)
+        c.clock.step()
+      }
+    implicit val config = RVConfig("XLEN" -> 64, "extensions" -> "MC")
     test(new CoreTester(new RiscvCore, "./testcase/riscv-tests-hex/rv64uc/rv64uc-rvc.hex"))
       .withAnnotations(Seq(WriteVcdAnnotation)) { c =>
         RiscvTests.stepTest(c, RiscvTests.maxStep)
@@ -228,7 +233,7 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RVConfig(64, "MCS")
+  implicit val config = RVConfig("XLEN" -> 64, "extensions" -> "MCZifencei")
 
   val tests = Seq("rv64ui", "rv64um", "rv64uc")
 
@@ -249,7 +254,7 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RVConfig(32, "MC")
+  implicit val config = RVConfig("XLEN" -> 32, "extensions" -> "MCZifencei")
 
   val tests = Seq("rv32ui", "rv32um", "rv32uc")
   // val tests = Seq("tempcsr32")

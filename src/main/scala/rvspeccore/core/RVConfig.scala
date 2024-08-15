@@ -3,52 +3,61 @@ package rvspeccore.core
 import chisel3._
 import chisel3.util._
 
-/** @param XLEN
-  *   The width of an integer register in bits
-  * @param extensions
-  *   Supported extensions
-  * @param fakeExtensions
-  *   RiscvCore does not support these extensions, but they will appear in misa
-  */
-class RVConfig(val XLEN: Int, extensions: String, fakeExtensions: String) {
+case class RVConfig(configs: (String, Any)*) {
+  val cfgs = configs.toMap
   // - riscv-spec-20191213
-  // - We use the term XLEN to refer to the width of an integer register in
+  // : We use the term XLEN to refer to the width of an integer register in
   //   bits.
+  require(cfgs.contains("XLEN"), "XLEN is required in RVConfig")
+  val XLEN: Int = cfgs("XLEN").asInstanceOf[Int]
   require(XLEN == 32 || XLEN == 64, "RiscvCore only support 32 or 64 bits now")
 
-  // ISA Extensions
-  val M: Boolean = extensions.indexOf("M") != -1
-  val C: Boolean = extensions.indexOf("C") != -1
-  // Priviledge Levels
-  val S: Boolean = extensions.indexOf("S") != -1
-  val U: Boolean = extensions.indexOf("U") != -1
+  object extensions {
+    protected val raw = cfgs.getOrElse("extensions", "").asInstanceOf[String]
+
+    // - RISC-V ISA, Unprivileged, 20240411
+    // - Preface
+    val I        = true
+    val M        = raw.contains("M")
+    val C        = raw.contains("C")
+    val Zifencei = raw.contains("Zifencei")
+    val Zicsr    = raw.contains("Zicsr")
+
+    // - RSIC-V ISA, Privileged, 20240411
+    // - 1. Introduction
+    // - 1.2. Privilege Levels
+    //   - Table 1. RISC-V privilege levels.
+    val U = raw.contains("U")
+    val S = raw.contains("S")
+    //   - Table 2. Supported combination of privilege modes.
+    assert(
+      (!U && !S) || (U && !S) || (U && S),
+      "Supported combination of privilege modes are M, MU, MSU, " +
+        s"not M${if (S) "S" else ""}${if (U) "U" else ""}"
+    )
+  }
+  val fakeExtensions: String = cfgs.getOrElse("fakeExtensions", "").asInstanceOf[String]
+
   // CSRs Config
+  object csr {
+    // Misa
+    val MisaExtList: String =
+      cfgs.getOrElse("fakeExtensions", "").asInstanceOf[String] +
+        Seq(
+          if (extensions.I) 'I' else "",
+          if (extensions.M) 'M' else "",
+          if (extensions.C) 'C' else "",
+          if (extensions.S) 'S' else "",
+          if (extensions.U) 'U' else ""
+        ).mkString("")
+  }
 
-  // Misa
-  val CSRMisaExtList = (fakeExtensions.toSeq ++
-    Seq(
-      Some('I'),
-      if (M) Some('M') else None,
-      if (C) Some('C') else None,
-      if (S) Some('S') else None,
-      if (U || S) Some('U') else None
-    ).flatten).distinct
-}
+  // Init Value
+  val initValue = cfgs.getOrElse("initValue", Map[String, String]()).asInstanceOf[Map[String, String]]
 
-object RVConfig {
-
-  /** Create a RVConfig
-    * @param XLEN
-    *   The width of an integer register in bits
-    * @param extensions
-    *   Supported extensions
-    * @param fakeExtensions
-    *   RiscvCore do not support this extensions, but will be appear in Misa
-    */
-  def apply(
-      XLEN: Int,
-      extensions: String = "",
-      fakeExtensions: String = ""
-  ): RVConfig =
-    new RVConfig(XLEN, extensions, fakeExtensions)
+  // Other Functions Config
+  object functions {
+    protected val raw       = cfgs.getOrElse("functions", Seq[String]()).asInstanceOf[Seq[String]]
+    val privileged: Boolean = raw.contains("Privileged")
+  }
 }

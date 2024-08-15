@@ -8,7 +8,7 @@ import spec.instset.csr.CSR
 import spec.instset.csr.EventSig
 import spec.instset.csr.SatpStruct
 
-abstract class BaseCore()(implicit config: RVConfig) extends Module {
+abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 
   // State
@@ -72,11 +72,11 @@ class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
 
 object State {
   def apply()(implicit XLEN: Int, config: RVConfig): State = new State
-  def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
+  def wireInit()(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
 
     state.reg := Seq.fill(32)(0.U(XLEN.W))
-    state.pc  := pcStr.U(XLEN.W)
+    state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
     state.csr := CSR.wireInit()
 
     state.internal := Internal.wireInit()
@@ -129,28 +129,18 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     iFetchpc := resultPC
 
     // Decode and Excute
-    config.XLEN match {
-      case 32 => {
-        doRV32I
-        if (config.M) { doRV32M }
-        if (config.C) { doRV32C }
-      }
-      case 64 => {
-        doRV64I
-        if (config.M) { doRV64M }
-        if (config.C) { doRV64C }
-      }
-    }
-    // TODO: add config for privileged instruction
-    doRVPrivileged()
-    doRVZicsr
-    doRVZifencei
+    doRVI
+    if (config.extensions.C) doRVC
+    if (config.extensions.M) doRVM
+    if (config.functions.privileged) doRVPrivileged
+    if (config.extensions.Zicsr) doRVZicsr
+    if (config.extensions.Zifencei) doRVZifencei
 
     // End excute
     next.reg(0) := 0.U
 
     when(!global_data.setpc) {
-      if (config.C) {
+      if (config.extensions.C) {
         // + 4.U for 32 bits width inst
         // + 2.U for 16 bits width inst in C extension
         next.pc := now.pc + Mux(inst(1, 0) === "b11".U, 4.U, 2.U)

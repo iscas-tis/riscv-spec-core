@@ -10,7 +10,7 @@ import rvspeccore.core._
 class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "ConnectHelper"
 
-  implicit val config = RVConfig(64)
+  implicit val config = RVConfig("XLEN" -> 64)
 
   class TestCore extends RiscvCore {
     val checker = Module(new CheckerWithResult(false, false))

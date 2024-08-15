@@ -45,7 +45,7 @@ trait PrivilegedExtension
     with PrivilegedInsts
     with CSRSupport
     with ExceptionSupport {
-  def doRVPrivileged()(implicit config: RVConfig): Unit = {
+  def doRVPrivileged: Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
     when(SRET(inst)) {
       // printf("Is SRET:%x\n",inst)
