@@ -350,7 +350,7 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid  := 0.U
     csr.mhartid := 0.U
-    csr.mstatus := config.initValue.getOrElse("mstatus", "h0").U
+    csr.mstatus := config.initValue.getOrElse("mstatus", "h0000_1800").U
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
