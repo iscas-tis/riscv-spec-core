@@ -10,10 +10,10 @@ class RVConfigSpec extends AnyFlatSpec {
       "XLEN"           -> 64,
       "extensions"     -> "IMCZifenceiU",
       "fakeExtensions" -> "A",
-      "CSRs"           -> Seq("Misa"),
       "functions"      -> Seq("Privileged"),
       "initValue" -> Map(
-        "pc" -> "h8000_0000"
+        "pc"    -> "h8000_0000",
+        "mtvec" -> "h0000_01c0"
       )
     )
     assert(config.XLEN == 64)
@@ -27,6 +27,7 @@ class RVConfigSpec extends AnyFlatSpec {
     assert(config.fakeExtensions == "A")
     assert(config.csr.MisaExtList == "AIMCU")
     assert(config.initValue("pc") == "h8000_0000")
+    assert(config.initValue("mtvec") == "h0000_01c0")
     assert(config.functions.privileged)
   }
 }
