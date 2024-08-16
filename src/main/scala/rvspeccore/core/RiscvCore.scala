@@ -16,7 +16,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
     val inst  = Input(UInt(32.W))
     val valid = Input(Bool())
     val mem   = new MemIO
-    val tlb   = new TLBIO
+//    val tlb   = new TLBIO
     // Exposed processor status
     val now      = Output(State())
     val next     = Output(State())
@@ -27,7 +27,7 @@ abstract class BaseCore()(implicit config: RVConfig) extends Module {
   val now  = RegInit(State.wireInit())
   val next = Wire(State())
   val mem  = Wire(new MemIO)
-  val tlb  = Wire(new TLBIO)
+//  val tlb  = Wire(new TLBIO)
   // Global Data
   val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
   val event       = Wire(new EventSig)
@@ -55,10 +55,10 @@ class MemIO()(implicit XLEN: Int) extends Bundle {
   val write = new WriteMemIO
 }
 
-class TLBIO()(implicit XLEN: Int) extends Bundle {
-  val Anotherread  = Vec(3 + 3, new ReadMemIO())
-  val Anotherwrite = Vec(3, new WriteMemIO())
-}
+//class TLBIO()(implicit XLEN: Int) extends Bundle {
+//  val Anotherread  = Vec(3 + 3, new ReadMemIO())
+//  val Anotherwrite = Vec(3, new WriteMemIO())
+//}
 
 class Internal() extends Bundle {
   val privilegeMode = UInt(2.W)
@@ -105,7 +105,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
-  tlb := 0.U.asTypeOf(new TLBIO)
+//  tlb := 0.U.asTypeOf(new TLBIO)
 
   // ID & EXE
   when(io.valid) {
@@ -113,13 +113,14 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     // TODO: merge into a function?
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-    val (resultStatus, resultPC) = if (XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)
-    when(resultStatus) {
-      inst := io.inst
-    }.otherwise {
-      inst := 0.U(XLEN.W) // With a NOP instruction
-    }
-    iFetchpc := resultPC
+//    val (resultStatus, resultPC) = if (XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)
+    inst := io.inst
+//    when(resultStatus) {
+//      inst := io.inst
+//    }.otherwise {
+//      inst := 0.U(XLEN.W) // With a NOP instruction
+//    }
+    iFetchpc := now.pc
 
     // Decode and Excute
     config.XLEN match {
@@ -157,7 +158,7 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // mem port
   io.mem <> mem
-  io.tlb <> tlb
+//  io.tlb <> tlb
 
   // update
   now := next

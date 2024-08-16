@@ -5,8 +5,8 @@ import chisel3.util._
 
 import rvspeccore.core._
 import rvspeccore.core.spec.instset.csr.EventSig
-import rvspeccore.core.tool.TLBMemInfo
-import rvspeccore.core.tool.TLBSig
+//import rvspeccore.core.tool.TLBMemInfo
+//import rvspeccore.core.tool.TLBSig
 
 abstract class Checker()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
@@ -61,8 +61,8 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
     val result     = Input(State())
     val mem        = if (checkMem) Some(Input(new MemIO)) else None
     val event      = Input(new EventSig())
-    val dtlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
-    val itlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
+//    val dtlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
+//    val itlbmem    = if (checkMem) Some(Input(new TLBSig)) else None
   })
   // TODO: io.result has .internal states now, consider use it or not
 
@@ -81,80 +81,80 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
   specCore.io.inst  := io.instCommit.inst
 
   // initial another io.mem.get.Anotherread
-  for (i <- 0 until 6) {
-    specCore.io.tlb.Anotherread(i).data := DontCare
-  }
+//  for (i <- 0 until 6) {
+//    specCore.io.tlb.Anotherread(i).data := DontCare
+//  }
 
   // assertions
 
   if (checkMem) {
     // printf("[specCore] Valid:%x PC: %x Inst: %x\n", specCore.io.valid, specCore.io.now.pc, specCore.io.inst)
     // specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
-    val TLBLoadQueue  = Seq.fill(3)(Module(new QueueModuleTLB()))
-    val tlb_load_push = Wire(new StoreOrLoadInfoTLB)
-    // initial the queue
-    for (i <- 0 until 3) {
-      TLBLoadQueue(i).io.out.ready := false.B
-      TLBLoadQueue(i).io.in.valid  := false.B
-      TLBLoadQueue(i).io.in.bits   := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-    }
-    when(io.dtlbmem.get.read.valid) {
-      tlb_load_push.addr  := io.dtlbmem.get.read.addr
-      tlb_load_push.data  := io.dtlbmem.get.read.data
-      tlb_load_push.level := io.dtlbmem.get.read.level
-      assert(RegNext(TLBLoadQueue(0).io.in.valid, false.B) === false.B)
-      assert(RegNext(TLBLoadQueue(0).io.in.bits.addr, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(0).io.in.bits.data, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(0).io.in.bits.level, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(1).io.in.valid, false.B) === false.B)
-      assert(RegNext(TLBLoadQueue(1).io.in.bits.addr, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(1).io.in.bits.data, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(1).io.in.bits.level, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(2).io.in.valid, false.B) === false.B)
-      assert(RegNext(TLBLoadQueue(2).io.in.bits.addr, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(2).io.in.bits.data, 0.U) === 0.U)
-      assert(RegNext(TLBLoadQueue(2).io.in.bits.level, 0.U) === 0.U)
-
-      for (i <- 0 until 3) {
-        TLBLoadQueue(i).io.in.valid := false.B
-        TLBLoadQueue(i).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-      }
-      switch(io.dtlbmem.get.read.level) {
-        is(0.U) {
-          TLBLoadQueue(0).io.in.valid := true.B
-          TLBLoadQueue(0).io.in.bits  := tlb_load_push
-        }
-        is(1.U) {
-          TLBLoadQueue(1).io.in.valid := true.B
-          TLBLoadQueue(1).io.in.bits  := tlb_load_push
-        }
-        is(2.U) {
-          TLBLoadQueue(2).io.in.valid := true.B
-          TLBLoadQueue(2).io.in.bits  := tlb_load_push
-        }
-        is(3.U) {}
-      }
-    }.otherwise {
-      for (i <- 0 until 3) {
-        TLBLoadQueue(i).io.in.valid := false.B
-        tlb_load_push               := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
-        TLBLoadQueue(i).io.in.bits  := tlb_load_push
-      }
-    }
-    for (i <- 0 until 3) {
-      when(specCore.io.tlb.Anotherread(i).valid) {
-        TLBLoadQueue(2 - i).io.out.ready := true.B
-        // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
-        specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(2 - i).io.out.bits.data else DontCare }
-        // TODO: 第Level 1 assert is inconsistent nutshell and the condition need to modify.
-        // assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
-      }.otherwise {
-        TLBLoadQueue(2 - i).io.out.ready := false.B
-      }
-      when(regDelay(specCore.io.tlb.Anotherread(i).valid)) {
-        assert(regDelay(TLBLoadQueue(2 - i).io.out.bits.addr) === regDelay(specCore.io.tlb.Anotherread(i).addr))
-      }
-    }
+//    val TLBLoadQueue  = Seq.fill(3)(Module(new QueueModuleTLB()))
+//    val tlb_load_push = Wire(new StoreOrLoadInfoTLB)
+//    // initial the queue
+//    for (i <- 0 until 3) {
+//      TLBLoadQueue(i).io.out.ready := false.B
+//      TLBLoadQueue(i).io.in.valid  := false.B
+//      TLBLoadQueue(i).io.in.bits   := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+//    }
+//    when(io.dtlbmem.get.read.valid) {
+//      tlb_load_push.addr  := io.dtlbmem.get.read.addr
+//      tlb_load_push.data  := io.dtlbmem.get.read.data
+//      tlb_load_push.level := io.dtlbmem.get.read.level
+//      assert(RegNext(TLBLoadQueue(0).io.in.valid, false.B) === false.B)
+//      assert(RegNext(TLBLoadQueue(0).io.in.bits.addr, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(0).io.in.bits.data, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(0).io.in.bits.level, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(1).io.in.valid, false.B) === false.B)
+//      assert(RegNext(TLBLoadQueue(1).io.in.bits.addr, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(1).io.in.bits.data, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(1).io.in.bits.level, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(2).io.in.valid, false.B) === false.B)
+//      assert(RegNext(TLBLoadQueue(2).io.in.bits.addr, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(2).io.in.bits.data, 0.U) === 0.U)
+//      assert(RegNext(TLBLoadQueue(2).io.in.bits.level, 0.U) === 0.U)
+//
+//      for (i <- 0 until 3) {
+//        TLBLoadQueue(i).io.in.valid := false.B
+//        TLBLoadQueue(i).io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+//      }
+//      switch(io.dtlbmem.get.read.level) {
+//        is(0.U) {
+//          TLBLoadQueue(0).io.in.valid := true.B
+//          TLBLoadQueue(0).io.in.bits  := tlb_load_push
+//        }
+//        is(1.U) {
+//          TLBLoadQueue(1).io.in.valid := true.B
+//          TLBLoadQueue(1).io.in.bits  := tlb_load_push
+//        }
+//        is(2.U) {
+//          TLBLoadQueue(2).io.in.valid := true.B
+//          TLBLoadQueue(2).io.in.bits  := tlb_load_push
+//        }
+//        is(3.U) {}
+//      }
+//    }.otherwise {
+//      for (i <- 0 until 3) {
+//        TLBLoadQueue(i).io.in.valid := false.B
+//        tlb_load_push               := 0.U.asTypeOf(new StoreOrLoadInfoTLB)
+//        TLBLoadQueue(i).io.in.bits  := tlb_load_push
+//      }
+//    }
+//    for (i <- 0 until 3) {
+//      when(specCore.io.tlb.Anotherread(i).valid) {
+//        TLBLoadQueue(2 - i).io.out.ready := true.B
+//        // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
+//        specCore.io.tlb.Anotherread(i).data := { if (checkMem) TLBLoadQueue(2 - i).io.out.bits.data else DontCare }
+//        // TODO: 第Level 1 assert is inconsistent nutshell and the condition need to modify.
+//        // assert(TLBLoadQueue(i).io.out.bits.addr      === specCore.io.mem.read.addr)
+//      }.otherwise {
+//        TLBLoadQueue(2 - i).io.out.ready := false.B
+//      }
+//      when(regDelay(specCore.io.tlb.Anotherread(i).valid)) {
+//        assert(regDelay(TLBLoadQueue(2 - i).io.out.bits.addr) === regDelay(specCore.io.tlb.Anotherread(i).addr))
+//      }
+//    }
     val LoadQueue  = Module(new QueueModule)
     val StoreQueue = Module(new QueueModule)
     LoadQueue.io.out.ready  := false.B
@@ -275,9 +275,9 @@ class CheckerWithWB(checkMem: Boolean = true)(implicit config: RVConfig) extends
   specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
 
   // initial another io.mem.get.Anotherread
-  for (i <- 0 until 6) {
-    specCore.io.tlb.Anotherread(i).data := DontCare
-  }
+//  for (i <- 0 until 6) {
+//    specCore.io.tlb.Anotherread(i).data := DontCare
+//  }
   val specCoreWBValid = WireInit(false.B)
   val specCoreWBDest  = WireInit(0.U(5.W))
   for (i <- 0 until 32) {
