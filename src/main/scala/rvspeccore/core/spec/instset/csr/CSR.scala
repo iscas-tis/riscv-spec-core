@@ -350,14 +350,7 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid  := 0.U
     csr.mhartid := 0.U
-    if (XLEN == 32) {
-      // TODO: Add an config file for change every bits of  mstatus
-      csr.mstatus := zeroExt("h000000ff".U, XLEN)
-    } else {
-      // csr.mstatus   := zeroExt("h2000000ff".U, XLEN)
-      csr.mstatus := zeroExt("h00001800".U, XLEN)
-      // csr.mstatus   := zeroExt("h000E0800".U, XLEN)
-    }
+    csr.mstatus := config.initValue.getOrElse("mstatus", "h0").U
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
