@@ -298,7 +298,7 @@ class CSR()(implicit XLEN: Int, config: RVConfig) extends Bundle with IgnoreSeqI
     )
 
     table_M ++
-      (if (config.S) table_S else List())
+      (if (config.extensions.S) table_S else List())
   }
 
   val MXLEN  = UInt(8.W)
@@ -338,7 +338,7 @@ object CSR {
       }
     }
     val misaInitVal =
-      getMisaMxl() | config.CSRMisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) // "h8000000000141105".U
+      getMisaMxl() | config.csr.MisaExtList.foldLeft(0.U)((sum, i) => sum | getMisaExt(i)) // "h8000000000141105".U
     // val valid = csr.io.in.valid
     csr.misa := misaInitVal
     // Misa Initial End -----------------
@@ -350,20 +350,13 @@ object CSR {
     // mimpid 0 means not implementation
     csr.mimpid  := 0.U
     csr.mhartid := 0.U
-    if (XLEN == 32) {
-      // TODO: Add an config file for change every bits of  mstatus
-      csr.mstatus := zeroExt("h000000ff".U, XLEN)
-    } else {
-      // csr.mstatus   := zeroExt("h2000000ff".U, XLEN)
-      csr.mstatus := zeroExt("h00001800".U, XLEN)
-      // csr.mstatus   := zeroExt("h000E0800".U, XLEN)
-    }
+    csr.mstatus := config.initValue.getOrElse("mstatus", "h0000_1800").U
     val mstatusStruct = csr.mstatus.asTypeOf(new MstatusStruct)
     // val mstatus_change = csr.mstatus.asTypeOf(new MstatusStruct)
     // printf("mpp---------------:%b\n",mstatus_change.mpp)
     csr.mstatush   := 0.U // 310
     csr.mscratch   := 0.U
-    csr.mtvec      := 0.U
+    csr.mtvec      := config.initValue.getOrElse("mtvec", "h0").U
     csr.mcounteren := 0.U
     csr.medeleg    := 0.U // 302
     csr.mideleg    := 0.U // 303
@@ -404,7 +397,7 @@ object CSR {
     // // TODO: Need Merge End
     csr.MXLEN := XLEN.U
     csr.IALIGN := {
-      if (config.C) 16.U
+      if (config.extensions.C) 16.U
       else 32.U
     }
     csr.ILEN := 32.U

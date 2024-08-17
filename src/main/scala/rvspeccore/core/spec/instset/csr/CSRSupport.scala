@@ -13,7 +13,6 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
   // def ModeS     = 0x1.U // 01 Supervisor
   // def ModeR     = 0x2.U // 10 Reserved
   // def ModeM     = 0x3.U // 11 Machine
-  val lr        = RegInit(Bool(), false.B)
   val VAddrBits = if (XLEN == 32) 32 else 39
   val retTarget = Wire(UInt(VAddrBits.W))
   retTarget := DontCare
@@ -21,9 +20,9 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     // Read the value of special registers
     // CSR addr require 12bit
     require(addr.getWidth == 12)
-    val has: Bool    = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
-    val nowCSR: UInt = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.signal })
-    val rmask: UInt  = MuxLookup(addr, 0.U, now.csr.table.map { x => x.info.addr -> x.info.rmask(XLEN) })
+    val has: Bool    = MuxLookup(addr, false.B)(now.csr.table.map { x => x.info.addr -> true.B })
+    val nowCSR: UInt = MuxLookup(addr, 0.U)(now.csr.table.map { x => x.info.addr -> x.signal })
+    val rmask: UInt  = MuxLookup(addr, 0.U)(now.csr.table.map { x => x.info.addr -> x.info.rmask(XLEN) })
     // printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
     val rData = WireInit(0.U(XLEN.W))
 
@@ -59,7 +58,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
   def csrWrite(addr: UInt, data: UInt): Unit = {
     def UnwritableMask = 0.U(XLEN.W)
     require(addr.getWidth == 12)
-    val has: Bool = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
+    val has: Bool = MuxLookup(addr, false.B)(now.csr.table.map { x => x.info.addr -> true.B })
     when(has) {
       // require(mask.getWidth == XLEN)
       // common wirte
@@ -96,13 +95,12 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       next.internal.privilegeMode := mstatusOld.mpp
       mstatusNew.mpie             := true.B
       // printf("MRET Mstatus: %x, Mode: %x\n", mstatusOld.asUInt, privilegeMode)
-      if (config.CSRMisaExtList.exists(s => s == 'U')) {
+      if (config.csr.MisaExtList.contains('U')) {
         mstatusNew.mpp := ModeU
       } else {
         mstatusNew.mpp := ModeM
       }
       next.csr.mstatus := mstatusNew.asUInt
-      lr               := false.B
       retTarget        := next.csr.mepc(VAddrBits - 1, 0)
       // printf("nextpc1:%x\n",now.csr.mepc)
       global_data.setpc := true.B
@@ -132,7 +130,6 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       mstatusNew.spp              := ModeU
       mstatusNew.mprv             := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
       next.csr.mstatus            := mstatusNew.asUInt
-      lr                          := false.B
       retTarget                   := next.csr.sepc(VAddrBits - 1, 0)
       // printf("nextpc1:%x\n",now.csr.sepc)
       global_data.setpc := true.B

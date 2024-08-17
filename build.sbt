@@ -10,10 +10,8 @@ ThisBuild / scalaVersion := "2.12.17"
 
 ThisBuild / crossScalaVersions := Seq("2.12.15", "2.13.8")
 
-resolvers ++= Seq(
-  Resolver.sonatypeRepo("snapshots"),
-  Resolver.sonatypeRepo("releases")
-)
+resolvers ++= Resolver.sonatypeOssRepos("releases")
+resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 lazy val publishSettings = Seq(
   versionScheme := {

@@ -72,7 +72,7 @@ trait ZicsrExtension extends BaseCore with ZicsrDecode with ZicsrExtensionInsts 
     val isIllegalMode  = now.internal.privilegeMode < addr(9, 8)
     // val isIllegalWrite = wen && (addr(11, 10) === "b11".U) && !justRead  // Write a read-only CSR register
     val isIllegalAccess = isIllegalMode || isIllegalWrite
-    val has: Bool       = MuxLookup(addr, false.B, now.csr.table.map { x => x.info.addr -> true.B })
+    val has: Bool       = MuxLookup(addr, false.B)(now.csr.table.map { x => x.info.addr -> true.B })
     when(isIllegalAccess || !has) {
       raiseException(MExceptionCode.illegalInstruction)
     }

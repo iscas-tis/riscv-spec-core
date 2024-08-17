@@ -303,4 +303,11 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
       next.reg(cat01(rdP)) := signExt(now.reg(cat01(rdP))(31, 0) - now.reg(cat01(rs2P))(31, 0), XLEN)
     }
   }
+
+  def doRVC: Unit = {
+    config.XLEN match {
+      case 32 => doRV32C
+      case 64 => doRV64C
+    }
+  }
 }

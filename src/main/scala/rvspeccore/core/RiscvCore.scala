@@ -8,30 +8,20 @@ import spec.instset.csr.CSR
 import spec.instset.csr.EventSig
 import spec.instset.csr.SatpStruct
 
-abstract class BaseCore()(implicit config: RVConfig) extends Module {
-  // Define Basic parts
+abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
-  val io = IO(new Bundle {
-    // Processor IO
-    val inst  = Input(UInt(32.W))
-    val valid = Input(Bool())
-    val mem   = new MemIO
-    val tlb   = new TLBIO
-    // Exposed processor status
-    val now      = Output(State())
-    val next     = Output(State())
-    val event    = Output(new EventSig)
-    val iFetchpc = Output(UInt(XLEN.W))
-  })
-  // Initial State
-  val now  = RegInit(State.wireInit())
+
+  // State
+  val now  = Wire(State())
   val next = Wire(State())
-  val mem  = Wire(new MemIO)
-  val tlb  = Wire(new TLBIO)
-  // Global Data
+  // IO ports
+  val iFetchpc = Wire(UInt(XLEN.W))
+  val mem      = Wire(new MemIO)
+  val tlb      = Wire(new TLBIO)
+  // Global signals
+  val inst        = Wire(UInt(32.W))
   val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
   val event       = Wire(new EventSig)
-  val iFetchpc    = Wire(UInt(XLEN.W))
 }
 class GlobalData extends Bundle {
   val setpc = Bool()
@@ -82,11 +72,11 @@ class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
 
 object State {
   def apply()(implicit XLEN: Int, config: RVConfig): State = new State
-  def wireInit(pcStr: String = "h8000_0000")(implicit XLEN: Int, config: RVConfig): State = {
+  def wireInit()(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
 
     state.reg := Seq.fill(32)(0.U(XLEN.W))
-    state.pc  := pcStr.U(XLEN.W)
+    state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
     state.csr := CSR.wireInit()
 
     state.internal := Internal.wireInit()
@@ -95,13 +85,30 @@ object State {
   }
 }
 
-class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
+class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
+  val io = IO(new Bundle {
+    // Processor IO
+    val inst     = Input(UInt(32.W))
+    val valid    = Input(Bool())
+    val iFetchpc = Output(UInt(XLEN.W))
+    val mem      = new MemIO
+    val tlb      = new TLBIO
+    // Processor status
+    val now  = Input(State())
+    val next = Output(State())
+    // Exposed signals
+    val event = Output(new EventSig)
+  })
+
   // Initial the value
+  now := io.now
   // these signals should keep the value in the next clock if there no changes below
   next              := now
+  inst              := 0.U
   global_data.setpc := false.B
   event             := 0.U.asTypeOf(new EventSig)
   iFetchpc          := now.pc
+
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
@@ -122,28 +129,18 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     iFetchpc := resultPC
 
     // Decode and Excute
-    config.XLEN match {
-      case 32 => {
-        doRV32I
-        if (config.M) { doRV32M }
-        if (config.C) { doRV32C }
-      }
-      case 64 => {
-        doRV64I
-        if (config.M) { doRV64M }
-        if (config.C) { doRV64C }
-      }
-    }
-    // TODO: add config for privileged instruction
-    doRVPrivileged()
-    doRVZicsr
-    doRVZifencei
+    doRVI
+    if (config.extensions.C) doRVC
+    if (config.extensions.M) doRVM
+    if (config.functions.privileged) doRVPrivileged
+    if (config.extensions.Zicsr) doRVZicsr
+    if (config.extensions.Zifencei) doRVZifencei
 
     // End excute
     next.reg(0) := 0.U
 
     when(!global_data.setpc) {
-      if (config.C) {
+      if (config.extensions.C) {
         // + 4.U for 32 bits width inst
         // + 2.U for 16 bits width inst in C extension
         next.pc := now.pc + Mux(inst(1, 0) === "b11".U, 4.U, 2.U)
@@ -159,12 +156,41 @@ class RiscvCore()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   io.mem <> mem
   io.tlb <> tlb
 
-  // update
-  now := next
-
-  // output
-  io.now      := now
   io.next     := next
   io.event    := event
   io.iFetchpc := iFetchpc
+}
+
+class RiscvCore()(implicit config: RVConfig) extends Module {
+  implicit val XLEN: Int = config.XLEN
+
+  val io = IO(new Bundle {
+    // Processor IO
+    val inst     = Input(UInt(32.W))
+    val valid    = Input(Bool())
+    val iFetchpc = Output(UInt(XLEN.W))
+    val mem      = new MemIO
+    val tlb      = new TLBIO
+    // Processor status
+    val now  = Output(State())
+    val next = Output(State())
+    // Exposed signals
+    val event = Output(new EventSig)
+  })
+
+  val state = RegInit(State.wireInit())
+  val trans = Module(new RiscvTrans())
+
+  trans.io.inst  := io.inst
+  trans.io.valid := io.valid
+  trans.io.mem <> io.mem
+  trans.io.tlb <> io.tlb
+
+  trans.io.now := state
+  state        := trans.io.next
+
+  io.now      := state
+  io.next     := trans.io.next
+  io.event    := trans.io.event
+  io.iFetchpc := trans.io.iFetchpc
 }

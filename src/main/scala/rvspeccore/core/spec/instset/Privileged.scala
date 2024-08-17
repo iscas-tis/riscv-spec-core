@@ -35,12 +35,6 @@ trait PrivilegedInsts {
   // ...
   // - Hypervisor Virtual-Machine Load and Store Instructions, RV64 only
   // ...
-
-  // FIXME: need to remove
-  // val TEST_ILLEGAL=Inst("b0000000_00000_00000_000_00000_1111011")
-  val TEST_TLBLW = Inst("b0000000_00000_00011_010_111010_000011")
-  // TODO: why has NOP?
-  val NOP = Inst("b0000000_00000_00000_000_00000_0000000")
 }
 
 /** “Privileged” Instruction-Fetch Fence Volume II Insts
@@ -51,7 +45,7 @@ trait PrivilegedExtension
     with PrivilegedInsts
     with CSRSupport
     with ExceptionSupport {
-  def doRVPrivileged()(implicit config: RVConfig): Unit = {
+  def doRVPrivileged: Unit = {
     // FIXME: need to decode more insts & clearify there actions(not do nothing....)
     when(SRET(inst)) {
       // printf("Is SRET:%x\n",inst)
@@ -65,12 +59,7 @@ trait PrivilegedExtension
       Mret()
       /* then do nothing for now */
     }
-    when(WFI(inst)) { decodeI /* then do nothing for now */ }
-    when(NOP(inst)) {
-      // printf("Is NOP:%x\n",inst)
-      tryRaiseException()
-      /* then do nothing for now */
-    }
+    when(WFI(inst))        { decodeI /* then do nothing for now */ }
     when(SFANCE_VMA(inst)) { decodeI /* then do nothing for now */ }
   }
 }
