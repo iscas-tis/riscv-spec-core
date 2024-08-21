@@ -7,6 +7,7 @@ import spec._
 import spec.instset.csr.CSR
 import spec.instset.csr.EventSig
 import spec.instset.csr.SatpStruct
+import rvspeccore.checker.ConnectCheckerResult
 
 abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
@@ -75,7 +76,11 @@ object State {
   def wireInit()(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
 
-    state.reg := Seq.fill(32)(0.U(XLEN.W))
+    val initval = Wire(Vec(32, UInt(XLEN.W)))
+    initval := DontCare
+    ConnectCheckerResult.setRandomTarget(initval)
+    state.reg := initval
+    // state.reg := Seq.fill(32)(0.U(XLEN.W))
     state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
     state.csr := CSR.wireInit()
 
