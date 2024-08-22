@@ -15,5 +15,7 @@ jobs:
           java-version: adopt@1.8
       - name: Cache Scala
         uses: coursier/cache-action@v5
+      - name: Setup BtorMC
+        uses: SeddonShen/setup-btormc@v0.0.2
       - name: SBT Test
         run: sbt test
