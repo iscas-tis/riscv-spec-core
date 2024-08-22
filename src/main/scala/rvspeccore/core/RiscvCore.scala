@@ -76,11 +76,12 @@ object State {
   def wireInit()(implicit XLEN: Int, config: RVConfig): State = {
     val state = Wire(new State)
 
-    val initval = Wire(Vec(32, UInt(XLEN.W)))
-    initval := DontCare
-    ConnectCheckerResult.setRandomTarget(initval)
-    state.reg := initval
-    // state.reg := Seq.fill(32)(0.U(XLEN.W))
+    state.reg := {
+      if (config.formal.arbitraryRegFile)
+        rvspeccore.checker.ArbitraryRegFile.genSink
+      else
+        Seq.fill(32)(0.U(XLEN.W))
+    }
     state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
     state.csr := CSR.wireInit()
 

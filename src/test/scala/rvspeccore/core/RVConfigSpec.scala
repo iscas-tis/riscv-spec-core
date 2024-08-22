@@ -14,7 +14,8 @@ class RVConfigSpec extends AnyFlatSpec {
       "initValue" -> Map(
         "pc"    -> "h8000_0000",
         "mtvec" -> "h0000_01c0"
-      )
+      ),
+      "formal" -> Seq("ArbitraryRegFile")
     )
     assert(config.XLEN == 64)
     assert(config.extensions.I)
@@ -29,5 +30,6 @@ class RVConfigSpec extends AnyFlatSpec {
     assert(config.initValue("pc") == "h8000_0000")
     assert(config.initValue("mtvec") == "h0000_01c0")
     assert(config.functions.privileged)
+    assert(config.formal.arbitraryRegFile)
   }
 }

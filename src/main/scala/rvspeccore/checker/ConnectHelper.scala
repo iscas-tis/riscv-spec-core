@@ -20,11 +20,7 @@ object ConnectCheckerResult extends ConnectHelper {
   val uniqueIdEvent: String = "ConnectCheckerResult_UniqueIdEvent"
   val uniqueIdDTLB: String  = "ConnectCheckerResult_UniqueIdDTLB"
   val uniqueIdITLB: String  = "ConnectCheckerResult_UniqueIdITLB"
-  val uniqueIdRandom: String = "ConnectCheckerResult_UniqueIdRandom"
 
-  def setRandomTarget(randomVec: Vec[UInt]) = {
-    BoringUtils.addSink(randomVec, uniqueIdRandom)
-  }
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
   }
@@ -97,14 +93,17 @@ object ConnectCheckerResult extends ConnectHelper {
     event
   }
 
-  def setChecker(checker: CheckerWithResult, memDelay: Int = 0, init: Boolean = false)(implicit XLEN: Int, config: RVConfig) = {
+  def setChecker(
+      checker: CheckerWithResult,
+      memDelay: Int = 0
+  )(implicit XLEN: Int, config: RVConfig) = {
     // reg
+    if (config.formal.arbitraryRegFile) ArbitraryRegFile.init
+
     val regVec = Wire(Vec(32, UInt(XLEN.W)))
     regVec := DontCare
     BoringUtils.addSink(regVec, uniqueIdReg)
-    val initval = if(init) WireInit(VecInit(Seq.fill(32)(0.U(XLEN.W)))) else GenerateArbitraryRegFile(XLEN)
 
-    BoringUtils.addSource(initval, uniqueIdRandom)
     checker.io.result.reg := regVec
     checker.io.result.pc  := DontCare
 
