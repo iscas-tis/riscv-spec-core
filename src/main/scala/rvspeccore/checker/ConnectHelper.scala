@@ -20,6 +20,7 @@ object ConnectCheckerResult extends ConnectHelper {
   val uniqueIdEvent: String = "ConnectCheckerResult_UniqueIdEvent"
   val uniqueIdDTLB: String  = "ConnectCheckerResult_UniqueIdDTLB"
   val uniqueIdITLB: String  = "ConnectCheckerResult_UniqueIdITLB"
+
   def setRegSource(regVec: Vec[UInt]) = {
     BoringUtils.addSource(regVec, uniqueIdReg)
   }
@@ -92,8 +93,13 @@ object ConnectCheckerResult extends ConnectHelper {
     event
   }
 
-  def setChecker(checker: CheckerWithResult, memDelay: Int = 0)(implicit XLEN: Int, config: RVConfig) = {
+  def setChecker(
+      checker: CheckerWithResult,
+      memDelay: Int = 0
+  )(implicit XLEN: Int, config: RVConfig) = {
     // reg
+    if (config.formal.arbitraryRegFile) ArbitraryRegFile.init
+
     val regVec = Wire(Vec(32, UInt(XLEN.W)))
     regVec := DontCare
     BoringUtils.addSink(regVec, uniqueIdReg)

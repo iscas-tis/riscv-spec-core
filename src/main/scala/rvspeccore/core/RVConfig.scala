@@ -60,4 +60,11 @@ case class RVConfig(configs: (String, Any)*) {
     protected val raw       = cfgs.getOrElse("functions", Seq[String]()).asInstanceOf[Seq[String]]
     val privileged: Boolean = raw.contains("Privileged")
   }
+
+  // Formal
+  object formal {
+    protected val raw = cfgs.getOrElse("formal", Seq[String]()).asInstanceOf[Seq[String]]
+
+    val arbitraryRegFile: Boolean = raw.contains("ArbitraryRegFile")
+  }
 }

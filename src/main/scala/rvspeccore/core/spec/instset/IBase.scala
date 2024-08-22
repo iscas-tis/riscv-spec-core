@@ -245,11 +245,55 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     // BLT[U]
-    when(BLT(inst))  { decodeB; when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) { global_data.setpc := true.B; next.pc := now.pc + imm } }
-    when(BLTU(inst)) { decodeB; when(now.reg(rs1) < now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BLT(inst))  {
+      decodeB;
+      when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) {
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B;
+          next.pc := now.pc + imm
+        }.otherwise {
+          next.csr.mtval := now.pc + imm;
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+      }
+    }
+    when(BLTU(inst)) {
+      decodeB;
+      when(now.reg(rs1) < now.reg(rs2)) {
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B;
+          next.pc := now.pc + imm
+        }.otherwise {
+          next.csr.mtval := now.pc + imm;
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+      }
+    }
     // BGE[U]
-    when(BGE(inst))  { decodeB; when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) { global_data.setpc := true.B; next.pc := now.pc + imm } }
-    when(BGEU(inst)) { decodeB; when(now.reg(rs1) >= now.reg(rs2)) { global_data.setpc := true.B; next.pc := now.pc + imm } }
+    when(BGE(inst))  {
+      decodeB;
+      when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) {
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B;
+          next.pc := now.pc + imm
+        }.otherwise {
+          next.csr.mtval := now.pc + imm;
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+      }
+    }
+    when(BGEU(inst)) {
+      decodeB;
+      when(now.reg(rs1) >= now.reg(rs2)) {
+        when(addrAligned(getfetchSize(), now.pc + imm)){
+          global_data.setpc := true.B;
+          next.pc := now.pc + imm
+        }.otherwise {
+          next.csr.mtval := now.pc + imm;
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+      }
+    }
     // - 2.6 Load and Store Instructions
     // LOAD
     // TODO: LBU and LHU ?
