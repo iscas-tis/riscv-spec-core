@@ -6,7 +6,7 @@ import chisel3.util.experimental.BoringUtils
 
 object ArbitraryRegFile {
   val uniqueIdArbitraryRegFile = "ArbitraryRegFile"
-  def genSink(implicit XLEN: Int): Vec[UInt] = {
+  def gen(implicit XLEN: Int): Vec[UInt] = {
     val initval = Wire(Vec(32, UInt(XLEN.W)))
     initval := DontCare
     BoringUtils.addSink(initval, uniqueIdArbitraryRegFile)

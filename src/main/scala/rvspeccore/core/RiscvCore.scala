@@ -7,7 +7,8 @@ import spec._
 import spec.instset.csr.CSR
 import spec.instset.csr.EventSig
 import spec.instset.csr.SatpStruct
-import rvspeccore.checker.ConnectCheckerResult
+
+import rvspeccore.checker.ArbitraryRegFile
 
 abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
@@ -77,10 +78,8 @@ object State {
     val state = Wire(new State)
 
     state.reg := {
-      if (config.formal.arbitraryRegFile)
-        rvspeccore.checker.ArbitraryRegFile.genSink
-      else
-        Seq.fill(32)(0.U(XLEN.W))
+      if (config.formal.arbitraryRegFile) ArbitraryRegFile.gen
+      else Seq.fill(32)(0.U(XLEN.W))
     }
     state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
     state.csr := CSR.wireInit()
