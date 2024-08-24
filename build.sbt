@@ -2,7 +2,7 @@
 lazy val useCHA: Boolean =
   sys.props.getOrElse("CHA", "false").toLowerCase == "true"
 
-ThisBuild / version      := { if (useCHA) "1.3-cha-SNAPSHOT" else "1.3-SNAPSHOT" }
+ThisBuild / version      := { if (useCHA) "1.3.1_noQandTLB-cha-SNAPSHOT" else "1.3.1_noQandTLB-SNAPSHOT" }
 ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.12.17"
 // Use Scala2.13 with ChiselTest0.6.0 will cause efficiency issues in the

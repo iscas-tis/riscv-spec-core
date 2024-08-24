@@ -1,5 +1,19 @@
 # RISC-V Spec Core
 
+## TBD
+
+该版本是接入riscv-mini的特别版本，不需要queue和tlb的内容
+
+在最新1.3版本上修改，完成了与rvformal的对比实验
+
+版本号：1.3.1_noQandTLB-SNAPSHOT
+
+使用方法：
+
+```sh
+     sbt "+publishLocal"
+```
+
 This project is a framework for formal verification/testing the consistency
 between a Chisel-designed RISC-V processor and the instruction set
 specification.
