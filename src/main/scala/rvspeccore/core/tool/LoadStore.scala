@@ -5,7 +5,7 @@ import chisel3.util._
 
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec.instset.csr._
-import java.awt.print.Book
+
 // TODO: Optimize code writing style
 class TLBSig()(implicit XLEN: Int) extends Bundle {
   val read  = new TLBMemInfo
@@ -45,7 +45,7 @@ trait LoadStore extends BaseCore with MMU {
     )
   }
   def memRead(addr: UInt, memWidth: UInt): UInt = {
-    if (XLEN == 32) {
+    if (!config.functions.tlb) {
       val bytesWidth = log2Ceil(XLEN / 8)
       val rOff       = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
       val rMask      = width2Mask(memWidth)
@@ -78,7 +78,7 @@ trait LoadStore extends BaseCore with MMU {
     }
   }
   def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
-    if (XLEN == 32) {
+    if (!config.functions.tlb) {
       mem.write.valid    := true.B
       mem.write.addr     := addr
       mem.write.memWidth := memWidth
