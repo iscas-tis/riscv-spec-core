@@ -109,24 +109,28 @@ object ConnectCheckerResult extends ConnectHelper {
 
     checker.io.result.internal := DontCare
 
-    if (checker.io.mem != None) {
-      val mem     = Wire(new MemSig)
-      val dtlbmem = Wire(new TLBSig)
-      val itlbmem = Wire(new TLBSig)
-      mem     := DontCare
-      dtlbmem := DontCare
-      itlbmem := DontCare
+    if (checker.checkMem) {
+      val mem = Wire(new MemSig)
+      mem := DontCare
       BoringUtils.addSink(mem, uniqueIdMem)
-      BoringUtils.addSink(dtlbmem, uniqueIdDTLB)
-      BoringUtils.addSink(itlbmem, uniqueIdITLB)
-      checker.io.dtlbmem.get := dtlbmem
-      checker.io.itlbmem.get := itlbmem
-      checker.io.mem.get     := regNextDelay(mem, memDelay)
-      // expose the signal below
-      // assert(RegNext(checker.io.dtlbmem.get.read.valid, false.B) === false.B)
-      // assert(RegNext(dtlbmem.read.valid, false.B) === false.B)
-      // assert(RegNext(dtlbmem.read.addr, 0.U) === 0.U)
-      // assert(RegNext(dtlbmem.read.data, 0.U) === 0.U)
+      checker.io.mem.get := regNextDelay(mem, memDelay)
+      if (config.functions.tlb) {
+        val dtlbmem = Wire(new TLBSig)
+        val itlbmem = Wire(new TLBSig)
+        dtlbmem := DontCare
+        itlbmem := DontCare
+        BoringUtils.addSink(dtlbmem, uniqueIdDTLB)
+        BoringUtils.addSink(itlbmem, uniqueIdITLB)
+        checker.io.dtlbmem.get := dtlbmem
+        checker.io.itlbmem.get := itlbmem
+        // expose the signal below
+        // assert(RegNext(checker.io.dtlbmem.get.read.valid, false.B) === false.B)
+        // assert(RegNext(dtlbmem.read.valid, false.B) === false.B)
+        // assert(RegNext(dtlbmem.read.addr, 0.U) === 0.U)
+        // assert(RegNext(dtlbmem.read.data, 0.U) === 0.U)
+      } else {
+        // FIXME: [Yicheng]
+      }
     }
     // csr
     val csr = Wire(CSR())

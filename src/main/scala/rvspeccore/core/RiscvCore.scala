@@ -19,7 +19,7 @@ abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   // IO ports
   val iFetchpc = Wire(UInt(XLEN.W))
   val mem      = Wire(new MemIO)
-  val tlb      = Wire(new TLBIO)
+  val tlb      = if (config.functions.tlb) Some(Wire(new TLBIO)) else None
   // Global signals
   val inst        = Wire(UInt(32.W))
   val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
@@ -97,7 +97,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     val valid    = Input(Bool())
     val iFetchpc = Output(UInt(XLEN.W))
     val mem      = new MemIO
-    val tlb      = new TLBIO
+    val tlb      = if (config.functions.tlb) Some(new TLBIO) else None
     // Processor status
     val now  = Input(State())
     val next = Output(State())
@@ -117,7 +117,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   // dont read or write mem
   // if there no LOAD/STORE below
   mem := 0.U.asTypeOf(new MemIO)
-  tlb := 0.U.asTypeOf(new TLBIO)
+  tlb.map(_ := 0.U.asTypeOf(new TLBIO))
 
   // ID & EXE
   when(io.valid) {
@@ -159,7 +159,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
 
   // mem port
   io.mem <> mem
-  io.tlb <> tlb
+  io.tlb.map(_ <> tlb.get)
 
   io.next     := next
   io.event    := event
@@ -175,7 +175,7 @@ class RiscvCore()(implicit config: RVConfig) extends Module {
     val valid    = Input(Bool())
     val iFetchpc = Output(UInt(XLEN.W))
     val mem      = new MemIO
-    val tlb      = new TLBIO
+    val tlb      = if (config.functions.tlb) Some(new TLBIO) else None
     // Processor status
     val now  = Output(State())
     val next = Output(State())
@@ -189,7 +189,7 @@ class RiscvCore()(implicit config: RVConfig) extends Module {
   trans.io.inst  := io.inst
   trans.io.valid := io.valid
   trans.io.mem <> io.mem
-  trans.io.tlb <> io.tlb
+  trans.io.tlb.map(_ <> io.tlb.get)
 
   trans.io.now := state
   state        := trans.io.next

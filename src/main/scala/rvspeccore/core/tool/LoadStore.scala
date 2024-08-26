@@ -141,11 +141,11 @@ trait MMU extends BaseCore with ExceptionSupport {
   }
 
   def PAReadMMU(addr: UInt, memWidth: UInt, no: Int): UInt = {
-    tlb.Anotherread(no).valid    := true.B
-    tlb.Anotherread(no).addr     := addr
-    tlb.Anotherread(no).memWidth := memWidth
+    tlb.get.Anotherread(no).valid    := true.B
+    tlb.get.Anotherread(no).addr     := addr
+    tlb.get.Anotherread(no).memWidth := memWidth
     // printf("[Debug] Level: %x Addr: %x Data: %x\n", no.asUInt, addr, tlb.Anotherread(no).data)
-    tlb.Anotherread(no).data
+    tlb.get.Anotherread(no).data
   }
 
   def PAWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
@@ -156,10 +156,10 @@ trait MMU extends BaseCore with ExceptionSupport {
   }
   def PAWriteMMU(addr: UInt, memWidth: UInt, data: UInt): Unit = {
     // 暂时先使用了一个端口 实际上 dirty操作的是最后找到的那个页 不像读页出现的问题
-    tlb.Anotherwrite(0).valid    := true.B
-    tlb.Anotherwrite(0).addr     := addr
-    tlb.Anotherwrite(0).memWidth := memWidth
-    tlb.Anotherwrite(0).data     := data
+    tlb.get.Anotherwrite(0).valid    := true.B
+    tlb.get.Anotherwrite(0).addr     := addr
+    tlb.get.Anotherwrite(0).memWidth := memWidth
+    tlb.get.Anotherwrite(0).data     := data
   }
 
   def LegalAddrStep5(isiFetch: Bool): Bool = {
