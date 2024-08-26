@@ -55,7 +55,12 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
         assert(io.mem.get.read.addr === specCore.io.mem.read.addr)
         assert(io.mem.get.read.memWidth === specCore.io.mem.read.memWidth)
       }
-      assert(io.mem.get.write.valid === specCore.io.mem.write.valid)  
+      assert(io.mem.get.write.valid === specCore.io.mem.write.valid)
+      when(io.mem.get.write.valid || specCore.io.mem.write.valid){
+        assert(io.mem.get.write.addr === specCore.io.mem.write.addr)
+        assert(io.mem.get.write.data === specCore.io.mem.write.data)
+        assert(io.mem.get.write.memWidth === specCore.io.mem.write.memWidth)
+      }
       specCore.io.mem.read.data := io.mem.get.read.data
   } else {
     specCore.io.mem.read.data := DontCare

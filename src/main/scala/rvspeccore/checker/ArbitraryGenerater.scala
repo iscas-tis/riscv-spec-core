@@ -14,8 +14,10 @@ object ArbitraryRegFile {
   }
   def init(implicit XLEN: Int): Vec[UInt] = {
     val rf = Wire(Vec(32, UInt(XLEN.W)))
-    rf.map(_ := DontCare)
-    rf(0) := 0.U
+    // rf.map(_ := DontCare)
+    rf.map(_ := 0.U)
+    rf(1) := DontCare
+    rf(2) := DontCare
     BoringUtils.addSource(rf, uniqueIdArbitraryRegFile)
     rf
   }
