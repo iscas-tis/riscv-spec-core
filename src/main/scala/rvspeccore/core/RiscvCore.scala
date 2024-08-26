@@ -125,13 +125,15 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     // TODO: merge into a function?
     next.csr.cycle := now.csr.cycle + 1.U
     exceptionSupportInit()
-    val (resultStatus, resultPC) = if (XLEN == 32) (true.B, now.pc) else iFetchTrans(now.pc)
-    when(resultStatus) {
-      inst := io.inst
-    }.otherwise {
-      inst := 0.U(XLEN.W) // With a NOP instruction
+
+    if (!config.functions.tlb) {
+      inst     := io.inst
+      iFetchpc := now.pc
+    } else {
+      val (resultStatus, resultPC) = iFetchTrans(now.pc)
+      inst     := Mux(resultStatus, io.inst, "h0000_0013".U) // With a NOP instruction
+      iFetchpc := resultPC
     }
-    iFetchpc := resultPC
 
     // Decode and Excute
     doRVI
