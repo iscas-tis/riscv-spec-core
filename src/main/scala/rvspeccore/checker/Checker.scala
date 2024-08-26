@@ -50,16 +50,16 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
   // assertions
 
   if (checkMem) {
-      assert(io.mem.get.read.valid === specCore.io.mem.read.valid)
-      when(io.mem.get.read.valid || specCore.io.mem.read.valid){
-        assert(io.mem.get.read.addr === specCore.io.mem.read.addr)
-        assert(io.mem.get.read.memWidth === specCore.io.mem.read.memWidth)
+      assert(regDelay(io.mem.get.read.valid) === regDelay(specCore.io.mem.read.valid))
+      when(regDelay(io.mem.get.read.valid) || regDelay(specCore.io.mem.read.valid)){
+        assert(regDelay(io.mem.get.read.addr) === regDelay(specCore.io.mem.read.addr))
+        assert(regDelay(io.mem.get.read.memWidth) === regDelay(specCore.io.mem.read.memWidth))
       }
-      assert(io.mem.get.write.valid === specCore.io.mem.write.valid)
-      when(io.mem.get.write.valid || specCore.io.mem.write.valid){
-        assert(io.mem.get.write.addr === specCore.io.mem.write.addr)
-        assert(io.mem.get.write.data === specCore.io.mem.write.data)
-        assert(io.mem.get.write.memWidth === specCore.io.mem.write.memWidth)
+      assert(regDelay(io.mem.get.write.valid) === regDelay(specCore.io.mem.write.valid))
+      when(regDelay(io.mem.get.write.valid) || regDelay(specCore.io.mem.write.valid)){
+        assert(regDelay(io.mem.get.write.addr) === regDelay(specCore.io.mem.write.addr))
+        assert(regDelay(io.mem.get.write.data) === regDelay(specCore.io.mem.write.data))
+        assert(regDelay(io.mem.get.write.memWidth) === regDelay(specCore.io.mem.write.memWidth))
       }
       specCore.io.mem.read.data := io.mem.get.read.data
   } else {
@@ -73,9 +73,9 @@ class CheckerWithResult(checkMem: Boolean = true, enableReg: Boolean = false)(im
     }
   }
   // printf("[SSD] io.instCommit.valid %x io.event.valid %x speccore.io.event.valid %x\n", io.instCommit.valid, io.event.valid, specCore.io.event.valid)
-  when(io.instCommit.valid) {
+  when(regDelay(io.instCommit.valid)) {
     // now pc:
-    assert(io.instCommit.pc === specCore.io.now.pc)
+    assert(regDelay(io.instCommit.pc) === regDelay(specCore.io.now.pc))
     // next pc: hard to get next pc in a pipeline, check it at next instruction
 
     // next csr:
