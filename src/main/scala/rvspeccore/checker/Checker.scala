@@ -90,7 +90,20 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
   // assertions
 
   if (checkMem) {
-    if (config.functions.tlb) {
+    if (!config.functions.tlb) {
+      assert(io.mem.get.read.valid === specCore.io.mem.read.valid)
+      when(io.mem.get.read.valid || specCore.io.mem.read.valid) {
+        assert(io.mem.get.read.addr === specCore.io.mem.read.addr)
+        assert(io.mem.get.read.memWidth === specCore.io.mem.read.memWidth)
+      }
+      assert(io.mem.get.write.valid === specCore.io.mem.write.valid)
+      when(io.mem.get.write.valid || specCore.io.mem.write.valid) {
+        assert(io.mem.get.write.addr === specCore.io.mem.write.addr)
+        assert(io.mem.get.write.data === specCore.io.mem.write.data)
+        assert(io.mem.get.write.memWidth === specCore.io.mem.write.memWidth)
+      }
+      specCore.io.mem.read.data := io.mem.get.read.data
+    } else {
       // printf("[specCore] Valid:%x PC: %x Inst: %x\n", specCore.io.valid, specCore.io.now.pc, specCore.io.inst)
       // specCore.io.mem.read.data := { if (checkMem) io.mem.get.read.data else DontCare }
       val TLBLoadQueue  = Seq.fill(3)(Module(new QueueModuleTLB()))
@@ -214,8 +227,6 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
         assert(StoreQueue.io.out.bits.data === specCore.io.mem.write.data)
         assert(StoreQueue.io.out.bits.memWidth === specCore.io.mem.write.memWidth)
       }
-    } else {
-      // FIXME: [Yicheng] checkMem but not sv39
     }
   } else {
     specCore.io.mem.read.data := DontCare
