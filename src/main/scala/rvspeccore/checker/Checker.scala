@@ -152,50 +152,38 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
       }
       val LoadQueue  = Module(new QueueModule)
       val StoreQueue = Module(new QueueModule)
-      LoadQueue.io.out.ready  := false.B
-      StoreQueue.io.out.ready := false.B
-      // Load Queue
-      val load_push  = Wire(new StoreOrLoadInfo)
-      val store_push = Wire(new StoreOrLoadInfo)
       // LOAD
       when(io.mem.get.read.valid) {
-        LoadQueue.io.in.valid := true.B
-        load_push.addr        := io.mem.get.read.addr
-        load_push.data        := io.mem.get.read.data
-        load_push.memWidth    := io.mem.get.read.memWidth
-        LoadQueue.io.in.bits  := load_push
+        LoadQueue.io.in.valid         := true.B
+        LoadQueue.io.in.bits.addr     := io.mem.get.read.addr
+        LoadQueue.io.in.bits.data     := io.mem.get.read.data
+        LoadQueue.io.in.bits.memWidth := io.mem.get.read.memWidth
         // printf("Load into Queue.... valid: %x %x %x %x\n", LoadQueue.io.in.valid, load_push.addr, load_push.data, load_push.memWidth)
       }.otherwise {
         LoadQueue.io.in.valid := false.B
-        load_push.addr        := 0.U
-        load_push.data        := 0.U
-        load_push.memWidth    := 0.U
-        LoadQueue.io.in.bits  := load_push
+        LoadQueue.io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfo)
       }
       when(specCore.io.mem.read.valid) {
         LoadQueue.io.out.ready := true.B
         // printf("Load out Queue....  valid: %x %x %x %x\n", LoadQueue.io.out.valid, LoadQueue.io.out.bits.addr, LoadQueue.io.out.bits.data, LoadQueue.io.out.bits.memWidth)
-        specCore.io.mem.read.data := { if (checkMem) LoadQueue.io.out.bits.data else DontCare }
+        specCore.io.mem.read.data := LoadQueue.io.out.bits.data
         assert(LoadQueue.io.out.bits.addr === specCore.io.mem.read.addr)
         assert(LoadQueue.io.out.bits.memWidth === specCore.io.mem.read.memWidth)
       }.otherwise {
+        LoadQueue.io.out.ready    := false.B
         specCore.io.mem.read.data := 0.U
       }
 
       // Store
       when(io.mem.get.write.valid) {
-        StoreQueue.io.in.valid := true.B
-        store_push.addr        := io.mem.get.write.addr
-        store_push.data        := io.mem.get.write.data
-        store_push.memWidth    := io.mem.get.write.memWidth
-        StoreQueue.io.in.bits  := store_push
+        StoreQueue.io.in.valid         := true.B
+        StoreQueue.io.in.bits.addr     := io.mem.get.write.addr
+        StoreQueue.io.in.bits.data     := io.mem.get.write.data
+        StoreQueue.io.in.bits.memWidth := io.mem.get.write.memWidth
         // printf("Store into Queue.... valid: %x %x %x %x\n", StoreQueue.io.in.valid, store_push.addr, store_push.data, store_push.memWidth)
       }.otherwise {
         StoreQueue.io.in.valid := false.B
-        store_push.addr        := 0.U
-        store_push.data        := 0.U
-        store_push.memWidth    := 0.U
-        StoreQueue.io.in.bits  := store_push
+        StoreQueue.io.in.bits  := 0.U.asTypeOf(new StoreOrLoadInfo)
       }
       when(specCore.io.mem.write.valid) {
         StoreQueue.io.out.ready := true.B
@@ -203,6 +191,8 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
         assert(StoreQueue.io.out.bits.addr === specCore.io.mem.write.addr)
         assert(StoreQueue.io.out.bits.data === specCore.io.mem.write.data)
         assert(StoreQueue.io.out.bits.memWidth === specCore.io.mem.write.memWidth)
+      }.otherwise {
+        StoreQueue.io.out.ready := false.B
       }
     }
   } else {
