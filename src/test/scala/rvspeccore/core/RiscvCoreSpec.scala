@@ -10,7 +10,6 @@ import chisel3.util.experimental.loadMemoryFromFile
 import java.io.File
 
 class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConfig) extends Module {
-  require(config.functions.tlb == true)
   implicit val XLEN = config.XLEN
 
   val bytes      = XLEN / 8
@@ -87,12 +86,15 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   } otherwise {
     core.io.mem.read.data := 0.U
   }
-  for (i <- 0 until 6) {
-    val (rIdx, rOff, rMask) = readDatacalc(core.io.tlb.get.Anotherread(i).addr, core.io.tlb.get.Anotherread(i).memWidth)
-    when(core.io.tlb.get.Anotherread(i).valid) {
-      core.io.tlb.get.Anotherread(i).data := (mem.read(rIdx) >> rOff) & rMask
-    } otherwise {
-      core.io.tlb.get.Anotherread(i).data := 0.U
+  if (config.functions.tlb) {
+    for (i <- 0 until 6) {
+      val (rIdx, rOff, rMask) =
+        readDatacalc(core.io.tlb.get.Anotherread(i).addr, core.io.tlb.get.Anotherread(i).memWidth)
+      when(core.io.tlb.get.Anotherread(i).valid) {
+        core.io.tlb.get.Anotherread(i).data := (mem.read(rIdx) >> rOff) & rMask
+      } otherwise {
+        core.io.tlb.get.Anotherread(i).data := 0.U
+      }
     }
   }
 
@@ -107,16 +109,18 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
   }
   // write mem
   val (wIdx, wData) = WriteDataCalc(core.io.mem.write.addr, core.io.mem.write.memWidth, core.io.mem.write.data)
-  val (wIdx0, wData0) = WriteDataCalc(
-    core.io.tlb.get.Anotherwrite(0).addr,
-    core.io.tlb.get.Anotherwrite(0).memWidth,
-    core.io.tlb.get.Anotherwrite(0).data
-  )
   when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }
-  when(core.io.tlb.get.Anotherwrite(0).valid) {
-    mem.write(wIdx0, wData0)
+  if (config.functions.tlb) {
+    val (wIdx0, wData0) = WriteDataCalc(
+      core.io.tlb.get.Anotherwrite(0).addr,
+      core.io.tlb.get.Anotherwrite(0).memWidth,
+      core.io.tlb.get.Anotherwrite(0).data
+    )
+    when(core.io.tlb.get.Anotherwrite(0).valid) {
+      mem.write(wIdx0, wData0)
+    }
   }
   // Begin multi port write
 
