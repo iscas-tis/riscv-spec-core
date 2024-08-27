@@ -10,7 +10,7 @@ import rvspeccore.core._
 class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithResult"
 
-  implicit val config = RVConfig("XLEN" -> 64)
+  implicit val config = RVConfig(64)
 
   class TestCore(checkMem: Boolean = true) extends RiscvCore {
     val checker = Module(new CheckerWithResult(checkMem = checkMem, enableReg = false))
@@ -74,7 +74,7 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
 class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithWB"
 
-  implicit val config = RVConfig("XLEN" -> 64)
+  implicit val config = RVConfig(64)
 
   class TestCore(checkMem: Boolean = true) extends RiscvCore {
     val wb = Wire(new WriteBack)

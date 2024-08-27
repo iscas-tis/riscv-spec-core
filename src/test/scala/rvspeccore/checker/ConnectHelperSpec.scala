@@ -42,7 +42,7 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   it should "pass RiscvTests without mem check" in {
     val testFile        = RiscvTests("rv64ui", "rv64ui-addi.hex")
-    implicit val config = RVConfig("XLEN" -> 64)
+    implicit val config = RVConfig(64)
     test(new CoreTester(new TestCore(false, false), testFile.getCanonicalPath())) { c =>
       RiscvTests.stepTest(c, RiscvTests.maxStep)
       RiscvTests.checkReturn(c)
@@ -51,7 +51,7 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   it should "pass RiscvTests with mem check" in {
     val testFile        = RiscvTests("rv64ui", "rv64ui-lb.hex")
-    implicit val config = RVConfig("XLEN" -> 64)
+    implicit val config = RVConfig(64)
     test(new CoreTester(new TestCore(true, false), testFile.getCanonicalPath())) { c =>
       RiscvTests.stepTest(c, RiscvTests.maxStep)
       RiscvTests.checkReturn(c)
