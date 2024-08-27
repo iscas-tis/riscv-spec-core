@@ -10,6 +10,7 @@ import chisel3.util.experimental.loadMemoryFromFile
 import java.io.File
 
 class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConfig) extends Module {
+  require(config.functions.tlb == true)
   implicit val XLEN = config.XLEN
 
   val bytes      = XLEN / 8
@@ -78,57 +79,21 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     val rMask = width2Mask(memWidth)
     (rIdx, rOff, rMask)
   }
-  val (rIdx, rOff, rMask)    = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
-  val (rIdx0, rOff0, rMask0) = readDatacalc(core.io.tlb.Anotherread(0).addr, core.io.tlb.Anotherread(0).memWidth)
-  val (rIdx1, rOff1, rMask1) = readDatacalc(core.io.tlb.Anotherread(1).addr, core.io.tlb.Anotherread(1).memWidth)
-  val (rIdx2, rOff2, rMask2) = readDatacalc(core.io.tlb.Anotherread(2).addr, core.io.tlb.Anotherread(2).memWidth)
-  val (rIdx3, rOff3, rMask3) = readDatacalc(core.io.tlb.Anotherread(3).addr, core.io.tlb.Anotherread(3).memWidth)
-  val (rIdx4, rOff4, rMask4) = readDatacalc(core.io.tlb.Anotherread(4).addr, core.io.tlb.Anotherread(4).memWidth)
-  val (rIdx5, rOff5, rMask5) = readDatacalc(core.io.tlb.Anotherread(5).addr, core.io.tlb.Anotherread(5).memWidth)
-  // // read mem
-  // val rIdx  = core.io.mem.read.addr >> bytesWidth           // addr / (XLEN/8)
-  // val rOff  = core.io.mem.read.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  // val rMask = width2Mask(core.io.mem.read.memWidth)
+
+  // read mem
+  val (rIdx, rOff, rMask) = readDatacalc(core.io.mem.read.addr, core.io.mem.read.memWidth)
   when(core.io.mem.read.valid) {
     core.io.mem.read.data := mem.read(rIdx)
   } otherwise {
     core.io.mem.read.data := 0.U
   }
-
-  when(core.io.tlb.Anotherread(0).valid) {
-    core.io.tlb.Anotherread(0).data := (mem.read(rIdx0) >> rOff0) & rMask0
-  } otherwise {
-    core.io.tlb.Anotherread(0).data := 0.U
-  }
-
-  when(core.io.tlb.Anotherread(1).valid) {
-    core.io.tlb.Anotherread(1).data := (mem.read(rIdx1) >> rOff1) & rMask1
-  } otherwise {
-    core.io.tlb.Anotherread(1).data := 0.U
-  }
-
-  when(core.io.tlb.Anotherread(2).valid) {
-    core.io.tlb.Anotherread(2).data := (mem.read(rIdx2) >> rOff2) & rMask2
-  } otherwise {
-    core.io.tlb.Anotherread(2).data := 0.U
-  }
-
-  when(core.io.tlb.Anotherread(3).valid) {
-    core.io.tlb.Anotherread(3).data := (mem.read(rIdx3) >> rOff3) & rMask3
-  } otherwise {
-    core.io.tlb.Anotherread(3).data := 0.U
-  }
-
-  when(core.io.tlb.Anotherread(4).valid) {
-    core.io.tlb.Anotherread(4).data := (mem.read(rIdx4) >> rOff4) & rMask4
-  } otherwise {
-    core.io.tlb.Anotherread(4).data := 0.U
-  }
-
-  when(core.io.tlb.Anotherread(5).valid) {
-    core.io.tlb.Anotherread(5).data := (mem.read(rIdx5) >> rOff5) & rMask5
-  } otherwise {
-    core.io.tlb.Anotherread(5).data := 0.U
+  for (i <- 0 until 6) {
+    val (rIdx, rOff, rMask) = readDatacalc(core.io.tlb.get.Anotherread(i).addr, core.io.tlb.get.Anotherread(i).memWidth)
+    when(core.io.tlb.get.Anotherread(i).valid) {
+      core.io.tlb.get.Anotherread(i).data := (mem.read(rIdx) >> rOff) & rMask
+    } otherwise {
+      core.io.tlb.get.Anotherread(i).data := 0.U
+    }
   }
 
   def WriteDataCalc(addr: UInt, memWidth: UInt, data: UInt): (UInt, UInt) = {
@@ -141,22 +106,16 @@ class CoreTester(genCore: => RiscvCore, memFile: String)(implicit config: RVConf
     (wIdx, wData)
   }
   // write mem
-  // val wIdx  = core.io.mem.write.addr >> bytesWidth           // addr / bytes
-  // val wOff  = core.io.mem.write.addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
-  // val wMask = (width2Mask(core.io.mem.write.memWidth) << wOff)(XLEN - 1, 0)
-  // val mData = mem.read(wIdx)
-  // simulate write mask
-  // val wData = ((core.io.mem.write.data << wOff)(XLEN - 1, 0) & wMask) | (mData & ~wMask)
   val (wIdx, wData) = WriteDataCalc(core.io.mem.write.addr, core.io.mem.write.memWidth, core.io.mem.write.data)
   val (wIdx0, wData0) = WriteDataCalc(
-    core.io.tlb.Anotherwrite(0).addr,
-    core.io.tlb.Anotherwrite(0).memWidth,
-    core.io.tlb.Anotherwrite(0).data
+    core.io.tlb.get.Anotherwrite(0).addr,
+    core.io.tlb.get.Anotherwrite(0).memWidth,
+    core.io.tlb.get.Anotherwrite(0).data
   )
   when(core.io.mem.write.valid) {
     mem.write(wIdx, wData)
   }
-  when(core.io.tlb.Anotherwrite(0).valid) {
+  when(core.io.tlb.get.Anotherwrite(0).valid) {
     mem.write(wIdx0, wData0)
   }
   // Begin multi port write
