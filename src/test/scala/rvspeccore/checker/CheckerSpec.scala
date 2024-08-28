@@ -34,19 +34,19 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     })
     // checker.io.tlb.get.Anotherwrite := DontCare
     checker.io.mem.map(cm => {
-      cm.read.addr     := trans.io.mem.read.addr
-      cm.read.data     := trans.io.mem.read.data
-      cm.read.memWidth := trans.io.mem.read.memWidth
-      cm.read.valid    := trans.io.mem.read.valid
+      cm.read.addr     := RegNext(trans.io.mem.read.addr)
+      cm.read.data     := RegNext(trans.io.mem.read.data)
+      cm.read.memWidth := RegNext(trans.io.mem.read.memWidth)
+      cm.read.valid    := RegNext(trans.io.mem.read.valid)
 
-      cm.write.addr     := trans.io.mem.write.addr
-      cm.write.data     := trans.io.mem.write.data
-      cm.write.memWidth := trans.io.mem.write.memWidth
-      cm.write.valid    := trans.io.mem.write.valid
+      cm.write.addr     := RegNext(trans.io.mem.write.addr)
+      cm.write.data     := RegNext(trans.io.mem.write.data)
+      cm.write.memWidth := RegNext(trans.io.mem.write.memWidth)
+      cm.write.valid    := RegNext(trans.io.mem.write.valid)
     })
   }
 
-  it should "pass RiscvTests" in {
+  it should "pass RiscvTests with mem check" in {
     val tests = Seq(
       RiscvTests("rv64ui", "rv64ui-addi.hex"),
       RiscvTests("rv64ui", "rv64ui-lb.hex")
@@ -58,14 +58,17 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
       }
     }
   }
-  // FIXME: Temporarily closed, wait for repairs.
-  // it should "pass RiscvTests without mem check" in {
-  //   val testFile = RiscvTests("rv64ui", "rv64ui-addi.hex")
-  //   test(new CoreTester(new TestCore(false), testFile.getCanonicalPath())) { c =>
-  //     RiscvTests.stepTest(c, RiscvTests.maxStep)
-  //     RiscvTests.checkReturn(c)
-  //   }
-  // }
+  it should "pass RiscvTests without mem check" in {
+    val tests = Seq(
+      RiscvTests("rv64ui", "rv64ui-addi.hex")
+    )
+    tests.foreach { testFile =>
+      test(new CoreTester(new TestCore(false), testFile.getCanonicalPath())) { c =>
+        RiscvTests.stepTest(c, RiscvTests.maxStep)
+        RiscvTests.checkReturn(c)
+      }
+    }
+  }
 }
 
 class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {

@@ -7,8 +7,8 @@ import chisel3.util.experimental.BoringUtils
 import rvspeccore.core.RVConfig
 import rvspeccore.core.spec.instset.csr.CSR
 import rvspeccore.core.spec.instset.csr.EventSig
-import rvspeccore.core.tool.TLBMemInfo
 import rvspeccore.core.tool.TLBSig
+
 abstract class ConnectHelper {}
 
 /** Connect RegFile to io.result.reg by BoringUtils
@@ -35,25 +35,8 @@ object ConnectCheckerResult extends ConnectHelper {
     val write = new MemOneSig
   }
   def makeTLBSource(isDTLB: Boolean)(implicit XLEN: Int): TLBSig = {
-    val tlbmem = Wire(new TLBSig())
-    tlbmem.read.valid     := false.B
-    tlbmem.read.addr      := 0.U
-    tlbmem.read.data      := 0.U
-    tlbmem.read.memWidth  := 0.U
-    tlbmem.read.access    := false.B
-    tlbmem.read.level     := 0.U
-    tlbmem.write.valid    := false.B
-    tlbmem.write.addr     := 0.U
-    tlbmem.write.data     := 0.U
-    tlbmem.write.memWidth := 0.U
-    tlbmem.write.access   := false.B
-    tlbmem.write.level    := 0.U
-
-    if (isDTLB) {
-      BoringUtils.addSource(tlbmem, uniqueIdDTLB)
-    } else {
-      BoringUtils.addSource(tlbmem, uniqueIdITLB)
-    }
+    val tlbmem = WireInit(0.U.asTypeOf(new TLBSig))
+    BoringUtils.addSource(tlbmem, if (isDTLB) uniqueIdDTLB else uniqueIdITLB)
     tlbmem
   }
   def makeMemSource()(implicit XLEN: Int) = {
@@ -109,24 +92,26 @@ object ConnectCheckerResult extends ConnectHelper {
 
     checker.io.result.internal := DontCare
 
-    if (checker.io.mem != None) {
-      val mem     = Wire(new MemSig)
-      val dtlbmem = Wire(new TLBSig)
-      val itlbmem = Wire(new TLBSig)
-      mem     := DontCare
-      dtlbmem := DontCare
-      itlbmem := DontCare
+    if (checker.checkMem) {
+      val mem = Wire(new MemSig)
+      mem := DontCare
       BoringUtils.addSink(mem, uniqueIdMem)
-      BoringUtils.addSink(dtlbmem, uniqueIdDTLB)
-      BoringUtils.addSink(itlbmem, uniqueIdITLB)
-      checker.io.dtlbmem.get := dtlbmem
-      checker.io.itlbmem.get := itlbmem
-      checker.io.mem.get     := regNextDelay(mem, memDelay)
-      // expose the signal below
-      // assert(RegNext(checker.io.dtlbmem.get.read.valid, false.B) === false.B)
-      // assert(RegNext(dtlbmem.read.valid, false.B) === false.B)
-      // assert(RegNext(dtlbmem.read.addr, 0.U) === 0.U)
-      // assert(RegNext(dtlbmem.read.data, 0.U) === 0.U)
+      checker.io.mem.get := regNextDelay(mem, memDelay)
+      if (config.functions.tlb) {
+        val dtlbmem = Wire(new TLBSig)
+        val itlbmem = Wire(new TLBSig)
+        dtlbmem := DontCare
+        itlbmem := DontCare
+        BoringUtils.addSink(dtlbmem, uniqueIdDTLB)
+        BoringUtils.addSink(itlbmem, uniqueIdITLB)
+        checker.io.dtlbmem.get := dtlbmem
+        checker.io.itlbmem.get := itlbmem
+        // expose the signal below
+        // assert(RegNext(checker.io.dtlbmem.get.read.valid, false.B) === false.B)
+        // assert(RegNext(dtlbmem.read.valid, false.B) === false.B)
+        // assert(RegNext(dtlbmem.read.addr, 0.U) === 0.U)
+        // assert(RegNext(dtlbmem.read.data, 0.U) === 0.U)
+      }
     }
     // csr
     val csr = Wire(CSR())

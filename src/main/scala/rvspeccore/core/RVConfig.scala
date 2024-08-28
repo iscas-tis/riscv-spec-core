@@ -59,6 +59,7 @@ case class RVConfig(configs: (String, Any)*) {
   object functions {
     protected val raw       = cfgs.getOrElse("functions", Seq[String]()).asInstanceOf[Seq[String]]
     val privileged: Boolean = raw.contains("Privileged")
+    val tlb: Boolean        = raw.contains("TLB")
   }
 
   // Formal

@@ -5,7 +5,7 @@ import chisel3.util._
 
 import rvspeccore.core.BaseCore
 import rvspeccore.core.spec.instset.csr._
-import java.awt.print.Book
+
 // TODO: Optimize code writing style
 class TLBSig()(implicit XLEN: Int) extends Bundle {
   val read  = new TLBMemInfo
@@ -45,7 +45,7 @@ trait LoadStore extends BaseCore with MMU {
     )
   }
   def memRead(addr: UInt, memWidth: UInt): UInt = {
-    if (XLEN == 32) {
+    if (!config.functions.tlb) {
       val bytesWidth = log2Ceil(XLEN / 8)
       val rOff       = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
       val rMask      = width2Mask(memWidth)
@@ -78,7 +78,7 @@ trait LoadStore extends BaseCore with MMU {
     }
   }
   def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
-    if (XLEN == 32) {
+    if (!config.functions.tlb) {
       mem.write.valid    := true.B
       mem.write.addr     := addr
       mem.write.memWidth := memWidth
@@ -141,11 +141,11 @@ trait MMU extends BaseCore with ExceptionSupport {
   }
 
   def PAReadMMU(addr: UInt, memWidth: UInt, no: Int): UInt = {
-    tlb.Anotherread(no).valid    := true.B
-    tlb.Anotherread(no).addr     := addr
-    tlb.Anotherread(no).memWidth := memWidth
+    tlb.get.Anotherread(no).valid    := true.B
+    tlb.get.Anotherread(no).addr     := addr
+    tlb.get.Anotherread(no).memWidth := memWidth
     // printf("[Debug] Level: %x Addr: %x Data: %x\n", no.asUInt, addr, tlb.Anotherread(no).data)
-    tlb.Anotherread(no).data
+    tlb.get.Anotherread(no).data
   }
 
   def PAWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
@@ -156,10 +156,10 @@ trait MMU extends BaseCore with ExceptionSupport {
   }
   def PAWriteMMU(addr: UInt, memWidth: UInt, data: UInt): Unit = {
     // 暂时先使用了一个端口 实际上 dirty操作的是最后找到的那个页 不像读页出现的问题
-    tlb.Anotherwrite(0).valid    := true.B
-    tlb.Anotherwrite(0).addr     := addr
-    tlb.Anotherwrite(0).memWidth := memWidth
-    tlb.Anotherwrite(0).data     := data
+    tlb.get.Anotherwrite(0).valid    := true.B
+    tlb.get.Anotherwrite(0).addr     := addr
+    tlb.get.Anotherwrite(0).memWidth := memWidth
+    tlb.get.Anotherwrite(0).data     := data
   }
 
   def LegalAddrStep5(isiFetch: Bool): Bool = {
