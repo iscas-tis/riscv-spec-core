@@ -1,8 +1,25 @@
 // use `-DCHA=true` to use CHA version Chisel
 lazy val useCHA: Boolean =
   sys.props.getOrElse("CHA", "false").toLowerCase == "true"
+// use `-DHashId=true` to include git hash id in the version number
+lazy val useHashId: Boolean =
+  sys.props.getOrElse("HashId", "false").toLowerCase == "true"
 
-ThisBuild / version      := { if (useCHA) "1.3-cha-SNAPSHOT" else "1.3-SNAPSHOT" }
+ThisBuild / version := {
+  val versionNumber = "1.3"
+  val snapshot      = "-SNAPSHOT"
+
+  val hashId = {
+    val hash = git.gitHeadCommit.value.getOrElse("unknown").take(7)
+    if (git.gitUncommittedChanges.value) s"-$hash+"
+    else s"-$hash"
+  }
+
+  versionNumber +
+    (if (useCHA) "-cha" else "") +
+    (if (useHashId) hashId else "") +
+    snapshot
+}
 ThisBuild / organization := "cn.ac.ios.tis"
 ThisBuild / scalaVersion := "2.12.17"
 // Use Scala2.13 with ChiselTest0.6.0 will cause efficiency issues in the
