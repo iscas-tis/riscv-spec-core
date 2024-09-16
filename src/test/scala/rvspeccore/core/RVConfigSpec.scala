@@ -35,6 +35,7 @@ class RVConfigSpec extends AnyFlatSpec {
     val configs = Seq(
       RVConfig(64),
       RVConfig(64, "MC"),
+      RVConfig(64, "MC", "ABXY"),
       RVConfig(
         "XLEN"           -> 64,
         "extensions"     -> "IMCZifenceiU",

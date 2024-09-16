@@ -7,7 +7,7 @@ case class RVConfig(configs: (String, Any)*) {
   private val acceptKeys = Map(
     "XLEN"           -> Set("32", "64"),
     "extensions"     -> Set("I", "M", "C", "Zifencei", "Zicsr", "U", "S"),
-    "fakeExtensions" -> Set("A"),
+    "fakeExtensions" -> "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(_.toString).toSet,
     "initValue"      -> Set("pc", "mstatus", "mtvec"),
     "functions"      -> Set("Privileged", "TLB"),
     "formal"         -> Set("ArbitraryRegFile")
@@ -57,11 +57,9 @@ case class RVConfig(configs: (String, Any)*) {
 
   object fakeExtensions {
     val raw = cfgs.getOrElse("fakeExtensions", Seq.empty[String]).asInstanceOf[Seq[String]]
-    raw.foreach(ext =>
-      require(
-        ext.length() == 1 && 'A' <= ext(0) && ext(0) <= 'Z',
-        s"Unknown fake extension in RVConfig: ${ext}"
-      )
+    require(
+      raw.toSet.subsetOf(acceptKeys("fakeExtensions")),
+      s"Unknown fake extension in RVConfig: ${raw.toSet -- acceptKeys("fakeExtensions")}"
     )
 
     override def toString: String = raw.mkString("")
