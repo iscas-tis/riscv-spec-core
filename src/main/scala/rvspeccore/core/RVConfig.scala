@@ -48,11 +48,12 @@ case class RVConfig(configs: (String, Any)*) {
     val U = raw.contains("U")
     val S = raw.contains("S")
     //   - Table 2. Supported combination of privilege modes.
-    assert(
+    require(
       (!U && !S) || (U && !S) || (U && S),
       "Supported combination of privilege modes are M, MU, MSU, " +
         s"not M${if (S) "S" else ""}${if (U) "U" else ""}"
     )
+
   }
 
   object fakeExtensions {
@@ -107,6 +108,11 @@ case class RVConfig(configs: (String, Any)*) {
 
     val arbitraryRegFile: Boolean = raw.contains("ArbitraryRegFile")
   }
+
+  require(
+    (!extensions.U || functions.privileged),
+    "Privilege levels requires enable `function: Privileged` in RVConfig"
+  )
 }
 
 object RVConfig {
