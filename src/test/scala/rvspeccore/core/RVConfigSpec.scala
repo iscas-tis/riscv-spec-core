@@ -36,10 +36,11 @@ class RVConfigSpec extends AnyFlatSpec {
       RVConfig(64),
       RVConfig(64, "MC"),
       RVConfig(64, "MC", "ABXY"),
+      // this is not recommended:
       RVConfig(
         "XLEN"           -> 64,
-        "extensions"     -> "IMCZifenceiU",
-        "fakeExtensions" -> "A",
+        "extensions"     -> Seq("I", "M", "C", "Zifencei", "U"),
+        "fakeExtensions" -> Seq("A"),
         "functions"      -> Seq("Privileged"),
         "initValue" -> Map(
           "pc"    -> "h8000_0000",
