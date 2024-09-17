@@ -22,6 +22,8 @@
     - [获取访存信号值](#获取访存信号值)
   - [设置验证条件](#设置验证条件)
   - [通过 ChiselTest 调用形式化验证](#通过-chiseltest-调用形式化验证)
+- [使用建议](#使用建议)
+  - [使用 GitHub Actions 进行验证](#使用-github-actions-进行验证)
 - [验证实例](#验证实例)
 
 ## 安装
@@ -274,6 +276,30 @@ class DUTFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTester {
     verify(new DUT(), Seq(BoundedCheck(12), BtormcEngineAnnotation))
   }
 }
+```
+
+## 使用建议
+
+### 使用 GitHub Actions 进行验证
+
+由于形式化验证所需的时间较长，可以使用 GitHub Actions 服务运行验证任务。
+GitHub Actions 可以在每次 push 代码到 GitHub 的时候自动运行验证任务，并且在验证发现错误时发送邮件提醒，保存发现的反例供下载检查。
+需要注意，GitHub 的免费运行服务器为[单个 job 限时 6 小时](https://docs.github.com/en/actions/administering-github-actions/usage-limits-billing-and-administration#usage-limits)。
+
+可以参考[该文件](https://github.com/iscas-tis/nutshell-fv/blob/formal/.github/workflows/formal.yml)。
+设置执行所需的测试任务，保存输出结果的文件夹。
+
+```yml
+      # 执行指定的测试，运行验证任务
+      - name: mill Test
+        run:  mill "chiselModule[3.6.0]".test
+      # 设置要保存的结果目录，执行结束后可以在 Actions 页面下载压缩包
+      - name: Archive production artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Btormc Output Files
+          path: test_run_dir/NutCoreFormal_should_pass
 ```
 
 ## 验证实例
