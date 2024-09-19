@@ -31,7 +31,7 @@ Read more detailed Chinese README: [中文说明](README.zh-CN.md).
 To use riscv-spec-core as a managed dependency, add this in your `build.sbt`:
 
 ```scala
-libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.1-SNAPSHOT"
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-SNAPSHOT"
 ```
 
 Then add verification code in your DUT as the following description.

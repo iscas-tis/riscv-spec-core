@@ -10,7 +10,7 @@
 ## 目录 <!-- omit in toc -->
 
 - [安装](#安装)
-  - [使用本地发布版本（推荐）](#使用本地发布版本推荐)
+  - [使用本地发布版本](#使用本地发布版本)
   - [使用托管版本](#使用托管版本)
 - [用法](#用法)
   - [添加 Checker 并设置基本信号](#添加-checker-并设置基本信号)
@@ -27,9 +27,9 @@
 ## 安装
 
 本项目可以作为项目依赖添加在 Chisel 处理器设计中。
-可以[使用本地发布版本（推荐）](#使用本地发布版本推荐)或者[使用托管版本](#使用托管版本)。
+可以[使用本地发布版本](#使用本地发布版本)或者[使用托管版本](#使用托管版本)。
 
-### 使用本地发布版本（推荐）
+### 使用本地发布版本
 
 由于本项目开发可能造成接口变化，使用本地发布的版本可以自行进行版本控制，避免因为依赖更新造成代码突然无法运行。
 
@@ -38,30 +38,35 @@
 ```shell
 git clone https://github.com/iscas-tis/riscv-spec-core.git
 cd riscv-spec-core
-sbt +publishLocal # 将所有交叉编译的版本发布到本地
+sbt +publishLocal -DHashId=true # 发布所有版本到本地，并在版本号中添加 HashId
 # 和 CHA 一起使用请替换为下述命令，以在项目中依赖 CHA 版本的 Chisel：
-# sbt -DCHA=true +publishLocal
+# sbt +publishLocal -DCHA=true -DHashId=true
 ```
 
-在 `build.sbt` 中添加依赖：
+在 `build.sbt` 中添加依赖。实际版本号需查看上面发布命令的结果：
 
 ```scala
-libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.1-SNAPSHOT"
-// CHA 版本请使用：
-// libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.1-cha-SNAPSHOT"
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-8bb84f4-SNAPSHOT"
 ```
+
+版本号格式可能为：  
+`1.3-8bb84f4-SNAPSHOT`  
+`1.3-8bb84f4+-SNAPSHOT`  
+`1.3-cha-8bb84f4-SNAPSHOT`  
+`1.3-cha-8bb84f4+-SNAPSHOT`  
+其中 `-cha` 表示依赖 CHA 版本 Chisel，`-8bb84f4` 表示基于 git commit `8bb84f4` 编译，`-8bb84f4+` 表示存在未提交的修改。
 
 ### 使用托管版本
 
-本项目 main 分支代码会自动发布到 Maven 仓库，也可以直接在项目中添加依赖。
-托管版本暂不提供 CHA 版本；SNAPSHOT 版较正式版有新的变动，建议使用 SNAPSHOT 版。
-希望锁定依赖版本请[使用本地发布版本（推荐）](#使用本地发布版本推荐)。
+本项目 main 分支代码会自动编译发布托管到 Maven 仓库，可以直接在项目中直接添加依赖。
+托管版本暂不提供 CHA 版本；由于项目在持续开发中，暂不提供托管的正式版，请使用最新 SNAPSHOT 版。
+希望锁定依赖版本请[使用本地发布版本](#使用本地发布版本)。
 
 在 `build.sbt` 中添加代码：
 
 ```scala
 resolvers += Resolver.sonatypeRepo("snapshots") // 添加 SNAPSHOT 版本仓库
-libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.1-SNAPSHOT"
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-SNAPSHOT"
 ```
 
 ## 用法
