@@ -22,6 +22,8 @@
     - [获取访存信号值](#获取访存信号值)
   - [设置验证条件](#设置验证条件)
   - [通过 ChiselTest 调用形式化验证](#通过-chiseltest-调用形式化验证)
+- [使用建议](#使用建议)
+  - [使用 GitHub Actions 进行验证](#使用-github-actions-进行验证)
 - [验证实例](#验证实例)
 
 ## 安装
@@ -85,10 +87,21 @@ libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-SNAPSHOT"
 
 // 1. 设置 Checker 中参考模型 `RiscvCore` 支持的功能
 // 此处配置为：
-// RV64I 基础指令集，支持 M、C 指令扩展，支持 M/S 两个特权级在
+// RV64I 基础指令集，支持 M、C、Zicsr 指令扩展，支持 M/U 两个特权级在
 // 在 misa 寄存器中显示支持 A 扩展，但参考模型实际不支持
+// pc 的初始值为 "h0000_8000".U
+// 支持特权级和sv39的TLB
 import rvspeccore.core.RVConfig
-val rvConfig = RVConfig(64, "MCS", "A")
+val rvConfig = RVConfig(
+  XLEN = 64,
+  extensions = "MCZicsrU",
+  fakeExtensions = "A",
+  initValue = Map("pc" -> "h0000_8000")
+  functions = Seq(
+    "Privileged",
+    "TLB"
+  )
+)
 
 // 2. 实例化 Checker
 // 此处实例化一个检查完整寄存器值的 Checker，启用内存检查，使用之前设置的参考模型设置
@@ -116,15 +129,29 @@ ConnectCheckerResult.setChecker(checker)(XLEN, rvConfig)
 
 参考模型具体支持的配置选项如下：
 
-- 位宽和基础指令集
+- 位宽 `XLEN: Int`
+  - 32、64
+- 扩展支持 `extension: String`
   - 默认支持基础指令集 I
-  - 位宽支持：32、64
-- 扩展指令集
-  - "M"：乘除法扩展指令集 M
-  - "C"：压缩扩展指令集 C
-- 特权级
-  - 默认包含机器级 M
-  - "S"：系统级 S
+  - 扩展指令集
+    - "M"：乘除法扩展指令集 M
+    - "C"：压缩扩展指令集 C
+    - "Zicsr"：TODO
+  - 特权级
+    - 默认支持包含机器级 M
+    - "S"：系统级 S（必须和 "U" 同时开启）
+    - "U"：用户级 U
+- 额外扩展 `fakeExtensions: String`
+  - 仅设置 `misa` 寄存器中显示支持该扩展，参考模型实际不支持，可选 "A"-"Z" 任意字母。
+- 初始值 `initValue: Map[String, String]`
+  - 设置部分寄存器的初始值，如 `pc`、`mstatus`、`mtvec`。  
+    详细支持列表见 [acceptKeys](src/main/scala/rvspeccore/core/RVConfig.scala)
+- 功能模块支持 `functions: Seq[String]`
+  - "Privileged"：特权级/特权指令功能
+  - "TLB"：基于 Sv39 的 TLB
+- 形式化验证功能支持 `formal: Seq[String]`
+  - "ArbitraryRegFile"：不设置通用寄存器的初始值，使其初始值为任意值（除 x0 寄存器，其值始终为 0）。  
+    待验证处理器中可以通过 `ArbitraryRegFile.gen` 获得相同的任意初始值。
 
 ### 通过 ConnectHelper 获取更多信号
 
@@ -254,6 +281,30 @@ class DUTFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTester {
     verify(new DUT(), Seq(BoundedCheck(12), BtormcEngineAnnotation))
   }
 }
+```
+
+## 使用建议
+
+### 使用 GitHub Actions 进行验证
+
+由于形式化验证所需的时间较长，可以使用 GitHub Actions 服务运行验证任务。
+GitHub Actions 可以在每次 push 代码到 GitHub 的时候自动运行验证任务，并且在验证发现错误时发送邮件提醒，保存发现的反例供下载检查。
+需要注意，GitHub 的免费运行服务器为[单个 job 限时 6 小时](https://docs.github.com/en/actions/administering-github-actions/usage-limits-billing-and-administration#usage-limits)。
+
+可以参考[该文件](https://github.com/iscas-tis/nutshell-fv/blob/formal/.github/workflows/formal.yml)。
+设置执行所需的测试任务，保存输出结果的文件夹。
+
+```yml
+      # 执行指定的测试，运行验证任务
+      - name: mill Test
+        run:  mill "chiselModule[3.6.0]".test
+      # 设置要保存的结果目录，执行结束后可以在 Actions 页面下载压缩包
+      - name: Archive production artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Btormc Output Files
+          path: test_run_dir/NutCoreFormal_should_pass
 ```
 
 ## 验证实例
