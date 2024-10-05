@@ -1,4 +1,7 @@
 // use `-DChiselVersion=3.x.x/6.x.x/CHA` to specify the version of Chisel
+// use `-DHashId=true` to include git hash id in the version number
+// use `-DScalaVersion=2.12.17/orOther` to specify the version of Scala
+
 lazy val chiselVersion: Map[String, ModuleID] = {
   sys.props.getOrElse("ChiselVersion", "3.6.0").toLowerCase match {
     case x if x.startsWith("3") =>
@@ -23,7 +26,6 @@ lazy val chiselVersion: Map[String, ModuleID] = {
   }
 }
 
-// use `-DHashId=true` to include git hash id in the version number
 ThisBuild / version := {
   val versionNumber = "1.3"
   val snapshot      = "-SNAPSHOT"
@@ -47,7 +49,6 @@ ThisBuild / version := {
   versionNumber + chiselVersionTag + hashId + snapshot
 }
 ThisBuild / organization := "cn.ac.ios.tis"
-// use `-DScalaVersion=2.12.17/orOther` to specify the version of Scala
 ThisBuild / scalaVersion := sys.props.getOrElse("ScalaVersion", "2.12.17")
 // Use Scala2.13 with ChiselTest0.6.0 will cause efficiency issues in the
 // simulation. Here use Scala2.12 and ChiselTest0.6.0 to avoid this problem.
