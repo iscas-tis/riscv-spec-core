@@ -12,9 +12,9 @@ lazy val chiselVersion: Map[String, ModuleID] = {
       )
     case x if x.startsWith("6") =>
       Map(
-        "chisel"     -> "edu.berkeley.cs" %% "chisel3"        % x,
-        "chiseltest" -> "edu.berkeley.cs" %% "chiseltest"     % "6.0.0",
-        "plugin"     -> "edu.berkeley.cs"  % "chisel3-plugin" % x
+        "chisel"     -> "org.chipsalliance" %% "chisel"        % x,
+        "chiseltest" -> "edu.berkeley.cs"   %% "chiseltest"    % "6.0.0",
+        "plugin"     -> "org.chipsalliance"  % "chisel-plugin" % x
       )
     case "cha" =>
       Map(
