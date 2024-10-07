@@ -1,0 +1,21 @@
+name: CrossVersionTest
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Cross Version Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Scala
+        uses: olafurpg/setup-scala@v10
+        with:
+          java-version: adopt@1.8
+      - name: Cache Scala
+        uses: coursier/cache-action@v5
+      - name: Chisel3 publishLocal Test
+        run: sbt publishLocal -DChiselVersion=3.6.0
+      - name: Chisel6 publishLocal Test
+        run: sbt publishLocal -DChiselVersion=6.4.0 -DScalaVersion=2.13.12
