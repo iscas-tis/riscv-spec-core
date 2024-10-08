@@ -1,28 +1,28 @@
-// use `-DChiselVersion=3.x.x/6.x.x/CHA` to specify the version of Chisel
+// use `-DChiselVersion=3.x.x/6.x.x/7.x.x/CHA` to specify the version of Chisel
 // use `-DHashId=true` to include git hash id in the version number
 // use `-DScalaVersion=2.12.17/orOther` to specify the version of Scala
 
 lazy val chiselVersion: Map[String, ModuleID] = {
-  sys.props.getOrElse("ChiselVersion", "3.6.0").toLowerCase match {
+  sys.props.getOrElse("ChiselVersion", "3.6.0") match {
     case x if x.startsWith("3") =>
       Map(
         "chisel"     -> "edu.berkeley.cs" %% "chisel3"        % x,
         "chiseltest" -> "edu.berkeley.cs" %% "chiseltest"     % "0.6.0",
         "plugin"     -> "edu.berkeley.cs"  % "chisel3-plugin" % x
       )
-    case x if x.startsWith("6") =>
+    case x if x.startsWith("6") || x.startsWith("7") =>
       Map(
         "chisel"     -> "org.chipsalliance" %% "chisel"        % x,
         "chiseltest" -> "edu.berkeley.cs"   %% "chiseltest"    % "6.0.0",
         "plugin"     -> "org.chipsalliance"  % "chisel-plugin" % x
       )
-    case "cha" =>
+    case "CHA" =>
       Map(
         "chisel"     -> "cn.ac.ios.tis" %% "chisel3"        % "3.7-SNAPSHOT",
         "chiseltest" -> "cn.ac.ios.tis" %% "chiseltest"     % "0.7-SNAPSHOT",
         "plugin"     -> "cn.ac.ios.tis"  % "chisel3-plugin" % "3.7-SNAPSHOT"
       )
-    case _ => throw new Exception("chiselVersion should be one of 3.x.x, 6.x.x, CHA")
+    case _ => throw new Exception("chiselVersion should be one of 3.x.x, 6.x.x, 7.x.x, CHA")
   }
 }
 
