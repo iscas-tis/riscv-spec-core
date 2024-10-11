@@ -11,17 +11,18 @@
 
 - [安装](#安装)
   - [使用本地发布版本](#使用本地发布版本)
+    - [编译参数](#编译参数)
   - [使用托管版本](#使用托管版本)
 - [用法](#用法)
-  - [添加 Checker 并设置基本信号](#添加-checker-并设置基本信号)
+  - [Step 1. 添加 Checker 并设置基本信号](#step-1-添加-checker-并设置基本信号)
     - [参考模型配置选项](#参考模型配置选项)
-  - [通过 ConnectHelper 获取更多信号](#通过-connecthelper-获取更多信号)
+  - [Step 2. 通过 ConnectHelper 获取更多信号](#step-2-通过-connecthelper-获取更多信号)
     - [获取通用寄存器值](#获取通用寄存器值)
     - [获取异常处理与 CSR 寄存器值](#获取异常处理与-csr-寄存器值)
     - [获取 TLB 访存相关信号值](#获取-tlb-访存相关信号值)
     - [获取访存信号值](#获取访存信号值)
-  - [设置验证条件](#设置验证条件)
-  - [通过 ChiselTest 调用形式化验证](#通过-chiseltest-调用形式化验证)
+  - [Step 3. 设置验证条件](#step-3-设置验证条件)
+  - [Step 4. 通过 ChiselTest 调用形式化验证](#step-4-通过-chiseltest-调用形式化验证)
 - [使用建议](#使用建议)
   - [使用 GitHub Actions 进行验证](#使用-github-actions-进行验证)
 - [验证实例](#验证实例)
@@ -40,23 +41,46 @@
 ```shell
 git clone https://github.com/iscas-tis/riscv-spec-core.git
 cd riscv-spec-core
-sbt +publishLocal -DHashId=true # 发布所有版本到本地，并在版本号中添加 HashId
+sbt publishLocal -DHashId=true # 发布版本到本地，并在版本号中添加 HashId
 # 和 CHA 一起使用请替换为下述命令，以在项目中依赖 CHA 版本的 Chisel：
-# sbt +publishLocal -DCHA=true -DHashId=true
+# sbt publishLocal -DChiselVersion=CHA -DHashId=true
 ```
 
-在 `build.sbt` 中添加依赖。实际版本号需查看上面发布命令的结果：
+在 `build.sbt` 中添加依赖。
 
 ```scala
 libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-8bb84f4-SNAPSHOT"
 ```
 
-版本号格式可能为：  
-`1.3-8bb84f4-SNAPSHOT`  
-`1.3-8bb84f4+-SNAPSHOT`  
-`1.3-cha-8bb84f4-SNAPSHOT`  
-`1.3-cha-8bb84f4+-SNAPSHOT`  
-其中 `-cha` 表示依赖 CHA 版本 Chisel，`-8bb84f4` 表示基于 git commit `8bb84f4` 编译，`-8bb84f4+` 表示存在未提交的修改。
+实际版本号需查看 `sbt publishLocal` 命令的结果，如：
+
+<pre><code>...
+[info]  published ivy to ~/.ivy2/local/cn.ac.ios.tis/riscvspeccore_2.13/<strong>1.3-chisel7.0.0-m2-8bb84f4+-SNAPSHOT</strong>/ivys/ivy.xml
+...</code></pre>
+
+
+#### 编译参数
+
+`-DHashId=true` 在版本号中显示当前 Git HashId
+
+- 开启前版本号可能为：
+  - `1.3-SNAPSHOT`
+- 开启后可能为：
+  - `1.3-8bb84f4-SNAPSHOT`
+  - `1.3-8bb84f4+-SNAPSHOT` (存在未提交的修改)
+
+`-DChiselVerion=<version>` 设置依赖的 Chisel 版本
+
+- 可选版本如：
+  - `3.6.0` `6.4.0` `6.5.0` `7.0.0-M2` `CHA`
+- 设置后，发布版本号可能为：
+  - `1.3-chisel6.4.0-SNAPSHOT`
+  - `1.3-chisel7.0.0-m2-8bb84f4-SNAPSHOT`
+  - `1.3-cha-8bb84f4-SNAPSHOT`
+
+`-DScalaVersion=<version>` 设置使用的 Scala 版本
+
+- 配合 Chisel 版本使用，如 `2.12.17` `2.13.12`
 
 ### 使用托管版本
 
@@ -76,7 +100,7 @@ libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-SNAPSHOT"
 安装成功后按照下述流程，在处理器中添加代码接入验证。
 或者可以直接参考我们给出的[例子](#验证实例)。
 
-### 添加 Checker 并设置基本信号
+### Step 1. 添加 Checker 并设置基本信号
 
 `Checker` 是一个硬件电路模块，其中包含一个 RISC-V 参考模型和预设的指令集一致性性质。
 通过工具提供的一些接口和方法，可以将处理器指令执行信息传入 `Checker`，组成一个可验证的系统。
@@ -153,7 +177,7 @@ ConnectCheckerResult.setChecker(checker)(XLEN, rvConfig)
   - "ArbitraryRegFile"：不设置通用寄存器的初始值，使其初始值为任意值（除 x0 寄存器，其值始终为 0）。  
     待验证处理器中可以通过 `ArbitraryRegFile.gen` 获得相同的任意初始值。
 
-### 通过 ConnectHelper 获取更多信号
+### Step 2. 通过 ConnectHelper 获取更多信号
 
 `ConnectHelper` 封装了一些飞线（`BoringUtils`）方法，可以跨模块获取信号值。
 需要注意，获取的所有信号值要和指令提交的时钟同步，可能需要通过 `Reg` 调整。
@@ -238,7 +262,7 @@ when(backend.io.dmem.resp.fire) {
 }
 ```
 
-### 设置验证条件
+### Step 3. 设置验证条件
 
 对于形式化验证，可以通过 `assume` 设置验证的前置条件，仅验证满足 `assume` 条件下的情况。
 本项目提供了工具来判断指令的种类，当指令属于该分类时返回 `true.B`，示例如下：
@@ -259,7 +283,7 @@ assume(RVI.ADDI(inst) || RVI.ADD(inst))
 
 更多指令分类见代码。
 
-### 通过 ChiselTest 调用形式化验证
+### Step 4. 通过 ChiselTest 调用形式化验证
 
 待验证处理器和参考模型连接之后，可以使用测试方法，也可以使用形式化验证在约束的范围内进行检查。
 
@@ -277,7 +301,7 @@ import dut._
 
 class DUTFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTester {
   behavior of "DUT"
-  it should "pass BMC check" in {
+  it should "pass BMC" in {
     verify(new DUT(), Seq(BoundedCheck(12), BtormcEngineAnnotation))
   }
 }
