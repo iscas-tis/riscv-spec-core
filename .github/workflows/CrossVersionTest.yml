@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: Cross Version Test
+    name: Cross version publishLocal test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,7 +15,11 @@ jobs:
           java-version: adopt@1.8
       - name: Cache Scala
         uses: coursier/cache-action@v5
+      - name: Defalut publishLocal Test
+        run: sbt publishLocal
       - name: Chisel3 publishLocal Test
         run: sbt publishLocal -DChiselVersion=3.6.0
       - name: Chisel6 publishLocal Test
         run: sbt publishLocal -DChiselVersion=6.4.0 -DScalaVersion=2.13.12
+      - name: Chisel7 publishLocal Test
+        run: sbt publishLocal -DChiselVersion=7.0.0-M2 -DScalaVersion=2.13.12
