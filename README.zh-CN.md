@@ -58,8 +58,9 @@ libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-8bb84f4-SNAPSHO
 [info]  published ivy to ~/.ivy2/local/cn.ac.ios.tis/riscvspeccore_2.13/<strong>1.3-chisel7.0.0-m2-8bb84f4+-SNAPSHOT</strong>/ivys/ivy.xml
 ...</code></pre>
 
-
 #### 编译参数
+
+在 `sbt publishLocal` 命令后可以添加参数，配置版本信息和依赖的 Chisel 版本：
 
 `-DHashId=true` 在版本号中显示当前 Git HashId
 
@@ -287,7 +288,8 @@ assume(RVI.ADDI(inst) || RVI.ADD(inst))
 
 待验证处理器和参考模型连接之后，可以使用测试方法，也可以使用形式化验证在约束的范围内进行检查。
 
-下面通过 ChiselTest 对连接好参考模型的 `DUT` 进行形式化验证，调用了
+下面通过 [ChiselTest](https://github.com/ucb-bar/chiseltest)
+对连接好参考模型的 `DUT` 进行形式化验证，调用了
 [BtorMC](https://github.com/Boolector/btor2tools)
 模型检测工具，使用 BMC 算法检查了 12 个时钟周期内的指令集一致性：
 
@@ -306,6 +308,12 @@ class DUTFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTester {
   }
 }
 ```
+
+Chisel3.6/Chisel6 经过测试可以使用对应的 ChiselTest 完成上述验证。
+由于 ChiselTest 重放反例中的问题，可能会出现
+`ERROR: Constraint #assume was violated!  Warn: Potential simulation/formal mismatch.`
+等信息，不影响验证结果。  
+Chisel7 没有对应版本的 ChiselTest，暂不支持通过 BTOR2 格式的形式化验证。
 
 ## 使用建议
 
