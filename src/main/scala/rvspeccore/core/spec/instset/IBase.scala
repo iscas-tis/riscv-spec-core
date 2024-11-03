@@ -356,7 +356,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
         is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
       }
-       printf("IS ECALL, PrivilegeMode: %d\n", now.internal.privilegeMode)
     }
     when(FENCE(inst)) {
       decodeI /* then do nothing for now */
