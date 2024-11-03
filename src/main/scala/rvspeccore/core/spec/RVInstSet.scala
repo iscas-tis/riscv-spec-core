@@ -13,3 +13,4 @@ trait RVInstSet
     with csr.CSRSupport
     with csr.ExceptionSupport
     with PrivilegedExtension
+    with BitManipulation

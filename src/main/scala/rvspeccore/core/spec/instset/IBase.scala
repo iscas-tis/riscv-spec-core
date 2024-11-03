@@ -182,20 +182,15 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // NOP is encoded as ADDI x0, x0, 0.
 
     // - 2.5 Control Transfer Instructions
-    // FIXME: 全部的跳转指令都得加一次判断 并且之后需要在最后统一仲裁优先级
     // - Unconditional Jumps
     // JAL
     when(JAL(inst)) {
       decodeJ;
-      // global_data.setpc := true.B;
-      // next.pc := now.pc + imm;
-      // next.reg(rd) := now.pc + 4.U;
       when(addrAligned(getfetchSize(), now.pc + imm)) {
         global_data.setpc := true.B;
         next.pc           := now.pc + imm;
         next.reg(rd)      := now.pc + 4.U;
       }.otherwise {
-        // FIXME: 没有赋值成功
         next.csr.mtval := now.pc + imm;
         raiseException(MExceptionCode.instructionAddressMisaligned)
       }
@@ -208,7 +203,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         next.pc           := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W));
         next.reg(rd)      := now.pc + 4.U;
       }.otherwise {
-        // FIXME: 没有赋值成功
         next.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
         raiseException(MExceptionCode.instructionAddressMisaligned)
       }
@@ -222,26 +216,21 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm;
         }.otherwise {
-          // FIXME: 没有赋值成功
           next.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
-        // global_data.setpc := true.B; next.pc := now.pc + imm
       }
     }
     when(BNE(inst)) {
       decodeB;
-      // printf("BNE: rs%d_left: %x, rs%d_right: %x\n", rs1, now.reg(rs1), rs2, now.reg(rs2))
       when(now.reg(rs1) =/= now.reg(rs2)) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
           next.pc           := now.pc + imm;
         }.otherwise {
-          // FIXME: 没有赋值成功
           next.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
-        // global_data.setpc := true.B; next.pc := now.pc + imm
       }
     }
     // BLT[U]
@@ -296,19 +285,17 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     }
     // - 2.6 Load and Store Instructions
     // LOAD
-    // TODO: LBU and LHU ?
     when(LB(inst)) {
-      // TODO: LB好像不会出现非对齐访存的异常？
       decodeI;
       when(addrAligned(SizeOp.b, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN)
       }.otherwise {
+        // TODO: LB doesn't seem to get an exception for unaligned access
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
       }
     }
     when(LH(inst)) {
-      // printf("[Debug]LH Begin: Reg%x:%x %x %x\n",rs1,now.reg(rs1),imm,rd)
       decodeI;
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
@@ -316,11 +303,8 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
       }
-      // alignedException("Load", SizeOp.h, now.reg(rs1) + imm);
-      // printf("[Debug]LH End: %x\n",next.reg(rd))
     }
     when(LW(inst)) {
-      // printf("[Debug]LW Begin: Reg:%x, Addr: %x TargetReg: %x\n",rs1,now.reg(rs1) + imm,rd)
       decodeI;
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
@@ -328,7 +312,6 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
       }
-      // printf("[Debug]LW End: %x\n", next.reg(rd))
     }
     when(LBU(inst)) { decodeI; alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN) }
     when(LHU(inst)) {
@@ -373,7 +356,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
         is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
       }
-      // printf("IS ECALL\n")
+       printf("IS ECALL, PrivilegeMode: %d\n", now.internal.privilegeMode)
     }
     when(FENCE(inst)) {
       decodeI /* then do nothing for now */
@@ -423,7 +406,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
     // - 5.3 Load and Store Instructions RV64
     // - LOAD
-    // FIXME: 并非所有的都加了异常访存的限制 需要重新梳理并新加
+    // FIXME: Not all of them have added the exception access limit, which needs to be reorganized and added.
     when(LWU(inst)) {
       decodeI;
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
