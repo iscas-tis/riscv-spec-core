@@ -7,13 +7,14 @@ import rvspeccore.core.BaseCore
 import rvspeccore.core.spec._
 import rvspeccore.core.tool.BitTool._
 
+// scalafmt: { maxColumn = 200 }
 /** "B" Extension for Bit Manipulation, Version 1.0.0
   *
   *   - riscv-spec-20240411
   *   - Chapter 28: "B" Extension for Bit Manipulation, Version 1.0.0
   *   - The B standard extension comprises instructions provided by the Zba, Zbb, and Zbs extensions.
   */
-trait BitManipulationInsts {
+trait BExtensionInsts {
   val add_uw = Inst("b0000100_?????_?????_000_?????_0111011")
   val andn   = Inst("b0100000_?????_?????_111_?????_0110011")
   val bclr   = Inst("b0100100_?????_?????_001_?????_0110011")
@@ -93,24 +94,24 @@ trait BitManipulationInsts {
   *   - riscv-spec-20240411
   *   - Chapter 28: "B" Extension for Bit Manipulation, Version 1.0.0
   */
-trait BitManipulation extends BaseCore with CommonDecode with BitManipulationInsts {
+trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
+  /** Address generation
+   * The Zba instructions can be used to accelerate the generation of addresses that index into arrays of
+   * basic types (halfword, word, doubleword) using both unsigned word-sized and XLEN-sized indices: a
+   * shifted index is added to a base address.
+   * - riscv-spec-20240411 P212
+   * - Chapter 28.4.1
+   */
   def doRV32Zba: Unit = {
-    /** Address generation
-     * The Zba instructions can be used to accelerate the generation of addresses that index into arrays of
-     * basic types (halfword, word, doubleword) using both unsigned word-sized and XLEN-sized indices: a
-     * shifted index is added to a base address.
-     * - riscv-spec-20240411 P212
-     * - Chapter 28.4.1
-    */
     when(sh1add(inst)) {decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 1)}
     when(sh2add(inst)) { decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 2) }
     when(sh3add(inst)) { decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 3) }
   }
+  /** Basic bit-manipulation
+   * - riscv-spec-20240411 P212
+   * - Chapter 28.4.2
+   */
   def doRV32Zbb: Unit = {
-    /** Basic bit-manipulation
-     * - riscv-spec-20240411 P212
-     * - Chapter 28.4.2
-     */
     // Logical with negate
     when(andn(inst)) { decodeR; next.reg(rd) := now.reg(rs1) & (~now.reg(rs2)).asUInt }
     when(orn(inst)) { decodeR; next.reg(rd) := now.reg(rs1) | (~now.reg(rs2)).asUInt }
@@ -130,7 +131,7 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
     when(sext_h(inst)) { decodeI; next.reg(rd) := signExt(now.reg(rs1)(15, 0), XLEN) }
     when(zext_h(inst)) { decodeI; next.reg(rd) := zeroExt(now.reg(rs1)(15, 0), XLEN) }
     // Bitwise rotation
-    // Function to select the appropriate bit width based on XLEN
+    /** Function to select the appropriate bit width based on XLEN */
     def getRotationShamt(value: UInt, xlen: Int): UInt = {
       value(if (xlen == 32) 4 else 5, 0)
     }
@@ -160,12 +161,12 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
     }
 
   }
+  /** Carry-less multiplication
+   * - riscv-spec-20240411 P214
+   * - Chapter 28.4.3
+   * Carry-less multiplication is the multiplication in the polynomial ring over GF(2).
+   */
   def doRV32Zbc: Unit = {
-    /** Carry-less multiplication
-     * - riscv-spec-20240411 P214
-     * - Chapter 28.4.3
-     * Carry-less multiplication is the multiplication in the polynomial ring over GF(2).
-     */
     when(clmul(inst)) {
       decodeR;
       val partialResults = VecInit(Seq.fill(XLEN)(0.U(XLEN.W)))
@@ -198,13 +199,13 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
     }
 
   }
+  /** Single-bit instructions
+   * - riscv-spec-20240411 P215
+   * - Chapter 28.4.4
+   * The single-bit instructions provide a mechanism to set, clear, invert, or extract a single bit in a register.
+   * The bit is specified by its index.
+   */
   def doRV32Zbs: Unit = {
-    /** Single-bit instructions
-     * - riscv-spec-20240411 P215
-     * - Chapter 28.4.4
-     * The single-bit instructions provide a mechanism to set, clear, invert, or extract a single bit in a register.
-     * The bit is specified by its index.
-     */
     when(bclr(inst)) {}
     when(bclri(inst)) {}
     when(bext(inst)) {}
@@ -286,40 +287,39 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
     when(binvi(inst)) {}
     when(bseti(inst)) {}
   }
-
+  /** Bit-manipulation for Cryptography
+   * - riscv-spec-20240411 P215
+   * - Chapter 28.4.5
+   * This extension contains instructions essential for implementing common operations in cryptographic
+   * workloads.
+   */
   def doRV32Zbkb: Unit = {
-    /** Bit-manipulation for Cryptography
-     * - riscv-spec-20240411 P215
-     * - Chapter 28.4.5
-     * This extension contains instructions essential for implementing common operations in cryptographic
-     * workloads.
-     */
     when(pack(inst)) {}
     when(packh(inst)) {}
     when(rev_b(inst)) {}
 
   }
+  /** Carry-less multiplication for Cryptography
+   * - riscv-spec-20240411 P216
+   * - Chapter 28.4.6
+   * Carry-less multiplication is the multiplication in the polynomial ring over GF(2). This is a critical
+   * operation in some cryptographic workloads, particularly the AES-GCM authenticated encryption
+   * scheme. This extension provides only the instructions needed to efficiently implement the GHASH
+   * operation, which is part of this workload.
+   */
   def doRV32Zbkc: Unit = {
-    /** Carry-less multiplication for Cryptography
-     * - riscv-spec-20240411 P216
-     * - Chapter 28.4.6
-     * Carry-less multiplication is the multiplication in the polynomial ring over GF(2). This is a critical
-     * operation in some cryptographic workloads, particularly the AES-GCM authenticated encryption
-     * scheme. This extension provides only the instructions needed to efficiently implement the GHASH
-     * operation, which is part of this workload.
-     */
   }
+  /** Crossbar permutations
+   * - riscv-spec-20240411 P216
+   * - Chapter 28.4.7
+   * These instructions implement a "lookup table" for 4 and 8 bit elements inside the general purpose
+   * registers. rs1 is used as a vector of N-bit words, and rs2 as a vector of N-bit indices into rs1. Elements in
+   * rs1 are replaced by the indexed element in rs2, or zero if the index into rs2 is out of bounds.
+   * These instructions are useful for expressing N-bit to N-bit boolean operations, and implementing
+   * cryptographic code with secret dependent memory accesses (particularly SBoxes) such that the
+   * execution latency does not depend on the (secret) data being operated on.
+   */
   def doRV32Zbkx: Unit = {
-    /** Crossbar permutations
-     * - riscv-spec-20240411 P216
-     * - Chapter 28.4.7
-     * These instructions implement a "lookup table" for 4 and 8 bit elements inside the general purpose
-     * registers. rs1 is used as a vector of N-bit words, and rs2 as a vector of N-bit indices into rs1. Elements in
-     * rs1 are replaced by the indexed element in rs2, or zero if the index into rs2 is out of bounds.
-     * These instructions are useful for expressing N-bit to N-bit boolean operations, and implementing
-     * cryptographic code with secret dependent memory accesses (particularly SBoxes) such that the
-     * execution latency does not depend on the (secret) data being operated on.
-     */
     when(xperm_b(inst)) {}
     when(xperm_n(inst)) {}
   }
@@ -337,7 +337,7 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
     doRV32Zbkx
   }
 
-  def doRV32BitManipulation: Unit = {
+  def doRV32B: Unit = {
     if(config.extensions.Zba){
       doRV32Zba
     }
@@ -351,8 +351,8 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
       doRV32Zbs
     }
   }
-  def doRV64BitManipulation: Unit = {
-    doRV32BitManipulation
+  def doRV64B: Unit = {
+    doRV32B
     if(config.extensions.Zba){
       doRV64Zba
     }
@@ -366,10 +366,12 @@ trait BitManipulation extends BaseCore with CommonDecode with BitManipulationIns
       doRV64Zbs
     }
   }
-  def doRVBitManipulation(): Unit = {
+  def doRVB(): Unit = {
     config.XLEN match {
-      case 32 => doRV32BitManipulation
-      case 64 => doRV64BitManipulation
+      case 32 => doRV32B
+      case 64 => doRV64B
     }
   }
 }
+
+// scalafmt: { maxColumn = 120 } (back to defaults)
