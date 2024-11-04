@@ -196,9 +196,13 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RVConfig(64, "MCZifencei")
+  implicit val config = RVConfig(
+    XLEN = 64,
+    extensions = "MCZifenceiZicsrZbaZbbZbc",
+    functions = Seq("Privileged"),
+  )
 
-  val tests = Seq("rv64ui", "rv64um", "rv64uc")
+  val tests = Seq("rv64ui", "rv64um", "rv64uc", "rv64uzba", "rv64uzbb", "rv64uzbc")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -217,11 +221,13 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 }
 
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
-  implicit val config = RVConfig(32, "MCZifencei")
+  implicit val config = RVConfig(
+    XLEN = 32,
+    extensions = "MCZifenceiZicsrZbaZbbZbc",
+    functions = Seq("Privileged"),
+  )
 
-  val tests = Seq("rv32ui", "rv32um", "rv32uc")
-  // val tests = Seq("tempcsr32")
-
+  val tests = Seq("rv32ui", "rv32um", "rv32uc", "rv32uzba", "rv32uzbb", "rv32uzbc")
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
   behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"

@@ -142,6 +142,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     if (config.functions.privileged) doRVPrivileged
     if (config.extensions.Zicsr) doRVZicsr
     if (config.extensions.Zifencei) doRVZifencei
+    if (config.extensions.B) doRVB
 
     // End excute
     next.reg(0) := 0.U

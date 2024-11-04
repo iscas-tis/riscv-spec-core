@@ -23,7 +23,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
     val has: Bool    = MuxLookup(addr, false.B)(now.csr.table.map { x => x.info.addr -> true.B })
     val nowCSR: UInt = MuxLookup(addr, 0.U)(now.csr.table.map { x => x.info.addr -> x.signal })
     val rmask: UInt  = MuxLookup(addr, 0.U)(now.csr.table.map { x => x.info.addr -> x.info.rmask(XLEN) })
-    // printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
+//     printf("[Debug]CSR_READ:(Have:%d, nowCSR:%x, Addr: %x %x)\n",has,nowCSR,addr,next.reg(1))
     val rData = WireInit(0.U(XLEN.W))
 
     def doCSRRead(MXLEN: Int): Unit = {
@@ -65,15 +65,12 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       val csrPairs = now.csr.table.zip(next.csr.table)
       csrPairs.foreach { case (CSRInfoSignal(info, nowCSR), CSRInfoSignal(_, nextCSR)) =>
         when(addr === info.addr) {
-          // 地址是当前寄存器的地址
           // printf("[Debug]Find ADDR, %x %x\n", (info.wfn != null).B, (info.wmask != UnwritableMask).B)
           if (info.wfn.isDefined && info.wmask(XLEN) != UnwritableMask) {
-            // 且该寄存器可写 使用mask
             nextCSR := info.wfn.get(XLEN)((nowCSR & ~info.wmask(XLEN)) | (data & info.wmask(XLEN)))
             // printf("[Debug]CSR_Write:(Addr: %x, nowCSR: %x, nextCSR: %x)\n", addr, nowCSR, nextCSR)
           } else {
             // TODO: might cause some exception?
-
           }
         }
       }
@@ -126,7 +123,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport {
       // FIXME: is mstatus not sstatus ?
       mstatusNew.sie              := mstatusOld.spie
       next.internal.privilegeMode := Cat(0.U(1.W), mstatusOld.spp)
-      mstatusNew.spie             := true.B // 正确的
+      mstatusNew.spie             := true.B
       mstatusNew.spp              := ModeU
       mstatusNew.mprv             := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
       next.csr.mstatus            := mstatusNew.asUInt
