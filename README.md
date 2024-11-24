@@ -129,3 +129,9 @@ when(backend.io.dmem.resp.fire) {
 In this example of processor design, we modified the code to get a verifiable
 system with reference model.
 And then perform formal verification using BMC through ChiselTest.
+
+## Publications
+
+**SETTA 2024: Formal Verification of RISC-V Processor Chisel Designs** [Link](https://link.springer.com/chapter/10.1007/978-981-96-0602-3_8) | [BibTex](https://citation-needed.springer.com/v2/references/10.1007/978-981-96-0602-3_8?format=bibtex&flavour=citation)
+
+Chisel is an open-source high-level hardware construction language embedded in Scala to facilitate parameterizable, reusable circuit design generators. It is becoming increasingly popular and has been used to design many RISC-V processor variants. Formal verification has been adapted to check the (functional) correctness of RISC-V processor designs. However, the RISC-V instructions therein are specified in the low-level hardware languages Verilog/SystemVerilog, which are challenging to develop, maintain, and extend. This considerably lowers the advantage of RISC-V for designing highly customizable processors. In this work, we present the first end-to-end approach for formally verifying the correctness of RISC-V processor designs, fully at the Chisel high-level. Specifically, by utilizing the object-oriented and functional programming constructs offered by Chisel, we develop a high-level reference model of RISC-V instructions in Chisel. This reference model is a succinct, modular, and parameterized RISC-V processor design generator, thus can produce customized RISC-V processor variants. 
