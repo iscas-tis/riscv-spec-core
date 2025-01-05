@@ -23,6 +23,7 @@ Read more detailed Chinese README: [中文说明](README.zh-CN.md).
   - [TLB](#tlb)
   - [Memory Access](#memory-access)
 - [Verification Example](#verification-example)
+- [Publications](#publications)
 
 ## Usage
 
@@ -129,3 +130,9 @@ when(backend.io.dmem.resp.fire) {
 In this example of processor design, we modified the code to get a verifiable
 system with reference model.
 And then perform formal verification using BMC through ChiselTest.
+
+## Publications
+
+If our work has been helpful to you, please cite:
+
+**SETTA 2024: Formal Verification of RISC-V Processor Chisel Designs** [Link](https://link.springer.com/chapter/10.1007/978-981-96-0602-3_8) | [BibTex](https://citation-needed.springer.com/v2/references/10.1007/978-981-96-0602-3_8?format=bibtex&flavour=citation)

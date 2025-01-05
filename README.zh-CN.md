@@ -26,6 +26,7 @@
 - [使用建议](#使用建议)
   - [使用 GitHub Actions 进行验证](#使用-github-actions-进行验证)
 - [验证实例](#验证实例)
+- [出版物](#出版物)
 
 ## 安装
 
@@ -345,3 +346,9 @@ GitHub Actions 可以在每次 push 代码到 GitHub 的时候自动运行验证
 该项目是在 [NutShell](https://github.com/OSCPU/NutShell) 上进行验证的例子。
 我们修改了 NutShell 代码以获取验证所需的处理器信息，并与参考模型进行了同步。
 最终通过 [ChiselTest](https://github.com/ucb-bar/chiseltest) 提供的接口调用了 BMC 算法进行验证。
+
+## 出版物
+
+如果我们的工作对您有帮助，请引用：
+
+**SETTA 2024: Formal Verification of RISC-V Processor Chisel Designs** [Link](https://link.springer.com/chapter/10.1007/978-981-96-0602-3_8) | [BibTex](https://citation-needed.springer.com/v2/references/10.1007/978-981-96-0602-3_8?format=bibtex&flavour=citation)
