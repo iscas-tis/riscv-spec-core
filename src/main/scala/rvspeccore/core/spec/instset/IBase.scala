@@ -234,12 +234,12 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     // BLT[U]
-    when(BLT(inst))  {
+    when(BLT(inst)) {
       decodeB;
       when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) {
-        when(addrAligned(getfetchSize(), now.pc + imm)){
+        when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
-          next.pc := now.pc + imm
+          next.pc           := now.pc + imm
         }.otherwise {
           next.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
@@ -249,9 +249,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(BLTU(inst)) {
       decodeB;
       when(now.reg(rs1) < now.reg(rs2)) {
-        when(addrAligned(getfetchSize(), now.pc + imm)){
+        when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
-          next.pc := now.pc + imm
+          next.pc           := now.pc + imm
         }.otherwise {
           next.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
@@ -259,12 +259,12 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     // BGE[U]
-    when(BGE(inst))  {
+    when(BGE(inst)) {
       decodeB;
       when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) {
-        when(addrAligned(getfetchSize(), now.pc + imm)){
+        when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
-          next.pc := now.pc + imm
+          next.pc           := now.pc + imm
         }.otherwise {
           next.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
@@ -274,9 +274,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(BGEU(inst)) {
       decodeB;
       when(now.reg(rs1) >= now.reg(rs2)) {
-        when(addrAligned(getfetchSize(), now.pc + imm)){
+        when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
-          next.pc := now.pc + imm
+          next.pc           := now.pc + imm
         }.otherwise {
           next.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)

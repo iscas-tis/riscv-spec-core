@@ -201,7 +201,6 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
     }
   }
 
-
   when(regDelay(io.event.valid) || regDelay(specCore.io.event.valid)) {
     assert(
       regDelay(io.event.valid) === regDelay(specCore.io.event.valid)
