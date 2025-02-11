@@ -88,6 +88,11 @@ trait BExtensionInsts {
   val zip = Inst("b0000100_11110_?????_001_?????_0010011")
 }
 
+/** Function to select the appropriate bit width based on XLEN */
+  def getRotationShamt(value: UInt, xlen: Int): UInt = {
+    value(if (xlen == 32) 4 else 5, 0).asUInt
+  }
+
 /** "B" Extension for Bit Manipulation, Version 1.0.0
   *
   *   - riscv-spec-20240411
@@ -101,12 +106,6 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - riscv-spec-20240411 P212
     *   - 28.4.1. Zba: Address generation
     */
-
-  /** Function to select the appropriate bit width based on XLEN */
-  def getRotationShamt(value: UInt, xlen: Int): UInt = {
-    value(if (xlen == 32) 4 else 5, 0).asUInt
-  }
-
   def doRV32Zba: Unit = {
     when(sh1add(inst)) { decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 1) }
     when(sh2add(inst)) { decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 2) }
