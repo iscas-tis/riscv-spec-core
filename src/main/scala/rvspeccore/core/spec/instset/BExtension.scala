@@ -102,10 +102,10 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - 28.4.1. Zba: Address generation
     */
 
-	/** Function to select the appropriate bit width based on XLEN */
-	def getRotationShamt(value: UInt, xlen: Int): UInt = {
-		value(if (xlen == 32) 4 else 5, 0).asUInt
-	}
+  /** Function to select the appropriate bit width based on XLEN */
+  def getRotationShamt(value: UInt, xlen: Int): UInt = {
+    value(if (xlen == 32) 4 else 5, 0).asUInt
+  }
 
   def doRV32Zba: Unit = {
     when(sh1add(inst)) { decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 1) }
@@ -211,30 +211,30 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - 28.4.4. Zbs: Single-bit instructions
     */
   def doRV32Zbs: Unit = {
-    when(bclr(inst))  {
-		decodeR; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(now.reg(rs2), XLEN)).asUInt)
-	}
+    when(bclr(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(now.reg(rs2), XLEN)).asUInt)
+    }
     when(bclri(inst)) {
-		decodeI; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(imm, XLEN)).asUInt)
-	}
-    when(bext(inst))  {
-		decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)) & 1.U;
-	}
+      decodeI; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(imm, XLEN)).asUInt)
+    }
+    when(bext(inst)) {
+      decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)) & 1.U;
+    }
     when(bexti(inst)) {
-		decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)) & 1.U;
-	}
-    when(binv(inst))  {
-		decodeR; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(now.reg(rs2), XLEN)) 
-	}
+      decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)) & 1.U;
+    }
+    when(binv(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(now.reg(rs2), XLEN))
+    }
     when(binvi(inst)) {
-		decodeI; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(imm, XLEN)) 
-	}
-    when(bset(inst))  {
-		decodeR; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(now.reg(rs2), XLEN))
-	}
+      decodeI; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(imm, XLEN))
+    }
+    when(bset(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(now.reg(rs2), XLEN))
+    }
     when(bseti(inst)) {
-		decodeI; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(imm, XLEN))
-	}
+      decodeI; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(imm, XLEN))
+    }
   }
 
   def doRV64Zba(): Unit = {
