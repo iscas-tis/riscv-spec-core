@@ -72,7 +72,8 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
-//这个的测试思路应该是：我选择将RiscvCore这个参考模型进去进行比较，保证这俩输出的结果是一致的
+// We have to extract some signals from RiscvCore, but it certainly modify the structure of the RiscvCore
+// This can't be solved until we discuss with YiCheng about it.
 class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithWB"
 
@@ -91,7 +92,15 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
       }
     }
 
-    wb.csrAddr := trans.io.next.csr_addr
+    wb.valid   := state.rd_en
+    wb.dest    := state.rd_addr
+    wb.data    := state.rd_data
+    wb.csrAddr := state.csr_addr
+    wb.r1Addr  := state.rs1_addr
+    wb.r2Addr  := state.rs2_addr
+    wb.r1Data  := state.reg(wb.r1Addr)
+    wb.r2Data  := state.reg(wb.r2Addr)
+
     trans.io.next.csr.table.foreach{
       case (CSRInfoSignal(info, nextCSR)) =>
           when(wb.csrAddr === info.addr) {
@@ -104,11 +113,11 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     checker.io.instCommit.valid := io.valid
     checker.io.instCommit.inst  := io.inst
     checker.io.instCommit.pc    := state.pc
-    checker.io.instCommit.npc   := DontCare
+    checker.io.instCommit.npc   := trans.io.next.pc
 
     checker.io.wb := wb
 
-    checker.io.result := DontCare
+    checker.io.result := state
 
     checker.io.mem.map(_ := trans.io.mem)
   }
