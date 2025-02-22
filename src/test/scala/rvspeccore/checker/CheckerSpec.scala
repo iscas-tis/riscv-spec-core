@@ -116,6 +116,7 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     checker.io.instCommit.npc   := trans.io.next.pc
 
     checker.io.wb := wb
+    
 
     checker.io.result := state
 

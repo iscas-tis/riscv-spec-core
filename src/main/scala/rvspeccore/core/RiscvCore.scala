@@ -189,15 +189,6 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     // End excute
     next.reg(0) := 0.U
 
-    // debug
-    // assert(RegNext(next.csr.mstatus) === RegNext(next.csr.mstatus))
-    // assert(RegNext(now.csr.mstatus) === RegNext(now.csr.mstatus))
-
-    // when(next.rd_addr === 0.U) {
-    //   next.rd_data := 0.U
-    //   next.rd_en   := false.B
-    // }
-
     when(!global_data.setpc) {
       if (config.extensions.C) {
         // + 4.U for 32 bits width inst
@@ -289,7 +280,7 @@ class RiscvCoreTrans()(implicit config: RVConfig) extends Module{
   state.csr := io.now.csr
 
   state.reg(state.rs1_addr) := io.wb.rs1Data
-  state.reg(state.rs2_data) := io.wb.rs2Data
+  state.reg(state.rs2_addr) := io.wb.rs2Data
 
   io.next     := trans.io.next
   io.event    := trans.io.event

@@ -296,26 +296,22 @@ class CheckerWithWB(val checkMem: Boolean = true,enableReg: Boolean = true)(impl
 
   // assert in current clock
   when(regDelay(io.instCommit.valid)) {
-    // now pc is used as a input to the register
-    // assert(regDelay(io.instCommit.pc) === regDelay(specCore.io.now.pc))
-    // next reg
-
-//    assert(regDelay(io.wb.r1Addr) === regDelay(specCore.io.next.rs1_addr))
-//    assert(regDelay(io.wb.r2Addr) === regDelay(specCore.io.next.rs2_addr))
     assert(regDelay(io.instCommit.npc(31,0)) === regDelay(specCoreNpcs(31,0)))
-    when(regDelay(specCoreWBValid) || regDelay(io.wb.valid)) {
-      // prevent DUT not rise a write back(don't care this part)
-      assert(regDelay(io.wb.valid) === regDelay(specCoreWBValid))
+    when(regDelay(specCoreWBValid) && regDelay(io.wb.valid)) {
+      // if reference and dut all raise the valid, compare the dest and the data
       assert(regDelay(io.wb.dest) === regDelay(specCoreWBDest))
       assert(regDelay(io.wb.data) === regDelay(specCoreWBData))
-    }
-//    }.otherwise {
-//      // DUT may try to write back to x0, but it should not take effect
-//      // if DUT does write in x0, it will be check out at next instruction
-//      when(regDelay(io.wb.valid) && regDelay(io.wb.dest) =/= 0.U) {
-//        assert(regDelay(io.wb.data) === regDelay(specCoreWBData))
-//      }
-//    }
+   }.otherwise {
+      // DUT may try to write back to x0, but it should not take effect
+      // if DUT dose write in x0, it will be check out at next instruction
+      when(regDelay(io.wb.valid) && regDelay(io.wb.dest) =/= 0.U) {
+        assert(regDelay(io.wb.data) === regDelay(specCore.io.next.reg(io.wb.dest)))
+      }
+      // if reference raise but dut does't and the dest is not x0, we think that it's invalid
+      when(regDelay(specCoreWBValid)) {
+        assert(regDelay(specCoreWBDest) === 0.U) 
+      }
+   }
 // try to verify two operands of instruction
     when(regDelay(specCore.io.next.checkrs1)) {
        when(regDelay(io.wb.r1Addr) === 0.U) {
