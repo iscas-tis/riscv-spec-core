@@ -6,6 +6,7 @@ import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpec
 
 import rvspeccore.core._
+import rvspeccore.core.spec.instset.csr.CSRInfoSignal
 
 class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithResult"
@@ -17,6 +18,7 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     checker.io.instCommit.valid    := RegNext(io.valid, false.B)
     checker.io.instCommit.inst     := RegNext(io.inst)
     checker.io.instCommit.pc       := RegNext(state.pc)
+    checker.io.instCommit.npc      := DontCare
     checker.io.event.valid         := RegNext(io.event.valid, false.B)
     checker.io.event.intrNO        := RegNext(io.event.intrNO)
     checker.io.event.cause         := RegNext(io.event.cause)
@@ -70,7 +72,7 @@ class CheckerWithResultSpec extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
-
+//这个的测试思路应该是：我选择将RiscvCore这个参考模型进去进行比较，保证这俩输出的结果是一致的
 class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "CheckerWithWB"
 
@@ -78,9 +80,8 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
 
   class TestCore(checkMem: Boolean = true) extends RiscvCore {
     val wb = Wire(new WriteBack)
-    wb.valid := false.B
-    wb.dest  := 0.U
-    wb.data  := 0.U
+
+    wb := 0.U.asTypeOf(new WriteBack)
 
     for (i <- 0 until 32) {
       when(state.reg(i.U) =/= trans.io.next.reg(i.U)) {
@@ -90,12 +91,24 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
       }
     }
 
+    wb.csrAddr := trans.io.next.csr_addr
+    trans.io.next.csr.table.foreach{
+      case (CSRInfoSignal(info, nextCSR)) =>
+          when(wb.csrAddr === info.addr) {
+            wb.csrNdata := nextCSR
+          }
+        }
+    wb.csrWr := trans.io.next.csr_wr
+
     val checker = Module(new CheckerWithWB(checkMem))
     checker.io.instCommit.valid := io.valid
     checker.io.instCommit.inst  := io.inst
     checker.io.instCommit.pc    := state.pc
+    checker.io.instCommit.npc   := DontCare
 
     checker.io.wb := wb
+
+    checker.io.result := DontCare
 
     checker.io.mem.map(_ := trans.io.mem)
   }

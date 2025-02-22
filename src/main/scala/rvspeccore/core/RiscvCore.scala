@@ -190,13 +190,13 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     next.reg(0) := 0.U
 
     // debug
-    assert(RegNext(next.csr.mstatus) === RegNext(next.csr.mstatus))
-    assert(RegNext(now.csr.mstatus) === RegNext(now.csr.mstatus))
+    // assert(RegNext(next.csr.mstatus) === RegNext(next.csr.mstatus))
+    // assert(RegNext(now.csr.mstatus) === RegNext(now.csr.mstatus))
 
-    when(next.rd_addr === 0.U) {
-      next.rd_data := 0.U
-      next.rd_en   := false.B
-    }
+    // when(next.rd_addr === 0.U) {
+    //   next.rd_data := 0.U
+    //   next.rd_en   := false.B
+    // }
 
     when(!global_data.setpc) {
       if (config.extensions.C) {
@@ -287,6 +287,9 @@ class RiscvCoreTrans()(implicit config: RVConfig) extends Module{
   state.rs2_data := io.wb.rs2Data
 
   state.csr := io.now.csr
+
+  state.reg(state.rs1_addr) := io.wb.rs1Data
+  state.reg(state.rs2_data) := io.wb.rs2Data
 
   io.next     := trans.io.next
   io.event    := trans.io.event

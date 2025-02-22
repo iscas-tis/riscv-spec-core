@@ -11,14 +11,14 @@ trait CheckTool extends BaseCore{
   }
 
   def checkSrcImm(rs1_addr: UInt): Unit = {
-    now.reg(now.rs1_addr) := now.rs1_data
+    //now.reg(now.rs1_addr) := now.rs1_data
     next.rs1_addr := rs1_addr
     next.checkrs1 := true.B
   }
 
   def checkSrcReg(rs1_addr: UInt, rs2_addr: UInt): Unit = {
-    now.reg(rs1_addr) := now.rs1_data
-    now.reg(rs2_addr) := now.rs2_data
+    //now.reg(rs1_addr) := now.rs1_data
+    //now.reg(rs2_addr) := now.rs2_data
     next.rs1_addr := rs1_addr
     next.checkrs1 := true.B
     next.rs2_addr := rs2_addr
