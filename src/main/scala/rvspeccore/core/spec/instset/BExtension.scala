@@ -18,8 +18,8 @@ trait BExtensionInsts {
   val andn   = Inst("b0100000_?????_?????_111_?????_0110011")
   val bclr   = Inst("b0100100_?????_?????_001_?????_0110011")
   val bclri = Inst(
-    32 -> "b0100100_?????_?????_011_?????_0110011",
-    64 -> "b010010_??????_?????_011_?????_0110011"
+    32 -> "b0100100_?????_?????_001_?????_0010011",
+    64 -> "b010010_??????_?????_001_?????_0010011"
   )
   val bext = Inst("b0100100_?????_?????_101_?????_0110011")
   val bexti = Inst(
@@ -96,6 +96,11 @@ trait BExtensionInsts {
   */
 trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
 
+  /** Function to select the appropriate bit width based on XLEN */
+  def getRotationShamt(value: UInt, xlen: Int): UInt = {
+    value(if (xlen == 32) 4 else 5, 0).asUInt
+  }
+
   /** Address generation
     *
     *   - riscv-spec-20240411 P212
@@ -133,13 +138,9 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     when(sext_h(inst)) { decodeI; next.reg(rd) := signExt(now.reg(rs1)(15, 0), XLEN) }
     when(zext_h(inst)) { decodeI; next.reg(rd) := zeroExt(now.reg(rs1)(15, 0), XLEN) }
     // Bitwise rotation
-    /** Function to select the appropriate bit width based on XLEN */
-    def getRotationShamt(value: UInt, xlen: Int): UInt = {
-      value(if (xlen == 32) 4 else 5, 0)
-    }
-    when(rol(inst))  { decodeR; next.reg(rd) := (now.reg(rs1) << getRotationShamt(now.reg(rs2), XLEN)).asUInt | (now.reg(rs1) >> (XLEN.U - getRotationShamt(now.reg(rs2), XLEN))).asUInt }
-    when(ror(inst))  { decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)).asUInt | (now.reg(rs1) << (XLEN.U - getRotationShamt(now.reg(rs2), XLEN))).asUInt }
-    when(rori(inst)) { decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)).asUInt | (now.reg(rs1) << (XLEN.U - getRotationShamt(imm, XLEN))).asUInt }
+    when(rol(inst))  { decodeR; next.reg(rd) := (now.reg(rs1) << getRotationShamt(now.reg(rs2), XLEN)) | (now.reg(rs1) >> (XLEN.U - getRotationShamt(now.reg(rs2), XLEN))) }
+    when(ror(inst))  { decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)) | (now.reg(rs1) << (XLEN.U - getRotationShamt(now.reg(rs2), XLEN))) }
+    when(rori(inst)) { decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)) | (now.reg(rs1) << (XLEN.U - getRotationShamt(imm, XLEN))) }
     // OR Combine
     when(orc_b(inst)) {
       decodeR;
@@ -209,14 +210,30 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - 28.4.4. Zbs: Single-bit instructions
     */
   def doRV32Zbs: Unit = {
-    when(bclr(inst))  {}
-    when(bclri(inst)) {}
-    when(bext(inst))  {}
-    when(bexti(inst)) {}
-    when(binv(inst))  {}
-    when(binvi(inst)) {}
-    when(bset(inst))  {}
-    when(bseti(inst)) {}
+    when(bclr(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(now.reg(rs2), XLEN)).asUInt)
+    }
+    when(bclri(inst)) {
+      decodeI; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(imm, XLEN)).asUInt)
+    }
+    when(bext(inst)) {
+      decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)) & 1.U;
+    }
+    when(bexti(inst)) {
+      decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)) & 1.U;
+    }
+    when(binv(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(now.reg(rs2), XLEN))
+    }
+    when(binvi(inst)) {
+      decodeI; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(imm, XLEN))
+    }
+    when(bset(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(now.reg(rs2), XLEN))
+    }
+    when(bseti(inst)) {
+      decodeI; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(imm, XLEN))
+    }
   }
 
   def doRV64Zba(): Unit = {
@@ -287,10 +304,6 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
   }
   def doRV64Zbs(): Unit = {
     doRV32Zbs
-    when(bclri(inst)) {}
-    when(bexti(inst)) {}
-    when(binvi(inst)) {}
-    when(bseti(inst)) {}
   }
 
   /** Bit-manipulation for Cryptography

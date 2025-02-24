@@ -203,17 +203,16 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
       assert(regDelay(io.result.reg(i.U)) === regDelay(specCore.io.next.reg(i.U)))
     }
   }
-
-
-  // when(regDelay(io.event.valid) || regDelay(specCore.io.event.valid)) {
-  //   assert(
-  //     regDelay(io.event.valid) === regDelay(specCore.io.event.valid)
-  //   ) // Make sure DUT and specCore currently occur the same exception
-  //   assert(regDelay(io.event.intrNO) === regDelay(specCore.io.event.intrNO))
-  //   assert(regDelay(io.event.cause) === regDelay(specCore.io.event.cause))
-  //   assert(regDelay(io.event.exceptionPC) === regDelay(specCore.io.event.exceptionPC))
-  //   assert(regDelay(io.event.exceptionInst) === regDelay(specCore.io.event.exceptionInst))
-  // }
+      
+  when(regDelay(io.event.valid) || regDelay(specCore.io.event.valid)) {
+    assert(
+      regDelay(io.event.valid) === regDelay(specCore.io.event.valid)
+    ) // Make sure DUT and specCore currently occur the same exception
+    assert(regDelay(io.event.intrNO) === regDelay(specCore.io.event.intrNO))
+    assert(regDelay(io.event.cause) === regDelay(specCore.io.event.cause))
+    assert(regDelay(io.event.exceptionPC) === regDelay(specCore.io.event.exceptionPC))
+    assert(regDelay(io.event.exceptionInst) === regDelay(specCore.io.event.exceptionInst))
+  }
 }
 
 class WriteBack()(implicit XLEN: Int) extends Bundle {

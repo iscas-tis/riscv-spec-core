@@ -126,7 +126,7 @@ trait CSRSupport extends BaseCore with ExceptionSupport with CheckTool {
       next.internal.privilegeMode := Cat(0.U(1.W), mstatusOld.spp)
       mstatusNew.spie             := true.B
       mstatusNew.spp              := ModeU
-      mstatusNew.mprv             := 0x0.U  // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
+      mstatusNew.mprv             := 0x0.U // Volume II P21 " If xPP != M, xRET also sets MPRV = 0 "
       next.csr.mstatus            := mstatusNew.asUInt
       retTarget                   := next.csr.sepc(VAddrBits - 1, 0)
       // printf("nextpc1:%x\n",now.csr.sepc)
