@@ -309,7 +309,7 @@ class CheckerWithWB(val checkMem: Boolean = true,enableReg: Boolean = true)(impl
       }
       // if reference raise but dut does't and the dest is not x0, we think that it's invalid
       when(regDelay(specCoreWBValid)) {
-        assert(regDelay(specCoreWBDest) === 0.U) 
+        assert(regDelay(specCoreWBDest) === 0.U)
       }
    }
 // try to verify two operands of instruction

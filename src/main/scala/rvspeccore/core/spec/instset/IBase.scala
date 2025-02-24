@@ -188,11 +188,11 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         global_data.setpc := true.B;
         next.pc           := now.pc + imm;
         next.reg(rd)      := now.pc + 4.U;
+        updateNextWrite(rd)
       }.otherwise {
         next.csr.mtval := now.pc + imm;
         raiseException(MExceptionCode.instructionAddressMisaligned)
       }
-      updateNextWrite(rd)
     }
     // JALR
     when(JALR(inst)) {
@@ -201,11 +201,12 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         global_data.setpc := true.B;
         next.pc           := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W));
         next.reg(rd)      := now.pc + 4.U;
+        updateNextWrite(rd)
       }.otherwise {
         next.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
         raiseException(MExceptionCode.instructionAddressMisaligned)
       }
-       updateNextWrite(rd)
+
     }
     // - Conditional Branches
     // BEQ/BNE

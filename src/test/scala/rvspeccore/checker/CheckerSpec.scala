@@ -84,22 +84,28 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
 
     wb := 0.U.asTypeOf(new WriteBack)
 
-    for (i <- 0 until 32) {
-      when(state.reg(i.U) =/= trans.io.next.reg(i.U)) {
-        wb.valid := true.B
-        wb.dest  := i.U
-        wb.data  := trans.io.next.reg(i.U)
-      }
-    }
+//    for (i <- 0 until 32) {
+//      when(state.reg(i.U) =/= trans.io.next.reg(i.U)) {
+//        wb.valid := true.B
+//        wb.dest  := i.U
+//        wb.data  := trans.io.next.reg(i.U)
+//      }
+//    }
 
-    wb.valid   := state.rd_en
-    wb.dest    := state.rd_addr
-    wb.data    := state.rd_data
-    wb.csrAddr := state.csr_addr
-    wb.r1Addr  := state.rs1_addr
-    wb.r2Addr  := state.rs2_addr
+    wb.valid   := trans.io.next.rd_en
+    wb.dest    := trans.io.next.rd_addr
+    wb.data    := trans.io.next.rd_data
+    wb.csrAddr := trans.io.next.csr_addr
+    wb.r1Addr  := trans.io.next.rs1_addr
+    wb.r2Addr  := trans.io.next.rs2_addr
     wb.r1Data  := state.reg(wb.r1Addr)
     wb.r2Data  := state.reg(wb.r2Addr)
+
+
+    printf("Commit inst: %x\n", io.inst)
+    printf("WB data: valid: %d, dest: %d, data: %x, r1: %d, r2: %d, r1data: %x, r2data: %x\n",
+      wb.valid, wb.dest, wb.data, wb.r1Addr, wb.r2Addr, wb.r1Data, wb.r2Data)
+
 
     trans.io.next.csr.table.foreach{
       case (CSRInfoSignal(info, nextCSR)) =>

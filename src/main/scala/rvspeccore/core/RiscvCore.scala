@@ -238,6 +238,13 @@ class RiscvCore()(implicit config: RVConfig) extends Module {
   trans.io.now := state
   state        := trans.io.next
 
+  state.checkrs1 := false.B
+  state.checkrs2 := false.B
+  state.rd_en    := false.B
+  state.rd_addr  := 0.U
+  state.csr_addr := 0.U
+  state.csr_wr   := false.B
+
   io.now      := state
   io.next     := trans.io.next
   io.event    := trans.io.event
