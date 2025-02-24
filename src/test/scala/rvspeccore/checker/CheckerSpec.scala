@@ -102,9 +102,9 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     wb.r2Data  := state.reg(wb.r2Addr)
 
 
-    printf("Commit inst: %x\n", io.inst)
-    printf("WB data: valid: %d, dest: %d, data: %x, r1: %d, r2: %d, r1data: %x, r2data: %x\n",
-      wb.valid, wb.dest, wb.data, wb.r1Addr, wb.r2Addr, wb.r1Data, wb.r2Data)
+//    printf("Commit inst: %x\n", io.inst)
+//    printf("WB data: valid: %d, dest: %d, data: %x, r1: %d, r2: %d, r1data: %x, r2data: %x\n",
+//      wb.valid, wb.dest, wb.data, wb.r1Addr, wb.r2Addr, wb.r1Data, wb.r2Data)
 
 
     trans.io.next.csr.table.foreach{
