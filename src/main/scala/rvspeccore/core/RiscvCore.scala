@@ -25,7 +25,7 @@ class GlobalData extends Bundle {
   val setpc = Bool()
 }
 
-class WbIO()(implicit XLEN: Int) extends Bundle{
+class WbIO()(implicit XLEN: Int) extends Bundle {
   val inst    = Input(UInt(32.W))
   val valid   = Input(Bool())
   val pc      = Input(UInt(XLEN.W))
@@ -73,14 +73,13 @@ object Internal {
 
 class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
 
-
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
   val csr = CSR()
 
-  val rd_addr =  UInt(5.W)
-  val rd_data =  UInt(XLEN.W)
-  val rd_en   =  Bool()
+  val rd_addr = UInt(5.W)
+  val rd_data = UInt(XLEN.W)
+  val rd_en   = Bool()
 
   val csr_addr = UInt(12.W)
   val csr_wr   = Bool()
@@ -120,7 +119,7 @@ object State {
     state.rs1_data := 0.U
     state.rs2_data := 0.U
 
-    state.csr_wr := false.B
+    state.csr_wr   := false.B
     state.csr_addr := 0.U
 
     state.checkrs1 := false.B
@@ -251,7 +250,7 @@ class RiscvCore()(implicit config: RVConfig) extends Module {
   io.iFetchpc := trans.io.iFetchpc
 }
 
-class RiscvCoreTrans()(implicit config: RVConfig) extends Module{
+class RiscvCoreTrans()(implicit config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
 
   val io = IO(new Bundle {
@@ -261,7 +260,7 @@ class RiscvCoreTrans()(implicit config: RVConfig) extends Module{
     val mem      = new MemIO
     val tlb      = if (config.functions.tlb) Some(new TLBIO) else None
 
-    val now  = Input(State())
+    val now = Input(State())
 
     val next = Output(State())
     // Exposed signals

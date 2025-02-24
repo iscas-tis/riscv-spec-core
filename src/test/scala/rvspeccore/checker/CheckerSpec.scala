@@ -101,18 +101,15 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     wb.r1Data  := state.reg(wb.r1Addr)
     wb.r2Data  := state.reg(wb.r2Addr)
 
-
 //    printf("Commit inst: %x\n", io.inst)
 //    printf("WB data: valid: %d, dest: %d, data: %x, r1: %d, r2: %d, r1data: %x, r2data: %x\n",
 //      wb.valid, wb.dest, wb.data, wb.r1Addr, wb.r2Addr, wb.r1Data, wb.r2Data)
 
-
-    trans.io.next.csr.table.foreach{
-      case (CSRInfoSignal(info, nextCSR)) =>
-          when(wb.csrAddr === info.addr) {
-            wb.csrNdata := nextCSR
-          }
-        }
+    trans.io.next.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
+      when(wb.csrAddr === info.addr) {
+        wb.csrNdata := nextCSR
+      }
+    }
     wb.csrWr := trans.io.next.csr_wr
 
     val checker = Module(new CheckerWithWB(checkMem))
@@ -122,7 +119,6 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     checker.io.instCommit.npc   := trans.io.next.pc
 
     checker.io.wb := wb
-    
 
     checker.io.result := state
 

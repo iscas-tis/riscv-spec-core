@@ -11,12 +11,12 @@ import rvspeccore.core.tool.TLBSig
 abstract class ConnectHelper {}
 
 trait UniqueId {
-  val uniqueIdReg: String = "ConnectCheckerResult_UniqueIdReg"
-  val uniqueIdMem: String = "ConnectCheckerResult_UniqueIdMem"
-  val uniqueIdCSR: String = "ConnectCheckerResult_UniqueIdCSR"
+  val uniqueIdReg: String   = "ConnectCheckerResult_UniqueIdReg"
+  val uniqueIdMem: String   = "ConnectCheckerResult_UniqueIdMem"
+  val uniqueIdCSR: String   = "ConnectCheckerResult_UniqueIdCSR"
   val uniqueIdEvent: String = "ConnectCheckerResult_UniqueIdEvent"
-  val uniqueIdDTLB: String = "ConnectCheckerResult_UniqueIdDTLB"
-  val uniqueIdITLB: String = "ConnectCheckerResult_UniqueIdITLB"
+  val uniqueIdDTLB: String  = "ConnectCheckerResult_UniqueIdDTLB"
+  val uniqueIdITLB: String  = "ConnectCheckerResult_UniqueIdITLB"
 }
 
 /** Connect RegFile to io.result.reg by BoringUtils
@@ -128,7 +128,7 @@ object ConnectCheckerResult extends ConnectHelper with UniqueId {
   }
 }
 
-object ConnectCheckerWb extends ConnectHelper with UniqueId{
+object ConnectCheckerWb extends ConnectHelper with UniqueId {
   def regNextDelay[T <: Bundle](signal: T, delay: Int): T = {
     delay match {
       case 0 => signal
@@ -137,27 +137,27 @@ object ConnectCheckerWb extends ConnectHelper with UniqueId{
   }
 
   class MemOneSig()(implicit XLEN: Int) extends Bundle {
-    val valid = Bool()
-    val addr = UInt(XLEN.W)
+    val valid    = Bool()
+    val addr     = UInt(XLEN.W)
     val memWidth = UInt(log2Ceil(XLEN + 1).W)
-    val data = UInt(XLEN.W)
+    val data     = UInt(XLEN.W)
   }
 
   class MemSig()(implicit XLEN: Int) extends Bundle {
-    val read = new MemOneSig
+    val read  = new MemOneSig
     val write = new MemOneSig
   }
 
   def makeMemSource()(implicit XLEN: Int) = {
     val mem = Wire(new MemSig)
 
-    mem.read.valid := false.B
-    mem.read.addr := 0.U
-    mem.read.data := 0.U
-    mem.read.memWidth := 0.U
-    mem.write.valid := false.B
-    mem.write.addr := 0.U
-    mem.write.data := 0.U
+    mem.read.valid     := false.B
+    mem.read.addr      := 0.U
+    mem.read.data      := 0.U
+    mem.read.memWidth  := 0.U
+    mem.write.valid    := false.B
+    mem.write.addr     := 0.U
+    mem.write.data     := 0.U
     mem.write.memWidth := 0.U
 
     BoringUtils.addSource(mem, uniqueIdMem)
@@ -172,10 +172,10 @@ object ConnectCheckerWb extends ConnectHelper with UniqueId{
   }
 
   def setChecker(
-                  checker: CheckerWithWB,
-                  memDelay: Int = 0
-                )(implicit XLEN: Int, config: RVConfig) = {
-    //init
+      checker: CheckerWithWB,
+      memDelay: Int = 0
+  )(implicit XLEN: Int, config: RVConfig) = {
+    // init
     val result = State.wireInit()
     checker.io.result := result
 

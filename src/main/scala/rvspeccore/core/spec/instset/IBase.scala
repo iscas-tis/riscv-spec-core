@@ -99,7 +99,7 @@ object SizeOp {
   def w = "b10".U
   def d = "b11".U
 }
-trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport with LoadStore with CheckTool{
+trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSupport with LoadStore with CheckTool {
   // val setPc = WireInit(false.B)
   def alignedException(method: String, size: UInt, addr: UInt): Unit = {
     when(!addrAligned(size, addr)) {
@@ -163,19 +163,19 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     when(AUIPC(inst)) { decodeU; next.reg(rd) := now.pc + imm; updateNextWrite(rd) }
     // - Integer Register-Register Operations
     // ADD/SLT/SLTU
-    when(ADD(inst))  { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) + now.reg(rs2) ; updateNextWrite(rd)}
-    when(SLT(inst))  { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, 1.U, 0.U); updateNextWrite(rd) }
-    when(SLTU(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := Mux(now.reg(rs1) < now.reg(rs2), 1.U, 0.U); updateNextWrite(rd) }
+    when(ADD(inst))  { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) + now.reg(rs2); updateNextWrite(rd) }
+    when(SLT(inst))  { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, 1.U, 0.U); updateNextWrite(rd) }
+    when(SLTU(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := Mux(now.reg(rs1) < now.reg(rs2), 1.U, 0.U); updateNextWrite(rd) }
     // AND/OR/XOR
-    when(AND(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) & now.reg(rs2); updateNextWrite(rd) }
-    when(OR(inst))  { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) | now.reg(rs2); updateNextWrite(rd) }
-    when(XOR(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) ^ now.reg(rs2); updateNextWrite(rd) }
+    when(AND(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) & now.reg(rs2); updateNextWrite(rd) }
+    when(OR(inst))  { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) | now.reg(rs2); updateNextWrite(rd) }
+    when(XOR(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) ^ now.reg(rs2); updateNextWrite(rd) }
     // SLL/SRL
-    when(SLL(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) << now.reg(rs2)(4, 0); updateNextWrite(rd) }
-    when(SRL(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(4, 0); updateNextWrite(rd) }
+    when(SLL(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) << now.reg(rs2)(4, 0); updateNextWrite(rd) }
+    when(SRL(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(4, 0); updateNextWrite(rd) }
     // SUB/SRA
-    when(SUB(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := now.reg(rs1) - now.reg(rs2) ; updateNextWrite(rd)}
-    when(SRA(inst)) { decodeR; checkSrcReg(rs1,rs2) ;next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(4, 0)).asUInt ; updateNextWrite(rd)}
+    when(SUB(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) - now.reg(rs2); updateNextWrite(rd) }
+    when(SRA(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(4, 0)).asUInt; updateNextWrite(rd) }
     // - NOP Instruction
     // NOP is encoded as ADDI x0, x0, 0.
 
@@ -196,7 +196,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     }
     // JALR
     when(JALR(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(getfetchSize(), Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)))) {
         global_data.setpc := true.B;
         next.pc           := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W));
@@ -211,7 +211,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // - Conditional Branches
     // BEQ/BNE
     when(BEQ(inst)) {
-      decodeB;checkSrcReg(rs1,rs2) ;
+      decodeB; checkSrcReg(rs1, rs2);
       when(now.reg(rs1) === now.reg(rs2)) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
@@ -223,7 +223,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     when(BNE(inst)) {
-      decodeB;checkSrcReg(rs1,rs2) ;
+      decodeB; checkSrcReg(rs1, rs2);
       when(now.reg(rs1) =/= now.reg(rs2)) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
@@ -235,8 +235,8 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     // BLT[U]
-    when(BLT(inst))  {
-      decodeB;checkSrcReg(rs1,rs2) ;
+    when(BLT(inst)) {
+      decodeB; checkSrcReg(rs1, rs2);
       when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
@@ -248,7 +248,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     when(BLTU(inst)) {
-      decodeB;checkSrcReg(rs1,rs2) ;
+      decodeB; checkSrcReg(rs1, rs2);
       when(now.reg(rs1) < now.reg(rs2)) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
@@ -260,8 +260,8 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     // BGE[U]
-    when(BGE(inst))  {
-      decodeB;checkSrcReg(rs1,rs2) ;
+    when(BGE(inst)) {
+      decodeB; checkSrcReg(rs1, rs2);
       when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
@@ -273,7 +273,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     when(BGEU(inst)) {
-      decodeB;checkSrcReg(rs1,rs2) ;
+      decodeB; checkSrcReg(rs1, rs2);
       when(now.reg(rs1) >= now.reg(rs2)) {
         when(addrAligned(getfetchSize(), now.pc + imm)) {
           global_data.setpc := true.B;
@@ -287,7 +287,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // - 2.6 Load and Store Instructions
     // LOAD
     when(LB(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.b, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN)
       }.otherwise {
@@ -297,7 +297,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }; updateNextWrite(rd)
     }
     when(LH(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
       }.otherwise {
@@ -306,7 +306,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }; updateNextWrite(rd)
     }
     when(LW(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
       }.otherwise {
@@ -314,9 +314,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         raiseException(MExceptionCode.loadAddressMisaligned)
       }; updateNextWrite(rd)
     }
-    when(LBU(inst)) { decodeI; checkSrcImm(rs1) ;alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN); updateNextWrite(rd) }
+    when(LBU(inst)) { decodeI; checkSrcImm(rs1); alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN); updateNextWrite(rd) }
     when(LHU(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
         next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
       }.otherwise {
@@ -325,9 +325,9 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }; updateNextWrite(rd)
     }
     // STORE
-    when(SB(inst)) { decodeS; checkSrcImm(rs1) ;alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
+    when(SB(inst)) { decodeS; checkSrcImm(rs1); alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
     when(SH(inst)) {
-      decodeS;checkSrcImm(rs1) ;
+      decodeS; checkSrcImm(rs1);
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
         memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0))
       }.otherwise {
@@ -336,7 +336,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }
     }
     when(SW(inst)) {
-      decodeS;checkSrcImm(rs1) ;
+      decodeS; checkSrcImm(rs1);
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
         memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0))
       }.otherwise {
@@ -379,36 +379,36 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     // - 5.2 Integer Computational Instructions
     // - Integer Register-Immediate Instructions
     // ADDIW
-    when(ADDIW(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := signExt((now.reg(rs1) + imm)(31, 0), XLEN); updateNextWrite(rd) }
+    when(ADDIW(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1) + imm)(31, 0), XLEN); updateNextWrite(rd) }
     // SLLI/SRLI/SRAI
-    when(SLLI(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := now.reg(rs1) << imm(5, 0); updateNextWrite(rd) }                 // override RV32
-    when(SRLI(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := now.reg(rs1) >> imm(5, 0); updateNextWrite(rd) }                 // override RV32
-    when(SRAI(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := (now.reg(rs1).asSInt >> imm(5, 0)).asUInt; updateNextWrite(rd) } // override RV32
+    when(SLLI(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) << imm(5, 0); updateNextWrite(rd) }                 // override RV32
+    when(SRLI(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) >> imm(5, 0); updateNextWrite(rd) }                 // override RV32
+    when(SRAI(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := (now.reg(rs1).asSInt >> imm(5, 0)).asUInt; updateNextWrite(rd) } // override RV32
     // SLLIW/SRLIW/SRAIW
-    when(SLLIW(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0) << imm(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
-    when(SRLIW(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> imm(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
-    when(SRAIW(inst)) { decodeI;checkSrcImm(rs1) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> imm(4, 0)).asUInt, XLEN); updateNextWrite(rd) }
+    when(SLLIW(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1)(31, 0) << imm(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
+    when(SRLIW(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> imm(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
+    when(SRAIW(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> imm(4, 0)).asUInt, XLEN); updateNextWrite(rd) }
     // LUI/AUIPC not changed
     // - Integer Register-Register Operations
     // SLL/SRL
-    when(SLL(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := now.reg(rs1) << now.reg(rs2)(5, 0); updateNextWrite(rd) } // override RV32
-    when(SRL(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(5, 0); updateNextWrite(rd) } // overried RV32
+    when(SLL(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) << now.reg(rs2)(5, 0); updateNextWrite(rd) } // override RV32
+    when(SRL(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(5, 0); updateNextWrite(rd) } // overried RV32
     // SRA
-    when(SRA(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(5, 0)).asUInt; updateNextWrite(rd) }
+    when(SRA(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(5, 0)).asUInt; updateNextWrite(rd) }
     // ADDW
-    when(ADDW(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN); updateNextWrite(rd) }
+    when(ADDW(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN); updateNextWrite(rd) }
     // SLLW/SRLW
-    when(SLLW(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0) << now.reg(rs2)(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
-    when(SRLW(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> now.reg(rs2)(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
+    when(SLLW(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) << now.reg(rs2)(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
+    when(SRLW(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> now.reg(rs2)(4, 0))(31, 0), XLEN); updateNextWrite(rd) }
     // SUBW/SRAW
-    when(SUBW(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN); updateNextWrite(rd) }
-    when(SRAW(inst)) { decodeR;checkSrcReg(rs1,rs2) ; next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN); updateNextWrite(rd) }
+    when(SUBW(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN); updateNextWrite(rd) }
+    when(SRAW(inst)) { decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> now.reg(rs2)(4, 0)).asUInt, XLEN); updateNextWrite(rd) }
 
     // - 5.3 Load and Store Instructions RV64
     // - LOAD
     // FIXME: Not all of them have added the exception access limit, which needs to be reorganized and added.
     when(LWU(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
         next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
       }.otherwise {
@@ -417,7 +417,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       }; updateNextWrite(rd)
     }
     when(LD(inst)) {
-      decodeI;checkSrcImm(rs1) ;
+      decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.d, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN)
       }.otherwise {
@@ -427,7 +427,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
     }
     // - STORE
     when(SD(inst)) {
-      decodeS;checkSrcImm(rs1) ;
+      decodeS; checkSrcImm(rs1);
       when(addrAligned(SizeOp.d, now.reg(rs1) + imm)) {
         memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0))
       }.otherwise {
