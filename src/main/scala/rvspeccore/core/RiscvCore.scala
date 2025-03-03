@@ -1,6 +1,6 @@
 package rvspeccore.core
 
-import chisel3.{Input, _}
+import chisel3._
 import chisel3.util._
 import spec._
 import spec.instset.csr.{CSR, CSRInfoSignal, EventSig, SatpStruct}
