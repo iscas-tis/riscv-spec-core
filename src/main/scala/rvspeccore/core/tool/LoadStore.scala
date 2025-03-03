@@ -57,9 +57,9 @@ trait LoadStore extends BaseCore with MMU {
       val bytesWidth    = log2Ceil(XLEN / 8)
       val rOff          = addr(bytesWidth - 1, 0) << 3 // addr(byteWidth-1,0) * 8
       val rMask         = width2Mask(memWidth)
-      val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
-      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, now.internal.privilegeMode)
-      val vmEnable      = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
+      val mstatusStruct = now.privilege.csr.mstatus.asTypeOf(new MstatusStruct)
+      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, now.privilege.internal.privilegeMode)
+      val vmEnable      = now.privilege.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
       mem.read.valid := true.B
       when(vmEnable) {
         // mem.read.addr     := AddrTransRead(addr)
@@ -84,10 +84,10 @@ trait LoadStore extends BaseCore with MMU {
       mem.write.memWidth := memWidth
       mem.write.data     := data
     } else {
-      // val pv = Mux(now.csr.mstatus)
-      val mstatusStruct = now.csr.mstatus.asTypeOf(new MstatusStruct)
-      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, now.internal.privilegeMode)
-      val vmEnable      = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
+      // val pv = Mux(now.privilege.csr.mstatus)
+      val mstatusStruct = now.privilege.csr.mstatus.asTypeOf(new MstatusStruct)
+      val pv            = Mux(mstatusStruct.mprv.asBool, mstatusStruct.mpp, now.privilege.internal.privilegeMode)
+      val vmEnable      = now.privilege.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (pv < 0x3.U)
       // printf("[Debug]Write addr:%x, privilegeMode:%x %x %x %x vm:%x\n", addr, pv, mstatusStruct.mprv.asBool, mstatusStruct.mpp, privilegeMode, vmEnable)
       mem.write.valid := true.B
       when(vmEnable) {
@@ -107,7 +107,8 @@ trait LoadStore extends BaseCore with MMU {
   }
 
   def iFetchTrans(addr: UInt): (Bool, UInt) = {
-    val vmEnable = now.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (now.internal.privilegeMode < 0x3.U)
+    val vmEnable =
+      now.privilege.csr.satp.asTypeOf(new SatpStruct).mode === 8.U && (now.privilege.internal.privilegeMode < 0x3.U)
     // printf("[Debug]iFetchTrans addr:%x, vm:%x \n", addr, vmEnable)
     val resultStatus = Wire(Bool())
     val resultPC     = Wire(UInt(XLEN.W))
@@ -164,15 +165,15 @@ trait MMU extends BaseCore with ExceptionSupport {
 
   def LegalAddrStep5(isiFetch: Bool): Bool = {
     // For inst translate
-    val sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum
+    val sum = now.privilege.csr.mstatus.asTypeOf((new MstatusStruct)).sum
     sum.asBool || isiFetch
     // true.B
   }
 
   def LegalAddrStep5(isiFetch: Bool, privMode: UInt, missflag: PTEFlag, accsessType: UInt): Bool = {
     // FIXME: 需要进一步改这个函数 看手册哈
-    val mstatus_mxr = now.csr.mstatus.asTypeOf((new MstatusStruct)).mxr.asBool
-    val mstatus_sum = now.csr.mstatus.asTypeOf((new MstatusStruct)).sum.asBool
+    val mstatus_mxr = now.privilege.csr.mstatus.asTypeOf((new MstatusStruct)).mxr.asBool
+    val mstatus_sum = now.privilege.csr.mstatus.asTypeOf((new MstatusStruct)).sum.asBool
     // val permCheck = missflag.v && !(pf.privilegeMode === ModeU && !missflag.u) && !(pf.privilegeMode === ModeS && missflag.u && (!pf.status_sum || ifecth))
     val permCheck =
       missflag.v && !(privMode === ModeU && !missflag.u) && !(privMode === ModeS && missflag.u && (!mstatus_sum || isiFetch))
@@ -263,7 +264,7 @@ trait MMU extends BaseCore with ExceptionSupport {
       // printf("[Debug] Vaddr Legal\n")
       // 三级页表翻译 Begin
       val LevelVec = Wire(Vec(3, new PTWLevel()))
-      val SatpNow  = now.csr.satp.asTypeOf((new SatpStruct))
+      val SatpNow  = now.privilege.csr.satp.asTypeOf((new SatpStruct))
       LevelVec(2).valid := true.B // 第一级肯定要打开
       LevelVec(2).addr  := Cat(Cat(0.U(8.W), Cat(SatpNow.ppn, addr(38, 30))), 0.U(3.W))
       for (level <- 0 to 2) {
@@ -395,7 +396,7 @@ trait MMU extends BaseCore with ExceptionSupport {
       // printf("[Debug] Vaddr Legal\n")
       // 三级页表翻译 Begin
       val LevelVec = Wire(Vec(3, new PTWLevel()))
-      val SatpNow  = now.csr.satp.asTypeOf((new SatpStruct))
+      val SatpNow  = now.privilege.csr.satp.asTypeOf((new SatpStruct))
       LevelVec(2).valid := true.B // 第一级肯定要打开
       LevelVec(2).addr  := Cat(Cat(0.U(8.W), Cat(SatpNow.ppn, addr(38, 30))), 0.U(3.W))
       for (level <- 0 to 2) {

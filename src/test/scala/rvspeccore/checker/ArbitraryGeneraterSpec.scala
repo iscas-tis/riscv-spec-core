@@ -16,7 +16,7 @@ class TestArbitraryRegFileModule(hasBug: Boolean) extends Module {
   if (hasBug) {
     // this assertion should fail because the rf(1) is arbitrary, could be not 0.U
     // will print a "Assertion failed"
-    assert(io.rf(1) === 0.U)
+    assert(io.rf(1) === 0.U, "ArbitraryRegFile Test pass if you see this\n")
   } else
     assert(io.rf(0) === 0.U)
 }

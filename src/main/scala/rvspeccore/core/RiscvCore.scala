@@ -2,12 +2,8 @@ package rvspeccore.core
 
 import chisel3._
 import chisel3.util._
-
 import spec._
-import spec.instset.csr.CSR
-import spec.instset.csr.EventSig
-import spec.instset.csr.SatpStruct
-
+import spec.instset.csr.{CSR, CSRInfoSignal, EventSig, SatpStruct}
 import rvspeccore.checker.ArbitraryRegFile
 
 abstract class BaseCore()(implicit val config: RVConfig) extends Module {
@@ -20,6 +16,7 @@ abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   val iFetchpc = Wire(UInt(XLEN.W))
   val mem      = Wire(new MemIO)
   val tlb      = if (config.functions.tlb) Some(Wire(new TLBIO)) else None
+  val specWb   = Wire(new SpecWbIO)
   // Global signals
   val inst        = Wire(UInt(32.W))
   val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
@@ -28,6 +25,29 @@ abstract class BaseCore()(implicit val config: RVConfig) extends Module {
 class GlobalData extends Bundle {
   val setpc = Bool()
 }
+
+class WbIO()(implicit XLEN: Int) extends Bundle {
+  val inst    = Input(UInt(32.W))
+  val valid   = Input(Bool())
+  val rs1     = Input(UInt(5.W))
+  val rs2     = Input(UInt(5.W))
+  val rs1Data = Input(UInt(XLEN.W))
+  val rs2Data = Input(UInt(XLEN.W))
+  val csrAddr = Input(UInt(12.W))
+}
+
+class SpecWbIO(implicit XLEN: Int) extends Bundle {
+  val rd_addr  = UInt(5.W)
+  val rd_data  = UInt(XLEN.W)
+  val rd_en    = Bool()
+  val csr_addr = UInt(12.W)
+  val csr_wr   = Bool()
+  val rs1_addr = UInt(5.W)
+  val rs2_addr = UInt(5.W)
+  val checkrs1 = Bool()
+  val checkrs2 = Bool()
+}
+
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
   val valid    = Output(Bool())
   val addr     = Output(UInt(XLEN.W))
@@ -64,12 +84,33 @@ object Internal {
   }
 }
 
-class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
-  val reg = Vec(32, UInt(XLEN.W))
-  val pc  = UInt(XLEN.W)
+// This contained registers about privileged extensions
+class PrivilegedState()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val csr = CSR()
 
   val internal = Internal()
+}
+
+object PrivilegedState {
+  def apply()(implicit XLEN: Int, config: RVConfig): PrivilegedState = new PrivilegedState
+  def wireInit()(implicit XLEN: Int, config: RVConfig): PrivilegedState = {
+    val privilegedState = Wire(new PrivilegedState)
+    privilegedState.csr := CSR.wireInit()
+
+    privilegedState.internal := Internal.wireInit()
+
+    privilegedState
+  }
+}
+
+// This extends BaseState with rf and pc
+class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
+
+  val reg = Vec(32, UInt(XLEN.W))
+  val pc  = UInt(XLEN.W)
+
+  val privilege = PrivilegedState()
+
 }
 
 object State {
@@ -81,10 +122,9 @@ object State {
       if (config.formal.arbitraryRegFile) ArbitraryRegFile.gen
       else Seq.fill(32)(0.U(XLEN.W))
     }
-    state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
-    state.csr := CSR.wireInit()
+    state.pc := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
 
-    state.internal := Internal.wireInit()
+    state.privilege := PrivilegedState.wireInit()
 
     state
   }
@@ -102,7 +142,8 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     val now  = Input(State())
     val next = Output(State())
     // Exposed signals
-    val event = Output(new EventSig)
+    val event  = Output(new EventSig)
+    val specWb = Output(new SpecWbIO)
   })
 
   // Initial the value
@@ -113,6 +154,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   global_data.setpc := false.B
   event             := 0.U.asTypeOf(new EventSig)
   iFetchpc          := now.pc
+  specWb            := 0.U.asTypeOf(new SpecWbIO)
 
   // dont read or write mem
   // if there no LOAD/STORE below
@@ -123,7 +165,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   when(io.valid) {
     // CSR
     // TODO: merge into a function?
-    next.csr.cycle := now.csr.cycle + 1.U
+    next.privilege.csr.cycle := now.privilege.csr.cycle + 1.U
     exceptionSupportInit()
 
     if (!config.functions.tlb) {
@@ -156,7 +198,6 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
         next.pc := now.pc + 4.U
       }
     }
-
     tryRaiseException()
   }
 
@@ -167,6 +208,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   io.next     := next
   io.event    := event
   io.iFetchpc := iFetchpc
+  io.specWb <> specWb
 }
 
 class RiscvCore()(implicit config: RVConfig) extends Module {
