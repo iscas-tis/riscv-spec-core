@@ -93,7 +93,7 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
     wb.r1Data  := state.reg(wb.r1Addr)
     wb.r2Data  := state.reg(wb.r2Addr)
 
-    trans.io.next.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
+    trans.io.next.privilege.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
       when(wb.csrAddr === info.addr) {
         wb.csrNdata := nextCSR
       }
@@ -108,7 +108,7 @@ class CheckerWithWBSpec extends AnyFlatSpec with ChiselScalatestTester {
 
     checker.io.wb := wb
 
-    checker.io.result := state
+    checker.io.privilege := state.privilege
 
     checker.io.mem.map(_ := trans.io.mem)
   }

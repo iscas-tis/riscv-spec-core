@@ -75,10 +75,10 @@ trait ZicsrExtension
     // TODO: what is wen mean?
     // val justRead = isSet && src1 === 0.U  // csrrs and csrrsi are exceptions when their src1 is zero
     val isIllegalWrite = addr(11, 10) === "b11".U && (!justRead)
-    val isIllegalMode  = now.internal.privilegeMode < addr(9, 8)
+    val isIllegalMode  = now.privilege.internal.privilegeMode < addr(9, 8)
     // val isIllegalWrite = wen && (addr(11, 10) === "b11".U) && !justRead  // Write a read-only CSR register
     val isIllegalAccess = isIllegalMode || isIllegalWrite
-    val has: Bool       = MuxLookup(addr, false.B)(now.csr.table.map { x => x.info.addr -> true.B })
+    val has: Bool       = MuxLookup(addr, false.B)(now.privilege.csr.table.map { x => x.info.addr -> true.B })
     when(isIllegalAccess || !has) {
       raiseException(MExceptionCode.illegalInstruction)
     }

@@ -84,13 +84,33 @@ object Internal {
   }
 }
 
+// This contained registers about privileged extensions
+class privilegedState()(implicit XLEN: Int, config: RVConfig) extends Bundle {
+  val csr = CSR()
+
+  val internal = Internal()
+}
+
+object privilegedState {
+  def apply()(implicit XLEN: Int, config: RVConfig): privilegedState = new privilegedState
+  def wireInit()(implicit XLEN: Int, config: RVConfig): privilegedState = {
+    val privilegedState = Wire(new privilegedState)
+    privilegedState.csr := CSR.wireInit()
+
+    privilegedState.internal := Internal.wireInit()
+
+    privilegedState
+  }
+}
+
+// This extends BaseState with rf and pc
 class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
 
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
-  val csr = CSR()
 
-  val internal = Internal()
+  val privilege = privilegedState()
+
 }
 
 object State {
@@ -102,10 +122,9 @@ object State {
       if (config.formal.arbitraryRegFile) ArbitraryRegFile.gen
       else Seq.fill(32)(0.U(XLEN.W))
     }
-    state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
-    state.csr := CSR.wireInit()
+    state.pc := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
 
-    state.internal := Internal.wireInit()
+    state.privilege := privilegedState.wireInit()
 
     state
   }
@@ -146,7 +165,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   when(io.valid) {
     // CSR
     // TODO: merge into a function?
-    next.csr.cycle := now.csr.cycle + 1.U
+    next.privilege.csr.cycle := now.privilege.csr.cycle + 1.U
     exceptionSupportInit()
 
     if (!config.functions.tlb) {
@@ -224,43 +243,4 @@ class RiscvCore()(implicit config: RVConfig) extends Module {
   io.next     := trans.io.next
   io.event    := trans.io.event
   io.iFetchpc := trans.io.iFetchpc
-}
-
-class RiscvCoreTrans()(implicit config: RVConfig) extends Module {
-  implicit val XLEN: Int = config.XLEN
-
-  val io = IO(new Bundle {
-    // Processor IO
-    val wb       = new WbIO()
-    val iFetchpc = Output(UInt(XLEN.W))
-    val mem      = new MemIO
-    val tlb      = if (config.functions.tlb) Some(new TLBIO) else None
-
-    val now = Input(State())
-
-    val next = Output(State())
-    // Exposed signals
-    val event  = Output(new EventSig)
-    val specWb = Output(new SpecWbIO)
-  })
-
-  val state = State.wireInit()
-  val trans = Module(new RiscvTrans())
-
-  trans.io.inst  := io.wb.inst
-  trans.io.valid := io.wb.valid
-  trans.io.mem <> io.mem
-  trans.io.tlb.map(_ <> io.tlb.get)
-
-  trans.io.now := state
-  state.pc     := io.now.pc
-  state.csr    := io.now.csr
-
-  state.reg(io.wb.rs1) := io.wb.rs1Data
-  state.reg(io.wb.rs2) := io.wb.rs2Data
-
-  io.next     := trans.io.next
-  io.event    := trans.io.event
-  io.iFetchpc := trans.io.iFetchpc
-  io.specWb   := trans.io.specWb
 }

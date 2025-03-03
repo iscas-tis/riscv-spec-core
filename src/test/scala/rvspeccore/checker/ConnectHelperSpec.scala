@@ -21,7 +21,7 @@ class ConnectHelperSpec extends AnyFlatSpec with ChiselScalatestTester {
 
     ConnectCheckerResult.setRegSource(state.reg)
     val csr = ConnectCheckerResult.makeCSRSource()
-    csr := state.csr
+    csr := state.privilege.csr
 
     if (checkMem) {
       val memSource = ConnectCheckerResult.makeMemSource()

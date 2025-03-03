@@ -192,7 +192,7 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
     assert(regDelay(io.instCommit.pc) === regDelay(specCore.io.now.pc))
     // next pc: hard to get next pc in a pipeline, check it at next instruction
     // next csr:
-    io.result.csr.table.zip(specCore.io.next.csr.table).map {
+    io.result.privilege.csr.table.zip(specCore.io.next.privilege.csr.table).map {
       case (result, next) => {
         assert(regDelay(result.signal) === regDelay(next.signal))
       }
@@ -246,7 +246,7 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val wb         = Input(WriteBack())
-    val result     = Input(State())
+    val privilege  = Input(privilegedState())
     val mem        = if (checkMem) Some(Input(new MemIO)) else None
   })
 
@@ -255,16 +255,16 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
   }
 
   // link to spec core
-  val specCore = Module(new RiscvCoreTrans)
-  specCore.io.wb.valid   := io.instCommit.valid
-  specCore.io.wb.inst    := io.instCommit.inst
-  specCore.io.wb.rs1     := io.wb.r1Addr
-  specCore.io.wb.rs2     := io.wb.r2Addr
-  specCore.io.wb.rs1Data := io.wb.r1Data
-  specCore.io.wb.rs2Data := io.wb.r2Data
-  specCore.io.wb.csrAddr := io.wb.csrAddr
-  specCore.io.now        := io.result
-  specCore.io.now.pc     := io.instCommit.pc
+  val specCore = Module(new RiscvTrans())
+
+  specCore.io.now                   := 0.U.asTypeOf(new State)
+  specCore.io.now.privilege         := io.privilege
+  specCore.io.now.pc                := io.instCommit.pc
+  specCore.io.now.reg(io.wb.r1Addr) := io.wb.r1Data
+  specCore.io.now.reg(io.wb.r2Addr) := io.wb.r2Data
+
+  specCore.io.valid := io.instCommit.valid
+  specCore.io.inst  := io.instCommit.inst
 
   val specCoreWBValid = specCore.io.specWb.rd_en
   val specCoreWBDest  = specCore.io.specWb.rd_addr
@@ -272,7 +272,7 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
   val specCoreNpcs    = specCore.io.next.pc
   val specCoreCsrAddr = specCore.io.specWb.csr_addr
   val specCoreCsrWr   = specCore.io.specWb.csr_wr
-
+// check memory behavior
   if (checkMem) {
     if (!config.functions.tlb) {
       when(regDelay(io.instCommit.valid)) {
@@ -334,7 +334,7 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
       assert(regDelay(specCoreCsrWr) === regDelay(io.wb.csrWr))
       assert(regDelay(specCoreCsrAddr) === regDelay(io.wb.csrAddr))
       val specCoreCsrNdata = WireInit(0.U(64.W))
-      specCore.io.next.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
+      specCore.io.next.privilege.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
         when(io.wb.csrAddr === info.addr) {
           specCoreCsrNdata := nextCSR
         }

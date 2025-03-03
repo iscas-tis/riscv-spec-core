@@ -7,6 +7,7 @@ import rvspeccore.core.{RVConfig, State}
 import rvspeccore.core.spec.instset.csr.CSR
 import rvspeccore.core.spec.instset.csr.EventSig
 import rvspeccore.core.tool.TLBSig
+import _root_.rvspeccore.core.privilegedState
 
 abstract class ConnectHelper {}
 
@@ -92,7 +93,7 @@ object ConnectCheckerResult extends ConnectHelper with UniqueId {
     checker.io.result.reg := regVec
     checker.io.result.pc  := DontCare
 
-    checker.io.result.internal := DontCare
+    checker.io.result.privilege.internal := DontCare
 
     if (checker.checkMem) {
       val mem = Wire(new MemSig)
@@ -119,7 +120,7 @@ object ConnectCheckerResult extends ConnectHelper with UniqueId {
     val csr = Wire(CSR())
     csr := DontCare
     BoringUtils.addSink(csr, uniqueIdCSR)
-    checker.io.result.csr := csr
+    checker.io.result.privilege.csr := csr
 
     val event = Wire(new EventSig())
     event := DontCare
@@ -176,8 +177,8 @@ object ConnectCheckerWb extends ConnectHelper with UniqueId {
       memDelay: Int = 0
   )(implicit XLEN: Int, config: RVConfig) = {
     // init
-    val result = State.wireInit()
-    checker.io.result := result
+    val privilege = privilegedState.wireInit()
+    checker.io.privilege := privilege
 
     // mem
     val mem = Wire(new MemSig)
@@ -205,7 +206,7 @@ object ConnectCheckerWb extends ConnectHelper with UniqueId {
     val csr = Wire(CSR())
     csr := DontCare
     BoringUtils.addSink(csr, uniqueIdCSR)
-    checker.io.result.csr := csr
+    checker.io.privilege.csr := csr
 //
 //    val event = Wire(new EventSig())
 //    event := DontCare

@@ -129,7 +129,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
   }
 
   def getfetchSize(): UInt = {
-    MuxLookup(now.csr.misa(CSR.getMisaExtInt('C')), SizeOp.w)(
+    MuxLookup(now.privilege.csr.misa(CSR.getMisaExtInt('C')), SizeOp.w)(
       Seq(
         "b0".U -> SizeOp.w,
         "b1".U -> SizeOp.h
@@ -190,7 +190,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         next.reg(rd)      := now.pc + 4.U;
         updateNextWrite(rd)
       }.otherwise {
-        next.csr.mtval := now.pc + imm;
+        next.privilege.csr.mtval := now.pc + imm;
         raiseException(MExceptionCode.instructionAddressMisaligned)
       }
     }
@@ -203,7 +203,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
         next.reg(rd)      := now.pc + 4.U;
         updateNextWrite(rd)
       }.otherwise {
-        next.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
+        next.privilege.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
         raiseException(MExceptionCode.instructionAddressMisaligned)
       }
 
@@ -217,7 +217,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm;
         }.otherwise {
-          next.csr.mtval := now.pc + imm;
+          next.privilege.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
       }
@@ -229,7 +229,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm;
         }.otherwise {
-          next.csr.mtval := now.pc + imm;
+          next.privilege.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
       }
@@ -242,7 +242,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm
         }.otherwise {
-          next.csr.mtval := now.pc + imm;
+          next.privilege.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
       }
@@ -254,7 +254,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm
         }.otherwise {
-          next.csr.mtval := now.pc + imm;
+          next.privilege.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
       }
@@ -267,7 +267,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm
         }.otherwise {
-          next.csr.mtval := now.pc + imm;
+          next.privilege.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
       }
@@ -279,7 +279,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
           global_data.setpc := true.B;
           next.pc           := now.pc + imm
         }.otherwise {
-          next.csr.mtval := now.pc + imm;
+          next.privilege.csr.mtval := now.pc + imm;
           raiseException(MExceptionCode.instructionAddressMisaligned)
         }
       }
@@ -352,7 +352,7 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
 
     when(ECALL(inst)) {
       decodeI;
-      switch(now.internal.privilegeMode) {
+      switch(now.privilege.internal.privilegeMode) {
         is(0x3.U) { raiseException(MExceptionCode.environmentCallFromMmode) }
         is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
         is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
