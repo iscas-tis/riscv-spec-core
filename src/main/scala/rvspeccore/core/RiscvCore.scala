@@ -16,6 +16,7 @@ abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   val iFetchpc = Wire(UInt(XLEN.W))
   val mem      = Wire(new MemIO)
   val tlb      = if (config.functions.tlb) Some(Wire(new TLBIO)) else None
+  val specWb   = Wire(new SpecWbIO)
   // Global signals
   val inst        = Wire(UInt(32.W))
   val global_data = Wire(new GlobalData) // TODO: GlobalData only has setpc? event, iFetchpc?
@@ -28,13 +29,25 @@ class GlobalData extends Bundle {
 class WbIO()(implicit XLEN: Int) extends Bundle {
   val inst    = Input(UInt(32.W))
   val valid   = Input(Bool())
-  val pc      = Input(UInt(XLEN.W))
   val rs1     = Input(UInt(5.W))
   val rs2     = Input(UInt(5.W))
   val rs1Data = Input(UInt(XLEN.W))
   val rs2Data = Input(UInt(XLEN.W))
   val csrAddr = Input(UInt(12.W))
 }
+
+class SpecWbIO(implicit XLEN: Int) extends Bundle {
+  val rd_addr  = UInt(5.W)
+  val rd_data  = UInt(XLEN.W)
+  val rd_en    = Bool()
+  val csr_addr = UInt(12.W)
+  val csr_wr   = Bool()
+  val rs1_addr = UInt(5.W)
+  val rs2_addr = UInt(5.W)
+  val checkrs1 = Bool()
+  val checkrs2 = Bool()
+}
+
 class ReadMemIO()(implicit XLEN: Int) extends Bundle {
   val valid    = Output(Bool())
   val addr     = Output(UInt(XLEN.W))
@@ -77,23 +90,7 @@ class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val pc  = UInt(XLEN.W)
   val csr = CSR()
 
-  val rd_addr = UInt(5.W)
-  val rd_data = UInt(XLEN.W)
-  val rd_en   = Bool()
-
-  val csr_addr = UInt(12.W)
-  val csr_wr   = Bool()
-
-  val rs1_addr = UInt(5.W)
-  val rs2_addr = UInt(5.W)
-
-  val rs1_data = UInt(XLEN.W)
-  val rs2_data = UInt(XLEN.W)
-
   val internal = Internal()
-
-  val checkrs1 = Bool()
-  val checkrs2 = Bool()
 }
 
 object State {
@@ -107,23 +104,6 @@ object State {
     }
     state.pc  := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
     state.csr := CSR.wireInit()
-
-    state.rd_data := 0.U
-
-    state.rd_addr := 0.U
-    state.rd_en   := false.B
-
-    state.rs1_addr := 0.U
-    state.rs2_addr := 0.U
-
-    state.rs1_data := 0.U
-    state.rs2_data := 0.U
-
-    state.csr_wr   := false.B
-    state.csr_addr := 0.U
-
-    state.checkrs1 := false.B
-    state.checkrs2 := false.B
 
     state.internal := Internal.wireInit()
 
@@ -143,7 +123,8 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     val now  = Input(State())
     val next = Output(State())
     // Exposed signals
-    val event = Output(new EventSig)
+    val event  = Output(new EventSig)
+    val specWb = Output(new SpecWbIO)
   })
 
   // Initial the value
@@ -154,6 +135,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   global_data.setpc := false.B
   event             := 0.U.asTypeOf(new EventSig)
   iFetchpc          := now.pc
+  specWb            := 0.U.asTypeOf(new SpecWbIO)
 
   // dont read or write mem
   // if there no LOAD/STORE below
@@ -207,6 +189,7 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
   io.next     := next
   io.event    := event
   io.iFetchpc := iFetchpc
+  io.specWb <> specWb
 }
 
 class RiscvCore()(implicit config: RVConfig) extends Module {
@@ -237,13 +220,6 @@ class RiscvCore()(implicit config: RVConfig) extends Module {
   trans.io.now := state
   state        := trans.io.next
 
-  state.checkrs1 := false.B
-  state.checkrs2 := false.B
-  state.rd_en    := false.B
-  state.rd_addr  := 0.U
-  state.csr_addr := 0.U
-  state.csr_wr   := false.B
-
   io.now      := state
   io.next     := trans.io.next
   io.event    := trans.io.event
@@ -264,7 +240,8 @@ class RiscvCoreTrans()(implicit config: RVConfig) extends Module {
 
     val next = Output(State())
     // Exposed signals
-    val event = Output(new EventSig)
+    val event  = Output(new EventSig)
+    val specWb = Output(new SpecWbIO)
   })
 
   val state = State.wireInit()
@@ -276,20 +253,14 @@ class RiscvCoreTrans()(implicit config: RVConfig) extends Module {
   trans.io.tlb.map(_ <> io.tlb.get)
 
   trans.io.now := state
-  state.pc     := io.wb.pc
+  state.pc     := io.now.pc
+  state.csr    := io.now.csr
 
-  state.rs1_addr := io.wb.rs1
-  state.rs2_addr := io.wb.rs2
-  state.rs1_data := io.wb.rs1Data
-  state.rs2_data := io.wb.rs2Data
-
-  state.csr := io.now.csr
-
-  state.reg(state.rs1_addr) := io.wb.rs1Data
-  state.reg(state.rs2_addr) := io.wb.rs2Data
+  state.reg(io.wb.rs1) := io.wb.rs1Data
+  state.reg(io.wb.rs2) := io.wb.rs2Data
 
   io.next     := trans.io.next
   io.event    := trans.io.event
   io.iFetchpc := trans.io.iFetchpc
-
+  io.specWb   := trans.io.specWb
 }

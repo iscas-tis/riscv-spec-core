@@ -32,7 +32,6 @@ class StoreOrLoadInfoTLB(implicit XLEN: Int) extends Bundle {
   val level = UInt(log2Ceil(XLEN + 1).W)
 }
 
-class Queue
 class QueueModule(implicit XLEN: Int) extends Module {
   val io = IO(new Bundle {
     val in  = Flipped(Decoupled(new StoreOrLoadInfo()))
@@ -229,6 +228,7 @@ class WriteBack()(implicit XLEN: Int) extends Bundle {
   val csrNdata = UInt(64.W)
   val csrWr    = Bool()
 }
+
 object WriteBack {
   def apply()(implicit XLEN: Int) = new WriteBack
 }
@@ -237,6 +237,10 @@ object WriteBack {
   *
   * Check pc of commited instruction and the register been write back.
   */
+/*
+  result contains some register value from pipeline follower,
+  wb contains some writeback signal
+ */
 class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(implicit config: RVConfig)
     extends Checker {
   val io = IO(new Bundle {
@@ -254,20 +258,20 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
   val specCore = Module(new RiscvCoreTrans)
   specCore.io.wb.valid   := io.instCommit.valid
   specCore.io.wb.inst    := io.instCommit.inst
-  specCore.io.wb.pc      := io.instCommit.pc
   specCore.io.wb.rs1     := io.wb.r1Addr
   specCore.io.wb.rs2     := io.wb.r2Addr
   specCore.io.wb.rs1Data := io.wb.r1Data
   specCore.io.wb.rs2Data := io.wb.r2Data
   specCore.io.wb.csrAddr := io.wb.csrAddr
   specCore.io.now        := io.result
+  specCore.io.now.pc     := io.instCommit.pc
 
-  val specCoreWBValid = specCore.io.next.rd_en
-  val specCoreWBDest  = specCore.io.next.rd_addr
-  val specCoreWBData  = specCore.io.next.rd_data
+  val specCoreWBValid = specCore.io.specWb.rd_en
+  val specCoreWBDest  = specCore.io.specWb.rd_addr
+  val specCoreWBData  = specCore.io.specWb.rd_data
   val specCoreNpcs    = specCore.io.next.pc
-  val specCoreCsrAddr = specCore.io.next.csr_addr
-  val specCoreCsrWr   = specCore.io.next.csr_wr
+  val specCoreCsrAddr = specCore.io.specWb.csr_addr
+  val specCoreCsrWr   = specCore.io.specWb.csr_wr
 
   if (checkMem) {
     if (!config.functions.tlb) {
@@ -313,17 +317,17 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
       }
     }
 // try to verify two operands of instruction
-    when(regDelay(specCore.io.next.checkrs1)) {
+    when(regDelay(specCore.io.specWb.checkrs1)) {
       when(regDelay(io.wb.r1Addr) === 0.U) {
         assert(regDelay(io.wb.r1Data) === 0.U)
       }
-      assert(regDelay(io.wb.r1Addr) === regDelay(specCore.io.next.rs1_addr))
+      assert(regDelay(io.wb.r1Addr) === regDelay(specCore.io.specWb.rs1_addr))
     }
-    when(regDelay(specCore.io.next.checkrs2)) {
+    when(regDelay(specCore.io.specWb.checkrs2)) {
       when(regDelay(io.wb.r2Addr) === 0.U) {
         assert(regDelay(io.wb.r2Data) === 0.U)
       }
-      assert(regDelay(io.wb.r2Addr) === regDelay(specCore.io.next.rs2_addr))
+      assert(regDelay(io.wb.r2Addr) === regDelay(specCore.io.specWb.rs2_addr))
     }
     // try to verify csr write and read
     when(regDelay(specCoreCsrWr) || regDelay(io.wb.csrWr)) {
