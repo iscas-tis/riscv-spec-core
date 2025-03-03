@@ -3,11 +3,10 @@ package rvspeccore.checker
 import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.BoringUtils
-import rvspeccore.core.{RVConfig, State}
+import rvspeccore.core.{RVConfig, State, PrivilegedState}
 import rvspeccore.core.spec.instset.csr.CSR
 import rvspeccore.core.spec.instset.csr.EventSig
 import rvspeccore.core.tool.TLBSig
-import _root_.rvspeccore.core.privilegedState
 
 abstract class ConnectHelper {}
 
@@ -177,7 +176,7 @@ object ConnectCheckerWb extends ConnectHelper with UniqueId {
       memDelay: Int = 0
   )(implicit XLEN: Int, config: RVConfig) = {
     // init
-    val privilege = privilegedState.wireInit()
+    val privilege = PrivilegedState.wireInit()
     checker.io.privilege := privilege
 
     // mem

@@ -85,16 +85,16 @@ object Internal {
 }
 
 // This contained registers about privileged extensions
-class privilegedState()(implicit XLEN: Int, config: RVConfig) extends Bundle {
+class PrivilegedState()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val csr = CSR()
 
   val internal = Internal()
 }
 
-object privilegedState {
-  def apply()(implicit XLEN: Int, config: RVConfig): privilegedState = new privilegedState
-  def wireInit()(implicit XLEN: Int, config: RVConfig): privilegedState = {
-    val privilegedState = Wire(new privilegedState)
+object PrivilegedState {
+  def apply()(implicit XLEN: Int, config: RVConfig): PrivilegedState = new PrivilegedState
+  def wireInit()(implicit XLEN: Int, config: RVConfig): PrivilegedState = {
+    val privilegedState = Wire(new PrivilegedState)
     privilegedState.csr := CSR.wireInit()
 
     privilegedState.internal := Internal.wireInit()
@@ -109,7 +109,7 @@ class State()(implicit XLEN: Int, config: RVConfig) extends Bundle {
   val reg = Vec(32, UInt(XLEN.W))
   val pc  = UInt(XLEN.W)
 
-  val privilege = privilegedState()
+  val privilege = PrivilegedState()
 
 }
 
@@ -124,7 +124,7 @@ object State {
     }
     state.pc := config.initValue.getOrElse("pc", "h8000_0000").U(XLEN.W)
 
-    state.privilege := privilegedState.wireInit()
+    state.privilege := PrivilegedState.wireInit()
 
     state
   }

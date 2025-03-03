@@ -235,18 +235,16 @@ object WriteBack {
 
 /** Checker with write back port.
   *
-  * Check pc of commited instruction and the register been write back.
+  * Check pc of commited instruction, the register been write back and the
+  * register with privilege information. privilege contains some register value
+  * before DUT execute the instruction. wb contains some writeback signal.
   */
-/*
-  result contains some register value from pipeline follower,
-  wb contains some writeback signal
- */
 class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(implicit config: RVConfig)
     extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
     val wb         = Input(WriteBack())
-    val privilege  = Input(privilegedState())
+    val privilege  = Input(PrivilegedState())
     val mem        = if (checkMem) Some(Input(new MemIO)) else None
   })
 
