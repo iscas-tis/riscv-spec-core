@@ -1,0 +1,176 @@
+
+rv32uzbkb-p-unzip:     file format elf32-littleriscv
+
+
+Disassembly of section .text.init:
+
+80000000 <_start>:
+80000000:	00100193          	li	gp,1
+80000004:	131c20b7          	lui	ra,0x131c2
+80000008:	f6008093          	addi	ra,ra,-160 # 131c1f60 <_start-0x6ce3e0a0>
+8000000c:	08f0d713          	unzip	a4,ra
+80000010:	123453b7          	lui	t2,0x12345
+80000014:	67838393          	addi	t2,t2,1656 # 12345678 <_start-0x6dcba988>
+80000018:	1c771063          	bne	a4,t2,800001d8 <fail>
+
+8000001c <test_2>:
+8000001c:	00200193          	li	gp,2
+80000020:	cccc30b7          	lui	ra,0xcccc3
+80000024:	33308093          	addi	ra,ra,819 # cccc3333 <_end+0x4ccc1333>
+80000028:	08f0d713          	unzip	a4,ra
+8000002c:	aa55b3b7          	lui	t2,0xaa55b
+80000030:	a5538393          	addi	t2,t2,-1451 # aa55aa55 <_end+0x2a558a55>
+80000034:	1a771263          	bne	a4,t2,800001d8 <fail>
+
+80000038 <test_3>:
+80000038:	00300193          	li	gp,3
+8000003c:	ffff00b7          	lui	ra,0xffff0
+80000040:	08f0d713          	unzip	a4,ra
+80000044:	ff0103b7          	lui	t2,0xff010
+80000048:	f0038393          	addi	t2,t2,-256 # ff00ff00 <_end+0x7f00df00>
+8000004c:	18771663          	bne	a4,t2,800001d8 <fail>
+
+80000050 <test_4>:
+80000050:	00400193          	li	gp,4
+80000054:	070720b7          	lui	ra,0x7072
+80000058:	81808093          	addi	ra,ra,-2024 # 7071818 <_start-0x78f8e7e8>
+8000005c:	08f0d713          	unzip	a4,ra
+80000060:	112233b7          	lui	t2,0x11223
+80000064:	34438393          	addi	t2,t2,836 # 11223344 <_start-0x6eddccbc>
+80000068:	16771863          	bne	a4,t2,800001d8 <fail>
+
+8000006c <test_5>:
+8000006c:	00500193          	li	gp,5
+80000070:	3333d0b7          	lui	ra,0x3333d
+80000074:	ccc08093          	addi	ra,ra,-820 # 3333cccc <_start-0x4ccc3334>
+80000078:	08f0d713          	unzip	a4,ra
+8000007c:	55aa53b7          	lui	t2,0x55aa5
+80000080:	5aa38393          	addi	t2,t2,1450 # 55aa55aa <_start-0x2a55aa56>
+80000084:	14771a63          	bne	a4,t2,800001d8 <fail>
+
+80000088 <test_6>:
+80000088:	00600193          	li	gp,6
+8000008c:	902f30b7          	lui	ra,0x902f3
+80000090:	c2308093          	addi	ra,ra,-989 # 902f2c23 <_end+0x102f0c23>
+80000094:	08f0d093          	unzip	ra,ra
+80000098:	876543b7          	lui	t2,0x87654
+8000009c:	32138393          	addi	t2,t2,801 # 87654321 <_end+0x7652321>
+800000a0:	12709c63          	bne	ra,t2,800001d8 <fail>
+
+800000a4 <test_7>:
+800000a4:	00700193          	li	gp,7
+800000a8:	00000213          	li	tp,0
+800000ac:	131c20b7          	lui	ra,0x131c2
+800000b0:	f6008093          	addi	ra,ra,-160 # 131c1f60 <_start-0x6ce3e0a0>
+800000b4:	08f0d713          	unzip	a4,ra
+800000b8:	00070313          	mv	t1,a4
+800000bc:	00120213          	addi	tp,tp,1 # 1 <_start-0x7fffffff>
+800000c0:	00200293          	li	t0,2
+800000c4:	fe5214e3          	bne	tp,t0,800000ac <test_7+0x8>
+800000c8:	123453b7          	lui	t2,0x12345
+800000cc:	67838393          	addi	t2,t2,1656 # 12345678 <_start-0x6dcba988>
+800000d0:	10731463          	bne	t1,t2,800001d8 <fail>
+
+800000d4 <test_8>:
+800000d4:	00800193          	li	gp,8
+800000d8:	00000213          	li	tp,0
+800000dc:	cccc30b7          	lui	ra,0xcccc3
+800000e0:	33308093          	addi	ra,ra,819 # cccc3333 <_end+0x4ccc1333>
+800000e4:	08f0d713          	unzip	a4,ra
+800000e8:	00000013          	nop
+800000ec:	00070313          	mv	t1,a4
+800000f0:	00120213          	addi	tp,tp,1 # 1 <_start-0x7fffffff>
+800000f4:	00200293          	li	t0,2
+800000f8:	fe5212e3          	bne	tp,t0,800000dc <test_8+0x8>
+800000fc:	aa55b3b7          	lui	t2,0xaa55b
+80000100:	a5538393          	addi	t2,t2,-1451 # aa55aa55 <_end+0x2a558a55>
+80000104:	0c731a63          	bne	t1,t2,800001d8 <fail>
+
+80000108 <test_9>:
+80000108:	00900193          	li	gp,9
+8000010c:	00000213          	li	tp,0
+80000110:	373770b7          	lui	ra,0x37377
+80000114:	86808093          	addi	ra,ra,-1944 # 37376868 <_start-0x48c89798>
+80000118:	08f0d713          	unzip	a4,ra
+8000011c:	00000013          	nop
+80000120:	00000013          	nop
+80000124:	00070313          	mv	t1,a4
+80000128:	00120213          	addi	tp,tp,1 # 1 <_start-0x7fffffff>
+8000012c:	00200293          	li	t0,2
+80000130:	fe5210e3          	bne	tp,t0,80000110 <test_9+0x8>
+80000134:	556673b7          	lui	t2,0x55667
+80000138:	78838393          	addi	t2,t2,1928 # 55667788 <_start-0x2a998878>
+8000013c:	08731e63          	bne	t1,t2,800001d8 <fail>
+
+80000140 <test_10>:
+80000140:	00a00193          	li	gp,10
+80000144:	400030b7          	lui	ra,0x40003
+80000148:	aaa08093          	addi	ra,ra,-1366 # 40002aaa <_start-0x3fffd556>
+8000014c:	08f0d713          	unzip	a4,ra
+80000150:	007f83b7          	lui	t2,0x7f8
+80000154:	08771263          	bne	a4,t2,800001d8 <fail>
+
+80000158 <test_11>:
+80000158:	00b00193          	li	gp,11
+8000015c:	400080b7          	lui	ra,0x40008
+80000160:	08f0d713          	unzip	a4,ra
+80000164:	008083b7          	lui	t2,0x808
+80000168:	06771863          	bne	a4,t2,800001d8 <fail>
+
+8000016c <test_12>:
+8000016c:	00c00193          	li	gp,12
+80000170:	400280b7          	lui	ra,0x40028
+80000174:	08f0d713          	unzip	a4,ra
+80000178:	018083b7          	lui	t2,0x1808
+8000017c:	04771e63          	bne	a4,t2,800001d8 <fail>
+
+80000180 <test_13>:
+80000180:	00d00193          	li	gp,13
+80000184:	155550b7          	lui	ra,0x15555
+80000188:	55508093          	addi	ra,ra,1365 # 15555555 <_start-0x6aaaaaab>
+8000018c:	08f0d713          	unzip	a4,ra
+80000190:	000083b7          	lui	t2,0x8
+80000194:	fff38393          	addi	t2,t2,-1 # 7fff <_start-0x7fff8001>
+80000198:	04771063          	bne	a4,t2,800001d8 <fail>
+
+8000019c <test_14>:
+8000019c:	00e00193          	li	gp,14
+800001a0:	800000b7          	lui	ra,0x80000
+800001a4:	fff08093          	addi	ra,ra,-1 # 7fffffff <_start-0x1>
+800001a8:	08f0d713          	unzip	a4,ra
+800001ac:	800003b7          	lui	t2,0x80000
+800001b0:	fff38393          	addi	t2,t2,-1 # 7fffffff <_start-0x1>
+800001b4:	02771263          	bne	a4,t2,800001d8 <fail>
+
+800001b8 <test_15>:
+800001b8:	00f00193          	li	gp,15
+800001bc:	555550b7          	lui	ra,0x55555
+800001c0:	57f08093          	addi	ra,ra,1407 # 5555557f <_start-0x2aaaaa81>
+800001c4:	08f0d713          	unzip	a4,ra
+800001c8:	000803b7          	lui	t2,0x80
+800001cc:	fff38393          	addi	t2,t2,-1 # 7ffff <_start-0x7ff80001>
+800001d0:	00771463          	bne	a4,t2,800001d8 <fail>
+800001d4:	00301663          	bne	zero,gp,800001e0 <pass>
+
+800001d8 <fail>:
+800001d8:	00100513          	li	a0,1
+800001dc:	00c0006f          	j	800001e8 <halt>
+
+800001e0 <pass>:
+800001e0:	00000513          	li	a0,0
+800001e4:	0040006f          	j	800001e8 <halt>
+
+800001e8 <halt>:
+800001e8:	0000006f          	j	800001e8 <halt>
+800001ec:	0000                	.insn	2, 0x
+800001ee:	0000                	.insn	2, 0x
+800001f0:	0000                	.insn	2, 0x
+800001f2:	0000                	.insn	2, 0x
+800001f4:	0000                	.insn	2, 0x
+800001f6:	0000                	.insn	2, 0x
+800001f8:	0000                	.insn	2, 0x
+800001fa:	0000                	.insn	2, 0x
+800001fc:	0000                	.insn	2, 0x
+800001fe:	0000                	.insn	2, 0x
+80000200:	0000                	.insn	2, 0x
+80000202:	0000                	.insn	2, 0x

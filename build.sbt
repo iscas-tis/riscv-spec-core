@@ -1,6 +1,7 @@
 // use `-DChiselVersion=3.x.x/6.x.x/7.x.x/CHA` to specify the version of Chisel
 // use `-DHashId=true` to include git hash id in the version number
 // use `-DScalaVersion=2.12.17/orOther` to specify the version of Scala
+libraryDependencies += "cn.ac.ios.tis" %% "riscvspeccore" % "1.3-8bb84f4-SNAPSHOT"
 
 lazy val chiselVersion: Map[String, ModuleID] = {
   sys.props.getOrElse("ChiselVersion", "3.6.0") match {
