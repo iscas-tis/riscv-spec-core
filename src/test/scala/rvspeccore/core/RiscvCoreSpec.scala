@@ -141,7 +141,7 @@ object RiscvTests {
     new File(s"$root/$instSet/$instTest")
   }
 
-  val maxStep = 800
+  val maxStep = 1200
   def stepTest(dut: CoreTester, restClock: Int): Int = {
     // run a clock
     dut.clock.step(1)
@@ -198,11 +198,11 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RVConfig(
     XLEN = 64,
-    extensions = "MCZifenceiZicsrZbaZbbZbcZbs",
+    extensions = "MCZifenceiZicsrZbaZbbZbcZbsZbkbZbkx",
     functions = Seq("Privileged")
   )
 
-  val tests = Seq("rv64ui", "rv64um", "rv64uc", "rv64uzba", "rv64uzbb", "rv64uzbc", "rv64uzbs")
+  val tests = Seq("rv64ui", "rv64um", "rv64uc", "rv64uzba", "rv64uzbb", "rv64uzbc", "rv64uzbs", "rv64uzbkb","rv64uzbkx")
 
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
@@ -223,11 +223,11 @@ class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore32Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RVConfig(
     XLEN = 32,
-    extensions = "MCZifenceiZicsrZbaZbbZbcZbs",
+    extensions = "MCZifenceiZicsrZbaZbbZbcZbsZbkbZbkx",
     functions = Seq("Privileged")
   )
 
-  val tests = Seq("rv32ui", "rv32um", "rv32uc", "rv32uzba", "rv32uzbb", "rv32uzbc", "rv32uzbs")
+  val tests = Seq("rv32ui", "rv32um", "rv32uc", "rv32uzba", "rv32uzbb", "rv32uzbc", "rv32uzbs", "rv32uzbkb","rv32uzbkx")
   // NOTE: funce.i shows passed test, but RiscvCore not support it.
   //       Because RiscvCore is too simple.
   behavior of s"RiscvCore with ${config.getClass().getSimpleName()}"

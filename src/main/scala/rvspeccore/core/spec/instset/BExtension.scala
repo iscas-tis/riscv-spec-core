@@ -77,7 +77,7 @@ trait BExtensionInsts {
   val sh3add    = Inst("b0010000_?????_?????_110_?????_0110011")
   val sh3add_uw = Inst("b0010000_?????_?????_110_?????_0111011")
   val slli_uw   = Inst("b000010_??????_?????_001_?????_0011011")
-  val unzip     = Inst("b0000100_11111_?????_101_?????_0010011")
+  val unzip     = Inst("b0000100_01111_?????_101_?????_0010011")
   val xnor      = Inst("b0100000_?????_?????_100_?????_0110011")
   val xperm_b   = Inst("b0010100_?????_?????_100_?????_0110011")
   val xperm_n   = Inst("b0010100_?????_?????_010_?????_0110011")
@@ -85,7 +85,7 @@ trait BExtensionInsts {
     32 -> "b0000100_00000_?????_100_?????_0110011",
     64 -> "b0000100_00000_?????_100_?????_0111011"
   )
-  val zip = Inst("b0000100_11110_?????_001_?????_0010011")
+  val zip = Inst("b0000100_01111_?????_001_?????_0010011")
 }
 
 /** "B" Extension for Bit Manipulation, Version 1.0.0
@@ -99,6 +99,16 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
   /** Function to select the appropriate bit width based on XLEN */
   def getRotationShamt(value: UInt, xlen: Int): UInt = {
     value(if (xlen == 32) 4 else 5, 0).asUInt
+  }
+
+  def xpermb_lookup(idx: UInt, lut: UInt): UInt = {
+    val shiftAmt = Cat(idx, 0.U(3.W))
+    ((lut >> shiftAmt)(7, 0)).asUInt
+  }
+
+  def xpermn_lookup(idx: UInt, lut: UInt): UInt = {
+    val shiftAmt = Cat(idx, 0.U(2.W))
+    ((lut >> shiftAmt)(3, 0)).asUInt
   }
 
   /** Address generation
@@ -312,10 +322,37 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - 28.4.5. Zbkb: Bit-manipulation for Cryptography
     */
   def doRV32Zbkb: Unit = {
-    when(pack(inst))  {}
-    when(packh(inst)) {}
-    when(rev_b(inst)) {}
-
+    when(pack(inst))  {decodeR; next.reg(rd) := now.reg(rs2)(((XLEN >> 1) - 1),0) << (XLEN/2) | now.reg(rs1)(((XLEN>>1) - 1),0)}
+    when(packh(inst)) {decodeR; next.reg(rd) := zeroExt((now.reg(rs2)(7,0) << 8) | now.reg(rs1)(7,0) , XLEN)}
+    when(rev_b(inst)) {
+      decodeR;
+      var result = 0.U(XLEN.W)
+      for (i <- 0 until XLEN by 8) {
+        val swapped = Reverse(now.reg(rs1)(i+7, i))
+        result = (result | (swapped << i)).asUInt
+      }
+      next.reg(rd) := result
+    }
+    when(zip(inst) && (XLEN.U === 32.U))   {
+      decodeR;
+      var result = 0.U(XLEN.W)
+      for (i <- 0 until XLEN / 2 ) {
+        val lower = now.reg(rs1)(i)               // 低 halfSize 位的第 i 位
+        val upper = now.reg(rs1)(i + XLEN / 2)    // 高 halfSize 位的第 i 位
+        result = (result | (upper << ((i << 1) + 1)) | (lower << (i << 1))).asUInt
+      } 
+      next.reg(rd) := result;
+    }
+    when(unzip(inst) && (XLEN.U === 32.U)) {
+      decodeR;
+      var result = 0.U(XLEN.W)
+      for(i <- 0 until XLEN/2) {
+        val lower = now.reg(rs1)(i << 1)
+        val upper = now.reg(rs1)((i << 1) + 1)
+        result = (result | (upper << (i + XLEN/2)) | (lower << i)).asUInt
+      }
+      next.reg(rd) := result;
+    }
   }
 
   /** Carry-less multiplication for Cryptography
@@ -331,15 +368,31 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - 28.4.7. Zbkx: Crossbar permutations
     */
   def doRV32Zbkx: Unit = {
-    when(xperm_b(inst)) {}
-    when(xperm_n(inst)) {}
+    when(xperm_b(inst)) {
+      decodeR;
+      var result = 0.U(XLEN.W)
+      for (i <- 0 until XLEN by 8) {
+        val index = now.reg(rs2)(i+7, i)
+        val bitValue = xpermb_lookup(index, now.reg(rs1))
+        result = (result | (bitValue << i)).asUInt
+      }
+      next.reg(rd) := result
+    }
+    when(xperm_n(inst)) {
+      decodeR;
+      var result = 0.U(XLEN.W)
+      for (i <- 0 until XLEN by 4) {
+        val index = now.reg(rs2)(i+3, i)
+        val bitValue = xpermn_lookup(index, now.reg(rs1))
+        result = (result | (bitValue << i)).asUInt
+      }
+      next.reg(rd) := result
+    }
   }
 
   def doRV64Zbkb(): Unit = {
     doRV32Zbkb
-    when(packw(inst)) {}
-    when(zip(inst))   {}
-    when(unzip(inst)) {}
+    when(packw(inst)) {decodeR; next.reg(rd) := signExt((now.reg(rs2)(15,0) << 16) | now.reg(rs1)(15,0) , XLEN)}
   }
   def doRV64Zbkc(): Unit = {
     doRV32Zbkc
@@ -361,6 +414,12 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     if (config.extensions.Zbs) {
       doRV32Zbs
     }
+    if (config.extensions.Zbkb) {
+      doRV32Zbkb
+    }
+    if (config.extensions.Zbkx) {
+      doRV32Zbkx
+    }
   }
   def doRV64B: Unit = {
     doRV32B
@@ -375,6 +434,12 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     }
     if (config.extensions.Zbs) {
       doRV64Zbs
+    }
+    if (config.extensions.Zbkb) {
+      doRV64Zbkb
+    }
+    if (config.extensions.Zbkx) {
+      doRV64Zbkx
     }
   }
   def doRVB(): Unit = {
