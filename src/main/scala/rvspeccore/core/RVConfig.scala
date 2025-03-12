@@ -6,7 +6,7 @@ import chisel3.util._
 case class RVConfig(configs: (String, Any)*) {
   private val acceptKeys = Map(
     "XLEN"           -> Set("32", "64"),
-    "extensions"     -> Set("I", "M", "C", "Zifencei", "Zicsr", "Zba", "Zbb", "Zbc", "Zbs","Zbkb","Zbkx", "U", "S"),
+    "extensions"     -> Set("I", "M", "C", "Zifencei", "Zicsr", "Zba", "Zbb", "Zbc", "Zbs", "Zbkb", "Zbkx", "U", "S"),
     "fakeExtensions" -> "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(_.toString).toSet,
     "initValue"      -> Set("pc", "mstatus", "mtvec"),
     "functions"      -> Set("Privileged", "TLB"),

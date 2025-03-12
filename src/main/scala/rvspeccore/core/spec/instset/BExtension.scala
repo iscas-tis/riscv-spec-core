@@ -322,34 +322,36 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     *   - 28.4.5. Zbkb: Bit-manipulation for Cryptography
     */
   def doRV32Zbkb: Unit = {
-    when(pack(inst))  {decodeR; next.reg(rd) := now.reg(rs2)(((XLEN >> 1) - 1),0) << (XLEN/2) | now.reg(rs1)(((XLEN>>1) - 1),0)}
-    when(packh(inst)) {decodeR; next.reg(rd) := zeroExt((now.reg(rs2)(7,0) << 8) | now.reg(rs1)(7,0) , XLEN)}
+    when(pack(inst)) {
+      decodeR; next.reg(rd) := now.reg(rs2)(((XLEN >> 1) - 1), 0) << (XLEN / 2) | now.reg(rs1)(((XLEN >> 1) - 1), 0)
+    }
+    when(packh(inst)) { decodeR; next.reg(rd) := zeroExt((now.reg(rs2)(7, 0) << 8) | now.reg(rs1)(7, 0), XLEN) }
     when(rev_b(inst)) {
       decodeR;
       var result = 0.U(XLEN.W)
       for (i <- 0 until XLEN by 8) {
-        val swapped = Reverse(now.reg(rs1)(i+7, i))
+        val swapped = Reverse(now.reg(rs1)(i + 7, i))
         result = (result | (swapped << i)).asUInt
       }
       next.reg(rd) := result
     }
-    when(zip(inst) && (XLEN.U === 32.U))   {
+    when(zip(inst) && (XLEN.U === 32.U)) {
       decodeR;
       var result = 0.U(XLEN.W)
-      for (i <- 0 until XLEN / 2 ) {
-        val lower = now.reg(rs1)(i)               // 低 halfSize 位的第 i 位
-        val upper = now.reg(rs1)(i + XLEN / 2)    // 高 halfSize 位的第 i 位
+      for (i <- 0 until XLEN / 2) {
+        val lower = now.reg(rs1)(i)            // 低 halfSize 位的第 i 位
+        val upper = now.reg(rs1)(i + XLEN / 2) // 高 halfSize 位的第 i 位
         result = (result | (upper << ((i << 1) + 1)) | (lower << (i << 1))).asUInt
-      } 
+      }
       next.reg(rd) := result;
     }
     when(unzip(inst) && (XLEN.U === 32.U)) {
       decodeR;
       var result = 0.U(XLEN.W)
-      for(i <- 0 until XLEN/2) {
+      for (i <- 0 until XLEN / 2) {
         val lower = now.reg(rs1)(i << 1)
         val upper = now.reg(rs1)((i << 1) + 1)
-        result = (result | (upper << (i + XLEN/2)) | (lower << i)).asUInt
+        result = (result | (upper << (i + XLEN / 2)) | (lower << i)).asUInt
       }
       next.reg(rd) := result;
     }
@@ -372,7 +374,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
       decodeR;
       var result = 0.U(XLEN.W)
       for (i <- 0 until XLEN by 8) {
-        val index = now.reg(rs2)(i+7, i)
+        val index    = now.reg(rs2)(i + 7, i)
         val bitValue = xpermb_lookup(index, now.reg(rs1))
         result = (result | (bitValue << i)).asUInt
       }
@@ -382,7 +384,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
       decodeR;
       var result = 0.U(XLEN.W)
       for (i <- 0 until XLEN by 4) {
-        val index = now.reg(rs2)(i+3, i)
+        val index    = now.reg(rs2)(i + 3, i)
         val bitValue = xpermn_lookup(index, now.reg(rs1))
         result = (result | (bitValue << i)).asUInt
       }
@@ -392,7 +394,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
 
   def doRV64Zbkb(): Unit = {
     doRV32Zbkb
-    when(packw(inst)) {decodeR; next.reg(rd) := signExt((now.reg(rs2)(15,0) << 16) | now.reg(rs1)(15,0) , XLEN)}
+    when(packw(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs2)(15, 0) << 16) | now.reg(rs1)(15, 0), XLEN) }
   }
   def doRV64Zbkc(): Unit = {
     doRV32Zbkc
