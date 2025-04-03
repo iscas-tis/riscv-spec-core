@@ -239,7 +239,7 @@ object WriteBack {
   * register with privilege information. privilege contains some register value
   * before DUT execute the instruction. wb contains some writeback signal.
   */
-class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = false)(implicit config: RVConfig)
+class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(implicit config: RVConfig)
     extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
