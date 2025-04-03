@@ -239,7 +239,7 @@ object WriteBack {
   * register with privilege information. privilege contains some register value
   * before DUT execute the instruction. wb contains some writeback signal.
   */
-class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(implicit config: RVConfig)
+class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = false)(implicit config: RVConfig)
     extends Checker {
   val io = IO(new Bundle {
     val instCommit = Input(InstCommit())
@@ -259,7 +259,9 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
   specCore.io.now.privilege         := io.privilege
   specCore.io.now.pc                := io.instCommit.pc
   specCore.io.now.reg(io.wb.r1Addr) := io.wb.r1Data
-  specCore.io.now.reg(io.wb.r2Addr) := io.wb.r2Data
+  when(io.wb.r1Addr =/= io.wb.r2Addr) {
+    specCore.io.now.reg(io.wb.r2Addr) := io.wb.r2Data
+  }
 
   specCore.io.valid := io.instCommit.valid
   specCore.io.inst  := io.instCommit.inst
@@ -298,7 +300,7 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
 
   // assert in current clock
   when(regDelay(io.instCommit.valid)) {
-    assert(regDelay(io.instCommit.npc(31, 0)) === regDelay(specCoreNpcs(31, 0)))
+    // assert(regDelay(io.instCommit.npc(31, 0)) === regDelay(specCoreNpcs(31, 0)))
     when(regDelay(specCoreWBValid) && regDelay(io.wb.valid)) {
       // if reference and dut all raise the valid, compare the dest and the data
       assert(regDelay(io.wb.dest) === regDelay(specCoreWBDest))

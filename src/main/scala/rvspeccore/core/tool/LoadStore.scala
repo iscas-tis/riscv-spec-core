@@ -35,7 +35,9 @@ trait LoadStore extends BaseCore with MMU {
   def Load   = 0x1.U
   def Store  = 0x2.U
   def width2Mask(width: UInt): UInt = {
-    MuxLookup(width, 0.U(64.W))(
+    MuxLookup(
+      width,
+      0.U(64.W),
       Seq(
         8.U  -> "hff".U(64.W),
         16.U -> "hffff".U(64.W),
@@ -77,6 +79,7 @@ trait LoadStore extends BaseCore with MMU {
       (mem.read.data >> rOff) & rMask
     }
   }
+
   def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
     if (!config.functions.tlb) {
       mem.write.valid    := true.B
@@ -206,7 +209,9 @@ trait MMU extends BaseCore with ExceptionSupport {
   }
 
   def LevelCalc(data: UInt): UInt = {
-    MuxLookup(data, 3.U)( // faild
+    MuxLookup(
+      data,
+      3.U, // faild
       Seq(
         "b100".U -> 2.U,
         "b010".U -> 1.U,
@@ -215,7 +220,9 @@ trait MMU extends BaseCore with ExceptionSupport {
     )
   }
   def maskPPN(level: UInt): UInt = {
-    val mask = MuxLookup(level, 0.U(44.W))(
+    val mask = MuxLookup(
+      level,
+      0.U(44.W),
       Seq(
         2.U -> "b000000_0000000000_0000000000_111111111_111111111".U,
         1.U -> "b000000_0000000000_0000000000_000000000_111111111".U,
@@ -225,7 +232,9 @@ trait MMU extends BaseCore with ExceptionSupport {
     mask
   }
   def maskVPN(level: UInt): UInt = {
-    val mask = MuxLookup(level, 0.U(44.W))(
+    val mask = MuxLookup(
+      level,
+      0.U(44.W),
       Seq(
         2.U -> "b000000000_111111111_111111111".U,
         1.U -> "b000000000_000000000_111111111".U,

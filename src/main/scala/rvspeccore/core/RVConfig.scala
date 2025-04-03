@@ -5,8 +5,23 @@ import chisel3.util._
 
 case class RVConfig(configs: (String, Any)*) {
   private val acceptKeys = Map(
-    "XLEN"           -> Set("32", "64"),
-    "extensions"     -> Set("I", "M", "C", "Zifencei", "Zicsr", "Zba", "Zbb", "Zbc", "Zbs", "Zbkb", "Zbkx", "U", "S"),
+    "XLEN" -> Set("32", "64"),
+    "extensions" -> Set(
+      "I",
+      "M",
+      "C",
+      "Zifencei",
+      "Zicsr",
+      "Zba",
+      "Zbb",
+      "Zbc",
+      "Zbs",
+      "Zbkb",
+      "Zbkc",
+      "Zbkx",
+      "U",
+      "S"
+    ),
     "fakeExtensions" -> "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(_.toString).toSet,
     "initValue"      -> Set("pc", "mstatus", "mtvec"),
     "functions"      -> Set("Privileged", "TLB"),
@@ -46,7 +61,8 @@ case class RVConfig(configs: (String, Any)*) {
     val Zbs      = raw.contains("Zbs")
     val Zbkb     = raw.contains("Zbkb")
     val Zbkx     = raw.contains("Zbkx")
-    val B        = Zba || Zbb || Zbc || Zbs || Zbkb || Zbkx
+    val Zbkc     = raw.contains("Zbkc")
+    val B        = Zba || Zbb || Zbc || Zbs || Zbkb || Zbkx || Zbkc
 
     // - RSIC-V ISA, Privileged, 20240411
     // - 1. Introduction

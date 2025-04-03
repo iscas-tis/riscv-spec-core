@@ -198,7 +198,7 @@ class RiscvCoreSpec extends AnyFlatSpec with ChiselScalatestTester {
 class RiscvCore64Spec extends AnyFlatSpec with ChiselScalatestTester {
   implicit val config = RVConfig(
     XLEN = 64,
-    extensions = "MCZifenceiZicsrZbaZbbZbcZbsZbkbZbkx",
+    extensions = "MCZifenceiZicsrZbaZbbZbcZbsZbkbZbkcZbkx",
     functions = Seq("Privileged")
   )
 
