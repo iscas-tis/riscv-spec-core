@@ -341,3 +341,118 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true)(imp
     }
   }
 }
+
+/** SingleInstChecker with write back port.
+  *
+  * Checks a single committed instruction per cycle, including:
+  * - PC of the committed instruction
+  * - Write-back destination and data
+  * - Register and privilege state before execution
+  *
+  * `privilege` provides the architectural state before the instruction executes.
+  * `wb` provides the write-back information after execution.
+  */
+class SingleInstCheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true,coreType: String)(implicit config: RVConfig)
+    extends Checker {
+  val io = IO(new Bundle {
+    val instCommit = Input(InstCommit())
+    val wb         = Input(WriteBack())
+    val privilege  = Input(PrivilegedState())
+    val mem        = if (checkMem) Some(Input(new MemIO)) else None
+  })
+
+  def regDelay[T <: Data](data: T): T = {
+    if (enableReg) RegNext(data, 0.U.asTypeOf(data.cloneType)) else data
+  }
+
+  // link to spec core
+  val specCore = Module(new SingleInst_Model(coreType))
+
+  specCore.io.now                   := 0.U.asTypeOf(new State)
+  specCore.io.now.privilege         := io.privilege
+  specCore.io.now.pc                := io.instCommit.pc
+  specCore.io.now.reg(io.wb.r1Addr) := io.wb.r1Data
+  specCore.io.now.reg(io.wb.r2Addr) := io.wb.r2Data
+
+  specCore.io.valid := io.instCommit.valid
+  specCore.io.inst  := io.instCommit.inst
+
+  val specCoreWBValid = specCore.io.specWb.rd_en
+  val specCoreIsinst  = specCore.io.specWb.is_inst
+  val specCoreWBDest  = specCore.io.specWb.rd_addr
+  val specCoreWBData  = specCore.io.specWb.rd_data
+  val specCoreNpcs    = specCore.io.next.pc
+  val specCoreCsrAddr = specCore.io.specWb.csr_addr
+  val specCoreCsrWr   = specCore.io.specWb.csr_wr
+// check memory behavior
+  if (checkMem) {
+    if (!config.functions.tlb) {
+      when(regDelay(io.instCommit.valid)) {
+        assert(regDelay(io.mem.get.read.valid) === regDelay(specCore.io.mem.read.valid))
+        when(regDelay(io.mem.get.read.valid || specCore.io.mem.read.valid)) {
+          assert(regDelay(io.mem.get.read.addr) === regDelay(specCore.io.mem.read.addr))
+          assert(regDelay(io.mem.get.read.memWidth) === regDelay(specCore.io.mem.read.memWidth))
+        }
+        assert(regDelay(io.mem.get.write.valid) === regDelay(specCore.io.mem.write.valid))
+        when(regDelay(io.mem.get.write.valid || specCore.io.mem.write.valid)) {
+          assert(regDelay(io.mem.get.write.addr) === regDelay(specCore.io.mem.write.addr))
+          assert(regDelay(io.mem.get.write.data) === regDelay(specCore.io.mem.write.data))
+          assert(regDelay(io.mem.get.write.memWidth) === regDelay(specCore.io.mem.write.memWidth))
+        }
+        specCore.io.mem.read.data := io.mem.get.read.data
+      }.otherwise {
+        specCore.io.mem.read.data := 0.U
+      }
+    } else {
+      specCore.io.mem.read.data := 0.U
+    }
+  } else {
+    specCore.io.mem.read.data := DontCare
+  }
+
+  // assert in current clock
+  when(regDelay(io.instCommit.valid) && regDelay(specCoreIsinst)) {
+    // assume(regDelay(specCoreIsinst))
+    assert(regDelay(io.instCommit.npc(31, 0)) === regDelay(specCoreNpcs(31, 0)))
+    when(regDelay(specCoreWBValid) && regDelay(io.wb.valid)) {
+      // if reference and dut all raise the valid, compare the dest and the data
+      assert(regDelay(io.wb.dest) === regDelay(specCoreWBDest))
+      assert(regDelay(io.wb.data) === regDelay(specCoreWBData))
+    }.otherwise {
+      // DUT may try to write back to x0, but it should not take effect
+      // if DUT dose write in x0, it will be check out at next instruction
+      when(regDelay(io.wb.valid) && regDelay(io.wb.dest) =/= 0.U) {
+        assert(regDelay(io.wb.data) === regDelay(specCore.io.next.reg(io.wb.dest)))
+      }
+      // if reference raise but dut does't and the dest is not x0, we think that it's invalid
+      when(regDelay(specCoreWBValid)) {
+        assert(regDelay(specCoreWBDest) === 0.U)
+      }
+    }
+// try to verify two operands of instruction
+    when(regDelay(specCore.io.specWb.checkrs1)) {
+      when(regDelay(io.wb.r1Addr) === 0.U) {
+        assert(regDelay(io.wb.r1Data) === 0.U)
+      }
+      assert(regDelay(io.wb.r1Addr) === regDelay(specCore.io.specWb.rs1_addr))
+    }
+    when(regDelay(specCore.io.specWb.checkrs2)) {
+      when(regDelay(io.wb.r2Addr) === 0.U) {
+        assert(regDelay(io.wb.r2Data) === 0.U)
+      }
+      assert(regDelay(io.wb.r2Addr) === regDelay(specCore.io.specWb.rs2_addr))
+    }
+    // try to verify csr write and read
+    when(regDelay(specCoreCsrWr) || regDelay(io.wb.csrWr)) {
+      assert(regDelay(specCoreCsrWr) === regDelay(io.wb.csrWr))
+      assert(regDelay(specCoreCsrAddr) === regDelay(io.wb.csrAddr))
+      val specCoreCsrNdata = WireInit(0.U(64.W))
+      specCore.io.next.privilege.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
+        when(io.wb.csrAddr === info.addr) {
+          specCoreCsrNdata := nextCSR
+        }
+      }
+      assert(regDelay(specCoreCsrNdata) === regDelay(io.wb.csrNdata))
+    }
+  }
+}

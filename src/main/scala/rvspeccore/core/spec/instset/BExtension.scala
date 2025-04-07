@@ -77,7 +77,7 @@ trait BExtensionInsts {
   val sh3add    = Inst("b0010000_?????_?????_110_?????_0110011")
   val sh3add_uw = Inst("b0010000_?????_?????_110_?????_0111011")
   val slli_uw   = Inst("b000010_??????_?????_001_?????_0011011")
-  val unzip     = Inst("b0000100_01111_?????_101_?????_0010011")
+  val unzip     = Inst("b0000100_11111_?????_101_?????_0010011")
   val xnor      = Inst("b0100000_?????_?????_100_?????_0110011")
   val xperm_b   = Inst("b0010100_?????_?????_100_?????_0110011")
   val xperm_n   = Inst("b0010100_?????_?????_010_?????_0110011")
@@ -85,7 +85,7 @@ trait BExtensionInsts {
     32 -> "b0000100_00000_?????_100_?????_0110011",
     64 -> "b0000100_00000_?????_100_?????_0111011"
   )
-  val zip = Inst("b0000100_01111_?????_001_?????_0010011")
+  val zip = Inst("b0000100_11110_?????_001_?????_0010011")
 }
 
 /** "B" Extension for Bit Manipulation, Version 1.0.0
@@ -448,6 +448,267 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts {
     config.XLEN match {
       case 32 => doRV32B
       case 64 => doRV64B
+    }
+  }
+
+  def doBExtension(coreType: String): Unit = {
+    coreType match {
+      //doRV32B
+      //doRV32Zba
+      case "sh1add" =>
+        decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 1)
+        specWb.is_inst := sh1add(inst);
+      case "sh2add" =>
+        decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 2)
+        specWb.is_inst := sh2add(inst);
+      case "sh3add" =>
+        decodeR; next.reg(rd) := now.reg(rs2) + (now.reg(rs1) << 3)
+        specWb.is_inst := sh3add(inst);
+      //doRV32Zbb
+       case "andn" =>
+        decodeR; next.reg(rd) := now.reg(rs1) & (~now.reg(rs2)).asUInt
+        specWb.is_inst := andn(inst)
+      case "orn" =>
+        decodeR; next.reg(rd) := now.reg(rs1) | (~now.reg(rs2)).asUInt
+        specWb.is_inst := orn(inst)
+      case "xnor" =>
+        decodeR; next.reg(rd) := (~(now.reg(rs1) ^ now.reg(rs2))).asUInt
+        specWb.is_inst := xnor(inst)
+      case "clz" =>
+        decodeI; next.reg(rd) := Mux(now.reg(rs1) === 0.U, XLEN.U, PriorityEncoder(now.reg(rs1).asBools.reverse))
+        specWb.is_inst := clz(inst)
+      case "ctz" =>
+        decodeI; next.reg(rd) := Mux(now.reg(rs1) === 0.U, XLEN.U, PriorityEncoder(now.reg(rs1).asBools))
+        specWb.is_inst := ctz(inst)
+      case "cpop" =>
+        decodeI; next.reg(rd) := PopCount(now.reg(rs1))
+        specWb.is_inst := cpop(inst)
+      case "max" =>
+        decodeR; next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, now.reg(rs2), now.reg(rs1))
+        specWb.is_inst := max(inst)
+      case "maxu" =>
+        decodeR; next.reg(rd) := Mux(now.reg(rs1).asUInt < now.reg(rs2).asUInt, now.reg(rs2), now.reg(rs1))
+        specWb.is_inst := maxu(inst)
+      case "min" =>
+        decodeR; next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, now.reg(rs1), now.reg(rs2))
+        specWb.is_inst := min(inst)
+      case "minu" =>
+        decodeR; next.reg(rd) := Mux(now.reg(rs1).asUInt < now.reg(rs2).asUInt, now.reg(rs1), now.reg(rs2))
+        specWb.is_inst := minu(inst)
+      case "sext_b" =>
+        decodeI; next.reg(rd) := signExt(now.reg(rs1)(7, 0), XLEN)
+        specWb.is_inst := sext_b(inst)
+      case "sext_h" =>
+        decodeI; next.reg(rd) := signExt(now.reg(rs1)(15, 0), XLEN)
+        specWb.is_inst := sext_h(inst)
+      case "zext_h" if config.XLEN == 32 =>
+        decodeI; next.reg(rd) := zeroExt(now.reg(rs1)(15, 0), XLEN)
+        specWb.is_inst := zext_h(inst)
+      case "rol" =>
+        decodeR; next.reg(rd) := (now.reg(rs1) << getRotationShamt(now.reg(rs2), XLEN)) |
+                                  (now.reg(rs1) >> (XLEN.U - getRotationShamt(now.reg(rs2), XLEN)))
+        specWb.is_inst := rol(inst)
+      case "ror" =>
+        decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)) |
+                                  (now.reg(rs1) << (XLEN.U - getRotationShamt(now.reg(rs2), XLEN)))
+        specWb.is_inst := ror(inst)
+      case "rori" =>
+        decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)) |
+                                  (now.reg(rs1) << (XLEN.U - getRotationShamt(imm, XLEN)))
+        specWb.is_inst := rori(inst)
+      case "orc_b" =>
+        val byteResults = VecInit(Seq.fill(XLEN / 8)(0.U(8.W)))
+        for (i <- 0 until XLEN by 8) {
+          val byte = now.reg(rs1)(i + 7, i)
+          byteResults(i / 8) := Mux(byte.orR, 0xff.U(8.W), 0x00.U(8.W))
+        }
+        decodeR; next.reg(rd) := byteResults.asUInt
+        specWb.is_inst := orc_b(inst)
+      case "rev8" if config.XLEN == 32 =>
+        var result = 0.U(XLEN.W)
+        var j = XLEN - 8
+        for (i <- 0 until XLEN by 8) {
+          result = result | (now.reg(rs1)(j + 7, j) << i).asUInt
+          j -= 8
+        }
+        decodeR; next.reg(rd) := result
+        specWb.is_inst := rev8(inst)
+      //doRV32Zbc
+      case "clmul" =>
+         decodeR;
+        val partialResults = VecInit(Seq.fill(XLEN)(0.U(XLEN.W)))
+        for (i <- 0 until XLEN) {
+          when(((now.reg(rs2) >> i.U) & 1.U) > 0.U) {
+            partialResults(i) := now.reg(rs1) << i
+          }
+        }
+        next.reg(rd) := partialResults.reduce(_ ^ _)
+        specWb.is_inst := clmul(inst)
+      case "clmulh" =>
+        decodeR;
+        val partialResults = VecInit(Seq.fill(XLEN)(0.U(XLEN.W)))
+        for (i <- 1 to XLEN) {
+          when(((now.reg(rs2) >> i.U) & 1.U) > 0.U) {
+            partialResults(i - 1) := now.reg(rs1) >> (XLEN - i)
+          }
+        }
+        next.reg(rd) := partialResults.reduce(_ ^ _)
+        specWb.is_inst := clmulh(inst)
+      case "clmulr" =>
+        decodeR;
+        val partialResults = VecInit(Seq.fill(XLEN)(0.U(XLEN.W)))
+        for (i <- 0 until XLEN) {
+          when(((now.reg(rs2) >> i.U) & 1.U) > 0.U) {
+            partialResults(i) := now.reg(rs1) >> (XLEN - i - 1)
+          }
+        }
+        next.reg(rd) := partialResults.reduce(_ ^ _)
+        specWb.is_inst := clmulr(inst)
+      //doRV32Zbs
+      case "bclr" =>
+        decodeR; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(now.reg(rs2), XLEN)).asUInt)
+        specWb.is_inst := bclr(inst)
+      case "bclri" =>
+        decodeI; next.reg(rd) := now.reg(rs1) & ~((1.U << getRotationShamt(imm, XLEN)).asUInt)
+        specWb.is_inst := bclri(inst)
+      case "bext" =>
+        decodeR; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(now.reg(rs2), XLEN)) & 1.U
+        specWb.is_inst := bext(inst)
+      case "bexti" =>
+        decodeI; next.reg(rd) := (now.reg(rs1) >> getRotationShamt(imm, XLEN)) & 1.U
+        specWb.is_inst := bexti(inst)
+      case "binv" =>
+        decodeR; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(now.reg(rs2), XLEN))
+        specWb.is_inst := binv(inst)
+      case "binvi" =>
+        decodeI; next.reg(rd) := now.reg(rs1) ^ (1.U << getRotationShamt(imm, XLEN))
+        specWb.is_inst := binvi(inst)
+      case "bset" =>
+        decodeR; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(now.reg(rs2), XLEN))
+        specWb.is_inst := bset(inst)
+      case "bseti" =>
+        decodeI; next.reg(rd) := now.reg(rs1) | (1.U << getRotationShamt(imm, XLEN))
+        specWb.is_inst := bseti(inst)
+      //doRV32Zbkb
+      case "pack" =>
+        decodeR; next.reg(rd) := now.reg(rs2)(((XLEN >> 1) - 1), 0) << (XLEN / 2) | now.reg(rs1)(((XLEN >> 1) - 1), 0)
+        specWb.is_inst := pack(inst)
+      case "packh" =>
+        decodeR; next.reg(rd) := zeroExt((now.reg(rs2)(7, 0) << 8) | now.reg(rs1)(7, 0), XLEN)
+        specWb.is_inst := packh(inst)
+      case "rev_b" =>
+        decodeR;
+        var result = 0.U(XLEN.W)
+        for (i <- 0 until XLEN by 8) {
+          val swapped = Reverse(now.reg(rs1)(i + 7, i))
+          result = (result | (swapped << i)).asUInt
+        }
+        next.reg(rd) := result
+        specWb.is_inst := rev_b(inst)
+      case "zip" if config.XLEN == 32 =>
+        decodeR;
+        var result = 0.U(XLEN.W)
+        for (i <- 0 until XLEN / 2) {
+          val lower = now.reg(rs1)(i)            // 低 halfSize 位的第 i 位
+          val upper = now.reg(rs1)(i + XLEN / 2) // 高 halfSize 位的第 i 位
+          result = (result | (upper << ((i << 1) + 1)) | (lower << (i << 1))).asUInt
+        }
+        next.reg(rd) := result;
+        specWb.is_inst := zip(inst)
+      case "unzip" if config.XLEN == 32 =>
+        decodeR;
+        var result = 0.U(XLEN.W)
+        for (i <- 0 until XLEN / 2) {
+          val lower = now.reg(rs1)(i << 1)
+          val upper = now.reg(rs1)((i << 1) + 1)
+          result = (result | (upper << (i + XLEN / 2)) | (lower << i)).asUInt
+        }
+        next.reg(rd) := result;
+        specWb.is_inst := unzip(inst)
+      //doRV32Zbkx
+      case "xperm_b" =>
+        decodeR;
+        var result = 0.U(XLEN.W)
+        for (i <- 0 until XLEN by 8) {
+          val index    = now.reg(rs2)(i + 7, i)
+          val bitValue = xpermb_lookup(index, now.reg(rs1))
+          result = (result | (bitValue << i)).asUInt
+        }
+        next.reg(rd) := result
+        specWb.is_inst := xperm_b(inst)
+      case "xperm_n" =>
+        decodeR;
+        var result = 0.U(XLEN.W)
+        for (i <- 0 until XLEN by 4) {
+          val index    = now.reg(rs2)(i + 3, i)
+          val bitValue = xpermn_lookup(index, now.reg(rs1))
+          result = (result | (bitValue << i)).asUInt
+        }
+        next.reg(rd) := result
+        specWb.is_inst := xperm_n(inst)
+      //doRV64B
+      //doRV64Zba
+      case "add_uw" if config.XLEN == 64 =>
+        decodeR; next.reg(rd) := now.reg(rs2) + zeroExt(now.reg(rs1)(31, 0), XLEN)
+        specWb.is_inst := add_uw(inst)
+      case "sh1add_uw" if config.XLEN == 64 =>
+        decodeR; next.reg(rd) := now.reg(rs2) + (zeroExt(now.reg(rs1)(31, 0), XLEN) << 1)
+        specWb.is_inst := sh1add_uw(inst)
+      case "sh2add_uw" if config.XLEN == 64 =>
+        decodeR; next.reg(rd) := now.reg(rs2) + (zeroExt(now.reg(rs1)(31, 0), XLEN) << 2)
+        specWb.is_inst := sh2add_uw(inst)
+      case "sh3add_uw" if config.XLEN == 64 =>
+        decodeR; next.reg(rd) := now.reg(rs2) + (zeroExt(now.reg(rs1)(31, 0), XLEN) << 3)
+        specWb.is_inst := sh3add_uw(inst)
+      case "slli_uw" if config.XLEN == 64 =>
+        decodeI; next.reg(rd) := zeroExt(now.reg(rs1)(31, 0), XLEN) << imm(5, 0)
+        specWb.is_inst := slli_uw(inst)
+      //doRV64Zbb
+      case "clzw" if config.XLEN == 64 =>
+        decodeI; next.reg(rd) := Mux(now.reg(rs1) === 0.U, 32.U, PriorityEncoder(now.reg(rs1)(31, 0).asBools.reverse))
+        specWb.is_inst := clzw(inst)
+      case "ctzw" if config.XLEN == 64 =>
+        decodeI; next.reg(rd) := Mux(now.reg(rs1) === 0.U, 32.U, PriorityEncoder(now.reg(rs1)(31, 0).asBools))
+        specWb.is_inst := ctzw(inst)
+      case "cpopw" if config.XLEN == 64 =>
+        decodeI; next.reg(rd) := PopCount(now.reg(rs1)(31, 0))
+        specWb.is_inst := cpopw(inst)
+      case "zext_h" if config.XLEN == 64 =>
+        decodeI; next.reg(rd) := zeroExt(now.reg(rs1)(15, 0), XLEN)
+        specWb.is_inst := zext_h(inst)
+      case "rolw" if config.XLEN == 64 =>
+        decodeR
+        val rs1_data = zeroExt(now.reg(rs1)(31, 0), XLEN)
+        val result   = ((rs1_data << now.reg(rs2)(4, 0)).asUInt | (rs1_data >> (32.U - now.reg(rs2)(4, 0))).asUInt)
+        next.reg(rd) := signExt(result(31, 0), XLEN)
+        specWb.is_inst := rolw(inst)
+      case "roriw" if config.XLEN == 64 =>
+        decodeI
+        val rs1_data = zeroExt(now.reg(rs1)(31, 0), XLEN)
+        val result   = (rs1_data >> imm(4, 0)).asUInt | (rs1_data << (32.U - imm(4, 0))).asUInt
+        next.reg(rd) := signExt(result(31, 0), XLEN)
+        specWb.is_inst := roriw(inst)
+      case "rorw" if config.XLEN == 64 =>
+        decodeR
+        val rs1_data = zeroExt(now.reg(rs1)(31, 0), XLEN)
+        val result   = (rs1_data >> now.reg(rs2)(4, 0)).asUInt | (rs1_data << (32.U - now.reg(rs2)(4, 0))).asUInt
+        next.reg(rd) := signExt(result(31, 0), XLEN)
+        specWb.is_inst := rorw(inst)
+      case "rev8" if config.XLEN == 64 =>
+        decodeR
+        var result = 0.U(XLEN.W)
+        var j      = XLEN - 8
+        for (i <- 0 until XLEN by 8) {
+          result = result | (now.reg(rs1)(j + 7, j) << i).asUInt
+          j -= 8
+        }
+        next.reg(rd) := result
+        specWb.is_inst := rev8(inst)
+      //doRV64Zbkb
+      case "packw" if config.XLEN == 64 =>
+        when(packw(inst)) { decodeR; next.reg(rd) := signExt((now.reg(rs2)(15, 0) << 16) | now.reg(rs1)(15, 0), XLEN) }
+        specWb.is_inst := packw(inst)
+      case _ =>
     }
   }
 }

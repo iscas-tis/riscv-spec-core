@@ -114,6 +114,67 @@ trait MExtension extends BaseCore with CommonDecode with MExtensionInsts {
       case 64 => doRV64M
     }
   }
+
+  def doMExtension(coreType: String): Unit = {
+    coreType match {
+      case "MUL" =>
+        decodeR; next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN - 1, 0)
+        specWb.is_inst := MUL(inst);
+      case "MULH" =>
+        decodeR; next.reg(rd) := (now.reg(rs1).asSInt * now.reg(rs2).asSInt).asUInt(XLEN * 2 - 1, XLEN)
+        specWb.is_inst := MULH(inst);
+      case "MULHSU" =>
+        decodeR; next.reg(rd) := (now.reg(rs1).asSInt * now.reg(rs2)).asUInt(XLEN * 2 - 1, XLEN)
+        specWb.is_inst := MULHSU(inst);
+      case "MULHU" =>
+        decodeR; next.reg(rd) := (now.reg(rs1) * now.reg(rs2))(XLEN * 2 - 1, XLEN)
+        specWb.is_inst := MULHU(inst);
+      case "DIV" =>
+        decodeR; next.reg(rd) := opDIV(now.reg(rs1), now.reg(rs2), XLEN)
+        specWb.is_inst := DIV(inst);
+      case "DIVU" =>
+        decodeR; next.reg(rd) := opDIVU(now.reg(rs1), now.reg(rs2), XLEN)
+        specWb.is_inst := DIVU(inst);
+      case "REM" =>
+        decodeR; next.reg(rd) := opREM(now.reg(rs1), now.reg(rs2), XLEN)
+        specWb.is_inst := REM(inst);
+      case "REMU" =>
+        decodeR; next.reg(rd) := opREMU(now.reg(rs1), now.reg(rs2), XLEN)
+        specWb.is_inst := REMU(inst);
+      case "MULW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; next.reg(rd) := signExt((now.reg(rs1)(31, 0) * now.reg(rs2)(31, 0))(31, 0), XLEN)
+            specWb.is_inst := MULW(inst);
+        }
+      case "DIVW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; next.reg(rd) := signExt(opDIV(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN)
+            specWb.is_inst := DIVW(inst);
+        }
+      case "DIVUW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; next.reg(rd) := signExt(opDIVU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN)
+            specWb.is_inst := DIVUW(inst);
+        }
+      case "REMW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; next.reg(rd) := signExt(opREM(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN)
+            specWb.is_inst := REMW(inst);
+        }
+      case "REMUW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; next.reg(rd) := signExt(opREMU(now.reg(rs1)(31, 0), now.reg(rs2)(31, 0), 32), XLEN)
+            specWb.is_inst := REMUW(inst);
+        }
+      case _ =>
+        decodeR
+    }
+  }
 }
 
 // scalafmt: { maxColumn = 120 } (back to defaults)

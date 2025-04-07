@@ -160,4 +160,76 @@ trait ZicsrExtension
       }
     }
   }
+
+  def doZicsrExtension(coreType: String): Unit = {
+    coreType match {
+      case "CSRRW" => 
+        decodeI_Zicsr
+        when(!wen(csrAddr)) {
+          when(rd =/= 0.U) {
+            next.reg(rd) := zeroExt(csrRead(csrAddr), XLEN)
+            updateNextWrite(rd)
+          }
+          checkSrcImm(rs1)
+          csrWrite(csrAddr, now.reg(rs1))
+        }
+        specWb.is_inst := CSRRW(inst);
+      case "CSRRS" =>
+        decodeI_Zicsr
+        when(!wen(csrAddr, rs1 === 0.U)) {
+          next.reg(rd) := zeroExt(csrRead(csrAddr), XLEN)
+          updateNextWrite(rd)
+          checkSrcImm(rs1)
+          when(rs1 =/= 0.U) {
+            csrWrite(csrAddr, zeroExt(csrRead(csrAddr), XLEN) | now.reg(rs1))
+          }
+        }
+        specWb.is_inst := CSRRS(inst);
+      case "CSRRC" =>
+        decodeI_Zicsr
+        when(!wen(csrAddr, rs1 === 0.U)) {
+          next.reg(rd) := zeroExt(csrRead(csrAddr), XLEN)
+          updateNextWrite(rd)
+          checkSrcImm(rs1)
+          when(rs1 =/= 0.U) {
+            // FIXME: 新写法wmask下导致的失灵 [待验证]
+            csrWrite(csrAddr, zeroExt(csrRead(csrAddr), XLEN) & ~now.reg(rs1))
+          }
+        }
+        specWb.is_inst := CSRRC(inst);
+      case "CSRRWI" =>
+        decodeI_Zicsr
+        when(!wen(csrAddr)) {
+          when(rd =/= 0.U) {
+            next.reg(rd) := zeroExt(csrRead(csrAddr), XLEN)
+            updateNextWrite(rd)
+          }
+          csrWrite(csrAddr, zeroExt(rs1, XLEN))
+        }
+        specWb.is_inst := CSRRWI(inst);
+      case "CSRRSI" =>
+        decodeI_Zicsr
+        when(!wen(csrAddr, rs1 === 0.U)) {
+          next.reg(rd) := zeroExt(csrRead(csrAddr), XLEN)
+          updateNextWrite(rd)
+          // TODO: might have some exceptions when csrrs and csrrsi rs1 is zero?
+          when(rs1 =/= 0.U) {
+            csrWrite(csrAddr, zeroExt(csrRead(csrAddr), XLEN) | zeroExt(rs1, XLEN))
+          }
+        }
+        specWb.is_inst := CSRRSI(inst);
+      case "CSRRCI" =>
+        decodeI_Zicsr
+        when(!wen(csrAddr, rs1 === 0.U)) {
+          next.reg(rd) := zeroExt(csrRead(csrAddr), XLEN)
+          updateNextWrite(rd)
+          when(rs1 =/= 0.U) {
+            // FIXME: 新写法wmask下导致的失灵？ [待验证]
+            csrWrite(csrAddr, zeroExt(csrRead(csrAddr), XLEN) & ~zeroExt(rs1, XLEN))
+          }
+        }
+        specWb.is_inst := CSRRCI(inst);
+      case _ =>
+    }
+  }
 }

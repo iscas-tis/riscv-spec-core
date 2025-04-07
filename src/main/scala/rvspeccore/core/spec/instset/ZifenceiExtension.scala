@@ -27,4 +27,13 @@ trait ZifenceiExtension extends BaseCore with CommonDecode with ZifenceiExtensio
   def doRVZifencei: Unit = {
     when(FENCE_I(inst)) { decodeI /* then do nothing for now */ }
   }
+
+  def doZifenceiExecute(coreType: String): Unit = {
+    coreType match {
+      case "FENCE_I" => 
+        decodeI
+        specWb.is_inst := FENCE_I(inst);
+      case _ =>
+    }
+  }
 }
