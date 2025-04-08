@@ -64,7 +64,7 @@ object RVI extends AssumeHelper with spec.instset.IBaseInsts {
   // - Chapter 5: RV64I Base Integer Instruction Set, Version 2.1
   // or refer to IBase.scala
   val regImm = AssumeHelper(
-    List(ADDI, SLTI, SLTIU, ANDI, ORI, XORI, SLLI, SRLI, SRAI, LUI), // , AUIPC),
+    List(ADDI, SLTI, SLTIU, ANDI, ORI, XORI, SLLI, SRLI, SRAI, LUI, AUIPC),
     List(ADDIW, SLLIW, SRLIW, SRLIW, SRAIW)
   )
   val regReg = AssumeHelper(
