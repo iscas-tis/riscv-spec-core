@@ -1,0 +1,55 @@
+
+rv32ui-p-auipc:     file format elf32-littleriscv
+
+
+Disassembly of section .text.init:
+
+80000000 <_start>:
+80000000:	00002517          	auipc	a0,0x2
+80000004:	71c50513          	addi	a0,a0,1820 # 8000271c <_end+0x71c>
+80000008:	004005ef          	jal	a1,8000000c <_start+0xc>
+8000000c:	40b50533          	sub	a0,a0,a1
+80000010:	000023b7          	lui	t2,0x2
+80000014:	71038393          	addi	t2,t2,1808 # 2710 <_start-0x7fffd8f0>
+80000018:	00200193          	li	gp,2
+8000001c:	02751463          	bne	a0,t2,80000044 <fail>
+
+80000020 <test_3>:
+80000020:	ffffe517          	auipc	a0,0xffffe
+80000024:	8fc50513          	addi	a0,a0,-1796 # 7fffd91c <_start-0x26e4>
+80000028:	004005ef          	jal	a1,8000002c <test_3+0xc>
+8000002c:	40b50533          	sub	a0,a0,a1
+80000030:	ffffe3b7          	lui	t2,0xffffe
+80000034:	8f038393          	addi	t2,t2,-1808 # ffffd8f0 <_end+0x7fffb8f0>
+80000038:	00300193          	li	gp,3
+8000003c:	00751463          	bne	a0,t2,80000044 <fail>
+80000040:	00301663          	bne	zero,gp,8000004c <pass>
+
+80000044 <fail>:
+80000044:	00100513          	li	a0,1
+80000048:	00c0006f          	j	80000054 <halt>
+
+8000004c <pass>:
+8000004c:	00000513          	li	a0,0
+80000050:	0040006f          	j	80000054 <halt>
+
+80000054 <halt>:
+80000054:	0000006f          	j	80000054 <halt>
+80000058:	0000                	unimp
+8000005a:	0000                	unimp
+8000005c:	0000                	unimp
+8000005e:	0000                	unimp
+80000060:	0000                	unimp
+80000062:	0000                	unimp
+80000064:	0000                	unimp
+80000066:	0000                	unimp
+80000068:	0000                	unimp
+8000006a:	0000                	unimp
+8000006c:	0000                	unimp
+8000006e:	0000                	unimp
+80000070:	0000                	unimp
+80000072:	0000                	unimp
+80000074:	0000                	unimp
+80000076:	0000                	unimp
+80000078:	0000                	unimp
+8000007a:	0000                	unimp

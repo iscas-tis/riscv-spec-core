@@ -1,0 +1,68 @@
+
+rv64uf-p-ldst:     file format elf64-littleriscv
+
+
+Disassembly of section .text.init:
+
+0000000080000000 <_start>:
+    80000000:	00002597          	auipc	a1,0x2
+    80000004:	00058593          	mv	a1,a1
+    80000008:	0045a087          	flw	ft1,4(a1) # 80002004 <begin_signature+0x4>
+    8000000c:	0015aa27          	fsw	ft1,20(a1)
+    80000010:	0105b503          	ld	a0,16(a1)
+    80000014:	0010039b          	addiw	t2,zero,1
+    80000018:	02139393          	slli	t2,t2,0x21
+    8000001c:	00738393          	addi	t2,t2,7
+    80000020:	00f39393          	slli	t2,t2,0xf
+    80000024:	ab738393          	addi	t2,t2,-1353
+    80000028:	00e39393          	slli	t2,t2,0xe
+    8000002c:	eef38393          	addi	t2,t2,-273
+    80000030:	00200193          	li	gp,2
+    80000034:	02751c63          	bne	a0,t2,8000006c <fail>
+
+0000000080000038 <test_3>:
+    80000038:	00002597          	auipc	a1,0x2
+    8000003c:	fc858593          	addi	a1,a1,-56 # 80002000 <begin_signature>
+    80000040:	0005a087          	flw	ft1,0(a1)
+    80000044:	0015ac27          	fsw	ft1,24(a1)
+    80000048:	0185b503          	ld	a0,24(a1)
+    8000004c:	013383b7          	lui	t2,0x1338
+    80000050:	d013839b          	addiw	t2,t2,-767
+    80000054:	00d39393          	slli	t2,t2,0xd
+    80000058:	b7f38393          	addi	t2,t2,-1153 # 1337b7f <_start-0x7ecc8481>
+    8000005c:	01739393          	slli	t2,t2,0x17
+    80000060:	00300193          	li	gp,3
+    80000064:	00751463          	bne	a0,t2,8000006c <fail>
+    80000068:	00301663          	bne	zero,gp,80000074 <pass>
+
+000000008000006c <fail>:
+    8000006c:	00100513          	li	a0,1
+    80000070:	00c0006f          	j	8000007c <halt>
+
+0000000080000074 <pass>:
+    80000074:	00000513          	li	a0,0
+    80000078:	0040006f          	j	8000007c <halt>
+
+000000008000007c <halt>:
+    8000007c:	0000006f          	j	8000007c <halt>
+    80000080:	0000                	unimp
+    80000082:	0000                	unimp
+
+Disassembly of section .data:
+
+0000000080002000 <begin_signature>:
+    80002000:	0000                	unimp
+    80002002:	bf80                	fsd	fs0,56(a5)
+    80002004:	0000                	unimp
+    80002006:	4000                	lw	s0,0(s0)
+    80002008:	0000                	unimp
+    8000200a:	4040                	lw	s0,4(s0)
+    8000200c:	0000                	unimp
+    8000200e:	c080                	sw	s0,0(s1)
+    80002010:	deadbeef          	jal	t4,7ffdd5fa <_start-0x22a06>
+    80002014:	babe                	fsd	fa5,368(sp)
+    80002016:	cafe                	sw	t6,84(sp)
+    80002018:	1dea                	slli	s11,s11,0x3a
+    8000201a:	abad                	j	80002594 <_end+0x574>
+    8000201c:	d00d                	beqz	s0,80001f3e <fromhost+0xefe>
+    8000201e:	          	lui	t1,0x1
