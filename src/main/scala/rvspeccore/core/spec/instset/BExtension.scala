@@ -135,7 +135,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
     */
   def doRV32Zbb: Unit = {
     // scalafmt: { maxColumn = 200 }
-    doRV32ZbkbZbb
+    doCommonRV32ZbkbZbb
     // Count leading/trailing zero bits
     when(clz(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := Mux(now.reg(rs1) === 0.U, XLEN.U, PriorityEncoder(now.reg(rs1).asBools.reverse)); updateNextWrite(rd) }
     when(ctz(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := Mux(now.reg(rs1) === 0.U, XLEN.U, PriorityEncoder(now.reg(rs1).asBools)); updateNextWrite(rd) }
@@ -171,7 +171,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
     *   - 28.4.3. Zbc: Carry-less multiplication
     */
   def doRV32Zbc: Unit = {
-    doRV32ZbkcZbc
+    doCommonRV32ZbkcZbc
     when(clmulr(inst)) {
       decodeR;
       checkSrcReg(rs1, rs2)
@@ -255,7 +255,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
   def doRV64Zbb(): Unit = {
     // scalafmt: { maxColumn = 200 }
     doRV32Zbb
-    doRV64ZbkbZbb
+    doCommonRV64ZbkbZbb
     // Count leading/trailing zero bits
     when(clzw(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := Mux(now.reg(rs1) === 0.U, 32.U, PriorityEncoder(now.reg(rs1)(31, 0).asBools.reverse)); updateNextWrite(rd) }
     when(ctzw(inst)) { decodeI; checkSrcImm(rs1); next.reg(rd) := Mux(now.reg(rs1) === 0.U, 32.U, PriorityEncoder(now.reg(rs1)(31, 0).asBools)); updateNextWrite(rd) }
@@ -277,7 +277,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
     *   - 28.4.5. Zbkb: Bit-manipulation for Cryptography
     */
   def doRV32Zbkb: Unit = {
-    doRV32ZbkbZbb
+    doCommonRV32ZbkbZbb
     when(pack(inst)) {
       decodeR; checkSrcReg(rs1, rs2);
       next.reg(rd) := now.reg(rs2)(((XLEN >> 1) - 1), 0) << (XLEN / 2) | now.reg(rs1)(((XLEN >> 1) - 1), 0)
@@ -331,7 +331,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
     *   - 28.4.6. Zbkc: Carry-less multiplication for Cryptography
     */
   def doRV32Zbkc(): Unit = {
-    doRV32ZbkcZbc
+    doCommonRV32ZbkcZbc
   }
 
   /** Crossbar permutations
@@ -368,14 +368,14 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
 
   def doRV64Zbkb(): Unit = {
     doRV32Zbkb
-    doRV64ZbkbZbb
+    doCommonRV64ZbkbZbb
     when(packw(inst)) {
       decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs2)(15, 0) << 16) | now.reg(rs1)(15, 0), XLEN);
       updateNextWrite(rd)
     }
   }
 
-  def doRV32ZbkbZbb(): Unit = {
+  def doCommonRV32ZbkbZbb(): Unit = {
     // Logical with negate
     when(andn(inst)) {
       decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) & (~now.reg(rs2)).asUInt; updateNextWrite(rd)
@@ -419,7 +419,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
     }
   }
 
-  def doRV64ZbkbZbb(): Unit = {
+  def doCommonRV64ZbkbZbb(): Unit = {
     // Bitwise rotation
     // rori(64Bit) has been implemented in RV32Zbb
     when(rolw(inst)) {
@@ -448,7 +448,7 @@ trait BExtension extends BaseCore with CommonDecode with BExtensionInsts with Ch
     }
   }
 
-  def doRV32ZbkcZbc(): Unit = {
+  def doCommonRV32ZbkcZbc(): Unit = {
     when(clmul(inst)) {
       decodeR;
       checkSrcReg(rs1, rs2);
