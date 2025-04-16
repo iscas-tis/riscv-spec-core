@@ -143,3 +143,37 @@ object RVPrivileged extends AssumeHelper with spec.instset.PrivilegedInsts {
   // )
   val partition: Seq[AssumeHelper] = List(trap_return)
 }
+object RVB extends AssumeHelper with spec.instset.BExtensionInsts {
+  val zba = AssumeHelper(
+    List(sh1add, sh2add, sh3add),
+    List(add_uw, sh1add_uw, sh2add_uw, sh3add_uw, slli_uw)
+  )
+
+  val zbb = AssumeHelper(
+    List(andn, orn, xnor, clz, ctz, cpop, max, maxu, min, minu, sext_b, sext_h, zext_h, rol, ror, rori, orc_b, rev8),
+    List(clzw, ctzw, cpopw, rolw, roriw, rorw)
+  )
+
+  val zbc = AssumeHelper(
+    List(clmul, clmulh, clmulr)
+  )
+
+  val zbs = AssumeHelper(
+    List(bclr, bclri, bext, bexti, binv, binvi, bset, bseti)
+  )
+
+  val zbkb = AssumeHelper(
+    List(rol, ror, rori, andn, orn, xnor, pack, packh, rev8, rev_b, zip, unzip),
+    List(rolw, roriw, rorw, packw)
+  )
+
+  val zbkc = AssumeHelper(
+    List(clmul, clmulh)
+  )
+
+  val zbkx = AssumeHelper(
+    List(xperm_b, xperm_n)
+  )
+
+  val partition: Seq[AssumeHelper] = List(zba, zbb, zbc, zbs, zbkb, zbkc, zbkx)
+}

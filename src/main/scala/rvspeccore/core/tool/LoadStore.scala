@@ -77,6 +77,7 @@ trait LoadStore extends BaseCore with MMU {
       (mem.read.data >> rOff) & rMask
     }
   }
+
   def memWrite(addr: UInt, memWidth: UInt, data: UInt): Unit = {
     if (!config.functions.tlb) {
       mem.write.valid    := true.B

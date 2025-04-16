@@ -96,8 +96,8 @@ trait CSRInfos {
     "h100",
     None,
     mstatusUpdateSideEffect,
-    XLEN => "hc6122".U(XLEN.W) | "h8000000300018000".U,
-    XLEN => "hc6122".U(XLEN.W)
+    (XLEN: Int) => "hc6122".U(XLEN.W) | "h8000000300018000".U,
+    (XLEN: Int) => "hc6122".U(XLEN.W)
   ) // TODO
 
   // MaskedRegMap(Sie, mie, sieMask, MaskedRegMap.NoSideEffect, sieMask),
