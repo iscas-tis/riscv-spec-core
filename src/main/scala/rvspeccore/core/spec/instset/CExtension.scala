@@ -310,4 +310,187 @@ trait CExtension extends BaseCore with CDecode with CExtensionInsts { this: IBas
       case 64 => doRV64C
     }
   }
+
+  def doCExtension(coreType: String): Unit = {
+    coreType match {
+      case "C_LWSP" =>
+        decodeCI
+        imm          := zeroExt(reorder(5, (4, 2), (7, 6))(inst, 12, (6, 2)), XLEN)
+        next.reg(rd) := signExt(memRead(now.reg(2.U) + imm, 32.U)(31, 0), XLEN)
+        specWb.is_inst := C_LWSP(inst);
+      case "C_SWSP" =>
+        decodeCSS
+        imm := zeroExt(reorder((5, 2), (7, 6))(inst, (12, 7)), XLEN)
+        memWrite(now.reg(2.U) + imm, 32.U, now.reg(rs2)(31, 0))
+        specWb.is_inst := C_SWSP(inst);
+      case "C_LW" =>
+        decodeCL
+        imm                  := zeroExt(reorder((5, 3), 2, (6, 6))(inst, (12, 10), (6, 5)), XLEN)
+        next.reg(cat01(rdP)) := signExt(memRead(now.reg(cat01(rs1P)) + imm, 32.U)(31, 0), XLEN)
+        specWb.is_inst := C_LW(inst);
+      case "C_SW" =>
+        decodeCS
+        imm := zeroExt(reorder((5, 3), 2, 6)(inst, (12, 10), (6, 5)), XLEN)
+        memWrite(now.reg(cat01(rs1P)) + imm, 32.U, now.reg(cat01(rs2P)))
+        specWb.is_inst := C_SW(inst);
+      case "C_J" =>
+        decodeCJ
+        imm               := signExt(reorder(11, 4, (9, 8), 10, 6, 7, (3, 1), 5)(inst, (12, 2)), XLEN)
+        global_data.setpc := true.B
+        next.pc           := now.pc + imm
+        specWb.is_inst := C_J(inst);
+      case "C_JAL" =>
+        decodeCJ
+        imm               := signExt(reorder(11, 4, (9, 8), 10, 6, 7, (3, 1), 5)(inst, (12, 2)), XLEN)
+        global_data.setpc := true.B
+        next.pc           := now.pc + imm
+        specWb.is_inst := C_JAL(inst);
+      case "C_JR" =>
+        decodeCR
+        global_data.setpc := true.B
+        next.pc           := now.reg(cat01(rs1P))
+        specWb.is_inst := C_JR(inst);
+      case "C_JALR" =>
+        decodeCR
+        global_data.setpc := true.B
+        next.pc           := now.reg(cat01(rs1P))
+        next.reg(1)       := now.pc + 2.U
+        specWb.is_inst := C_JALR(inst);
+      case "C_BEQZ" =>
+        decodeCB
+        when(now.reg(cat01(rs1P)) === 0.U) {
+          global_data.setpc := true.B
+          next.pc           := now.pc + imm
+        }
+        specWb.is_inst := C_BEQZ(inst);
+      case "C_BNEZ" =>
+        decodeCB
+        when(now.reg(cat01(rs1P)) =/= 0.U) {
+          global_data.setpc := true.B
+          next.pc           := now.pc + imm
+        }
+        specWb.is_inst := C_BNEZ(inst);
+      case "C_LI" =>
+        decodeCI
+        imm          := signExt(reorder(5, (4, 0))(inst, 12, (6, 2)), XLEN)
+        next.reg(rd) := imm
+        specWb.is_inst := C_LI(inst);
+      case "C_LUI" =>
+        decodeCI
+        val nzimm_C_LUI = signExt(reorder(17, (16, 12))(inst, 12, (6, 2)), XLEN)
+        next.reg(rd) := nzimm_C_LUI
+        specWb.is_inst := C_LUI(inst);
+      case "C_ADDI" =>
+        decodeCI
+        val nzimm_C_ADDI = signExt(reorder(5, (4, 0))(inst, 12, (6, 2)), XLEN)
+        next.reg(rd) := now.reg(rd) + nzimm_C_ADDI
+        specWb.is_inst := C_ADDI(inst);
+      case "C_ADDI16SP" =>
+        decodeCI
+        val nzimm_C_ADDI16SP = signExt(reorder(9, 4, 6, (8, 7), 5)(inst, 12, (6, 2)), XLEN)
+        next.reg(2.U) := now.reg(2.U) + nzimm_C_ADDI16SP
+        specWb.is_inst := C_ADDI16SP(inst);
+      case "C_ADDI4SPN" =>
+        decodeCIW
+        val nzimm_C_ADDI4SPN = zeroExt(reorder((5, 4), (9, 6), 2, 3)(inst, (12, 5)), XLEN)
+        next.reg(cat01(rdP)) := now.reg(2.U) + nzimm_C_ADDI4SPN
+        specWb.is_inst := C_ADDI4SPN(inst);
+      case "C_SLLI" =>
+        decodeCI
+        imm          := reorder(5, (4, 0))(inst, 12, (6, 2))
+        next.reg(rd) := now.reg(rd) << imm(5, 0)
+        specWb.is_inst := C_SLLI(inst);
+      case "C_SRLI" =>
+        decodeCB
+        imm                  := reorder(5, (4, 0))(inst, 12, (6, 2))
+        next.reg(cat01(rdP)) := now.reg(cat01(rdP)) >> imm(5, 0)
+        specWb.is_inst := C_SRLI(inst);
+      case "C_SRAI" =>
+        decodeCB
+        imm                  := reorder(5, (4, 0))(inst, 12, (6, 2))
+        next.reg(cat01(rdP)) := (now.reg(cat01(rdP)).asSInt >> imm(5, 0)).asUInt
+        specWb.is_inst := C_SRAI(inst);
+      case "C_ANDI" =>
+        decodeCB
+        imm                  := signExt(reorder(5, (4, 0))(inst, 12, (6, 2)), XLEN)
+        next.reg(cat01(rdP)) := now.reg(cat01(rdP)) & imm
+        specWb.is_inst := C_ANDI(inst);
+      case "C_MV" =>
+        decodeCR; next.reg(rd) := now.reg(0.U) + now.reg(rs2)
+        specWb.is_inst := C_MV(inst);
+      case "C_ADD" =>
+        decodeCR; next.reg(rd) := now.reg(rd) + now.reg(rs2)
+        specWb.is_inst := C_ADD(inst);
+      case "C_AND" => 
+        decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) & now.reg(cat01(rs2P))
+        specWb.is_inst := C_AND(inst);
+      case "C_OR" =>
+        decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) | now.reg(cat01(rs2P))
+        specWb.is_inst := C_OR(inst);
+      case "C_XOR" =>
+        decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) ^ now.reg(cat01(rs2P))
+        specWb.is_inst := C_XOR(inst);
+      case "C_SUB" =>
+        decodeCA; next.reg(cat01(rdP)) := now.reg(cat01(rdP)) - now.reg(cat01(rs2P))
+        specWb.is_inst := C_SUB(inst);
+      case "C_NOP" =>
+        specWb.is_inst := C_NOP(inst);
+      case "C_LDSP" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCI
+            imm          := zeroExt(reorder(5, (4, 3), (8, 6))(inst, 12, (6, 2)), XLEN)
+            next.reg(rd) := signExt(memRead(now.reg(2.U) + imm, 64.U)(63, 0), XLEN)
+            specWb.is_inst := C_LDSP(inst);
+        }
+      case "C_SDSP" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCSS
+            imm := zeroExt(reorder((5, 3), (8, 6))(inst, (12, 7)), XLEN)
+            memWrite(now.reg(2.U) + imm, 64.U, now.reg(rs2)(63, 0))
+            specWb.is_inst := C_SDSP(inst);
+        }
+      case "C_LD" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCL
+            imm                  := zeroExt(reorder((5, 3), (7, 6))(inst, (12, 10), (6, 5)), XLEN)
+            next.reg(cat01(rdP)) := signExt(memRead(now.reg(cat01(rs1P)) + imm, 64.U)(63, 0), XLEN)
+            specWb.is_inst := C_LD(inst);
+        }
+      case "C_SD" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCS
+            imm := zeroExt(reorder((5, 3), (7, 6))(inst, (12, 10), (6, 5)), XLEN)
+            memWrite(now.reg(cat01(rs1P)), 64.U, now.reg(cat01(rs2P)))
+            specWb.is_inst := C_SD(inst);
+        }
+      case "C_ADDIW" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCI
+            imm          := signExt(reorder(5, (4, 0))(inst, 12, (6, 2)), XLEN)
+            next.reg(rd) := signExt((now.reg(rd) + imm)(31, 0), XLEN)
+            specWb.is_inst := C_ADDIW(inst);
+        }
+      case "C_ADDW" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCA
+            next.reg(cat01(rdP)) := signExt(now.reg(cat01(rdP))(31, 0) + now.reg(cat01(rs2P))(31, 0), XLEN)
+            specWb.is_inst := C_ADDW(inst);
+        }
+      case "C_SUBW" =>
+        config.XLEN match{
+          case 64 =>
+            decodeCA
+            next.reg(cat01(rdP)) := signExt(now.reg(cat01(rdP))(31, 0) - now.reg(cat01(rs2P))(31, 0), XLEN)
+            specWb.is_inst := C_SUBW(inst);
+        }
+      case _ =>
+        decodeCA
+    }
+  }
 }

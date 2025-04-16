@@ -62,4 +62,24 @@ trait PrivilegedExtension
     when(WFI(inst))        { decodeI /* then do nothing for now */ }
     when(SFANCE_VMA(inst)) { decodeI /* then do nothing for now */ }
   }
+
+  def doPrivileged(coreType: String): Unit = {
+    coreType match {
+      case "SRET" => 
+        decodeI
+        Sret()
+        specWb.is_inst := SRET(inst);
+      case "MRET" => 
+        decodeI
+        Mret()
+        specWb.is_inst := MRET(inst);
+      case "WFI" =>
+        decodeI
+        specWb.is_inst := WFI(inst);
+      case "SFANCE_VMA" =>
+        decodeI
+        specWb.is_inst := SFANCE_VMA(inst);
+      case _ =>
+    }
+  }
 }

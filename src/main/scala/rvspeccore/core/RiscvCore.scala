@@ -5,6 +5,9 @@ import chisel3.util._
 import spec._
 import spec.instset.csr.{CSR, CSRInfoSignal, EventSig, SatpStruct}
 import rvspeccore.checker.ArbitraryRegFile
+import rvspeccore.core.tool.BitTool._
+import rvspeccore.core.spec.instset.csr._
+import rvspeccore.core.spec.instset._
 
 abstract class BaseCore()(implicit val config: RVConfig) extends Module {
   implicit val XLEN: Int = config.XLEN
@@ -40,6 +43,7 @@ class SpecWbIO(implicit XLEN: Int) extends Bundle {
   val rd_addr  = UInt(5.W)
   val rd_data  = UInt(XLEN.W)
   val rd_en    = Bool()
+  val is_inst  = Bool()
   val csr_addr = UInt(12.W)
   val csr_wr   = Bool()
   val rs1_addr = UInt(5.W)
@@ -185,6 +189,87 @@ class RiscvTrans()(implicit config: RVConfig) extends BaseCore with RVInstSet {
     if (config.extensions.Zicsr) doRVZicsr
     if (config.extensions.Zifencei) doRVZifencei
     if (config.extensions.B) doRVB
+
+    // End excute
+    next.reg(0) := 0.U
+
+    when(!global_data.setpc) {
+      if (config.extensions.C) {
+        // + 4.U for 32 bits width inst
+        // + 2.U for 16 bits width inst in C extension
+        next.pc := now.pc + Mux(inst(1, 0) === "b11".U, 4.U, 2.U)
+      } else {
+        next.pc := now.pc + 4.U
+      }
+    }
+    tryRaiseException()
+  }
+
+  // mem port
+  io.mem <> mem
+  io.tlb.map(_ <> tlb.get)
+
+  io.next     := next
+  io.event    := event
+  io.iFetchpc := iFetchpc
+  io.specWb <> specWb
+}
+
+class SingleInst_Model(coreType: String)(implicit config: RVConfig) extends BaseCore with RVInstSet {
+  val io = IO(new Bundle {
+    // Processor IO
+    val inst     = Input(UInt(32.W))
+    val valid    = Input(Bool())
+    val iFetchpc = Output(UInt(XLEN.W))
+    val mem      = new MemIO
+    val tlb      = if (config.functions.tlb) Some(new TLBIO) else None
+    // Processor status
+    val now  = Input(State())
+    val next = Output(State())
+    // Exposed signals
+    val event  = Output(new EventSig)
+    val specWb = Output(new SpecWbIO)
+  })
+
+  // Initial the value
+  now := io.now
+  // these signals should keep the value in the next clock if there no changes below
+  next              := now
+  inst              := 0.U
+  global_data.setpc := false.B
+  event             := 0.U.asTypeOf(new EventSig)
+  iFetchpc          := now.pc
+  specWb            := 0.U.asTypeOf(new SpecWbIO)
+
+  // dont read or write mem
+  // if there no LOAD/STORE below
+  mem := 0.U.asTypeOf(new MemIO)
+  tlb.map(_ := 0.U.asTypeOf(new TLBIO))
+
+  // ID & EXE
+  when(io.valid) {
+    // CSR
+    // TODO: merge into a function?
+    next.privilege.csr.cycle := now.privilege.csr.cycle + 1.U
+    exceptionSupportInit()
+
+    if (!config.functions.tlb) {
+      inst     := io.inst
+      iFetchpc := now.pc
+    } else {
+      val (resultStatus, resultPC) = iFetchTrans(now.pc)
+      inst     := Mux(resultStatus, io.inst, "h0000_0013".U) // With a NOP instruction
+      iFetchpc := resultPC
+    }
+
+    // Decode and Excute
+    doIBase(coreType);
+    if(config.extensions.M)doMExtension(coreType);
+    if(config.extensions.C)doCExtension(coreType);
+    if(config.extensions.Zicsr)doZicsrExtension(coreType);
+    if(config.functions.privileged)doPrivileged(coreType); 
+    if(config.extensions.Zifencei)doZifenceiExecute(coreType);
+    if(config.extensions.B)doBExtension(coreType);
 
     // End excute
     next.reg(0) := 0.U

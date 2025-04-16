@@ -445,6 +445,370 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       case 64 => doRV64I
     }
   }
+
+  def doIBase(coreType: String): Unit = {
+    coreType match {
+      case "ADD" =>
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) + now.reg(rs2); updateNextWrite(rd)
+        specWb.is_inst := ADD(inst);
+      case "SLT" =>
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := Mux(now.reg(rs1).asSInt < now.reg(rs2).asSInt, 1.U, 0.U); updateNextWrite(rd)        
+        specWb.is_inst := SLT(inst);
+      case "SLTU" => 
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := Mux(now.reg(rs1) < now.reg(rs2), 1.U, 0.U); updateNextWrite(rd)
+        specWb.is_inst := SLTU(inst);
+      case "AND" =>
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) & now.reg(rs2); updateNextWrite(rd)
+        specWb.is_inst := AND(inst);
+      case "OR" =>
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) | now.reg(rs2); updateNextWrite(rd)
+        specWb.is_inst := OR(inst);
+      case "XOR" =>
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) ^ now.reg(rs2); updateNextWrite(rd)
+        specWb.is_inst := XOR(inst);
+      case "SLL" =>
+        config.XLEN match {
+          case 32 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) << now.reg(rs2)(4, 0); updateNextWrite(rd)
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) << now.reg(rs2)(5, 0); updateNextWrite(rd)
+        }
+        specWb.is_inst := SLL(inst);
+      case "SRL" =>
+        config.XLEN match {
+          case 32 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(4, 0); updateNextWrite(rd)
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) >> now.reg(rs2)(5, 0); updateNextWrite(rd)
+        }
+        specWb.is_inst := SRL(inst);
+      case "SUB" =>
+        decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := now.reg(rs1) - now.reg(rs2); updateNextWrite(rd)
+        specWb.is_inst := SUB(inst);
+      case "SRA" =>
+        config.XLEN match {
+          case 32 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(4, 0)).asUInt; updateNextWrite(rd)
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := (now.reg(rs1).asSInt >> now.reg(rs2)(5, 0)).asUInt; updateNextWrite(rd)
+        }
+        specWb.is_inst := SRA(inst);
+      case "ADDI" => 
+        decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) + imm; updateNextWrite(rd)
+        specWb.is_inst := ADDI(inst);
+      case "SLTI" =>
+        decodeI; checkSrcImm(rs1); next.reg(rd) := Mux(now.reg(rs1).asSInt < imm.asSInt, 1.U, 0.U); updateNextWrite(rd)
+        specWb.is_inst := SLTI(inst);
+      case "SLTIU" =>
+        decodeI; checkSrcImm(rs1); next.reg(rd) := Mux(now.reg(rs1) < imm, 1.U, 0.U); updateNextWrite(rd)
+        specWb.is_inst := SLTIU(inst);
+      case "ANDI" =>
+        decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) & imm; updateNextWrite(rd)
+        specWb.is_inst := ANDI(inst);
+      case "ORI" =>
+        decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) | imm; updateNextWrite(rd)
+        specWb.is_inst := ORI(inst);
+      case "XORI" =>
+        decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) ^ imm; updateNextWrite(rd)
+        specWb.is_inst := XORI(inst);
+      case "SLLI" =>
+        config.XLEN match {
+          case 32 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) << imm(4, 0); updateNextWrite(rd)
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) << imm(5, 0); updateNextWrite(rd)
+        }
+        specWb.is_inst := SLLI(inst);
+      case "SRLI" =>
+        config.XLEN match {
+          case 32 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) >> imm(4, 0); updateNextWrite(rd)
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := now.reg(rs1) >> imm(5, 0); updateNextWrite(rd)
+        }
+        specWb.is_inst := SRLI(inst);
+      case "SRAI" =>
+        config.XLEN match {
+          case 32 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := (now.reg(rs1).asSInt >> imm(4, 0)).asUInt; updateNextWrite(rd)
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := (now.reg(rs1).asSInt >> imm(5, 0)).asUInt; updateNextWrite(rd)
+        }
+        specWb.is_inst := SRAI(inst);
+      case "LUI" =>
+        decodeU; next.reg(rd) := imm; updateNextWrite(rd)
+        specWb.is_inst := LUI(inst);
+      case "AUIPC" =>
+        decodeU; next.reg(rd) := now.pc + imm; updateNextWrite(rd)
+        specWb.is_inst := AUIPC(inst);
+      case "JAL" =>
+        decodeJ;
+        when(addrAligned(getfetchSize(), now.pc + imm)) {
+          global_data.setpc := true.B;
+          next.pc           := now.pc + imm;
+          next.reg(rd)      := now.pc + 4.U;
+          updateNextWrite(rd)
+        }.otherwise {
+          next.privilege.csr.mtval := now.pc + imm;
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+        specWb.is_inst := JAL(inst);
+      case "JALR" =>
+        decodeI; checkSrcImm(rs1);
+        when(addrAligned(getfetchSize(), Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W)))) {
+          global_data.setpc := true.B;
+          next.pc           := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W));
+          next.reg(rd)      := now.pc + 4.U;
+          updateNextWrite(rd)
+        }.otherwise {
+          next.privilege.csr.mtval := Cat((now.reg(rs1) + imm)(XLEN - 1, 1), 0.U(1.W))
+          raiseException(MExceptionCode.instructionAddressMisaligned)
+        }
+        specWb.is_inst := JALR(inst);
+      case "BEQ" =>
+        decodeB; checkSrcReg(rs1, rs2);
+        when(now.reg(rs1) === now.reg(rs2)) {
+          when(addrAligned(getfetchSize(), now.pc + imm)) {
+            global_data.setpc := true.B;
+            next.pc           := now.pc + imm;
+          }.otherwise {
+            next.privilege.csr.mtval := now.pc + imm;
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+        }
+        specWb.is_inst := BEQ(inst);
+      case "BNE" =>
+        decodeB; checkSrcReg(rs1, rs2);
+        when(now.reg(rs1) =/= now.reg(rs2)) {
+          when(addrAligned(getfetchSize(), now.pc + imm)) {
+            global_data.setpc := true.B;
+            next.pc           := now.pc + imm;
+          }.otherwise {
+            next.privilege.csr.mtval := now.pc + imm;
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+        }
+        specWb.is_inst := BNE(inst);
+      case "BLT" =>
+        decodeB; checkSrcReg(rs1, rs2);
+        when(now.reg(rs1).asSInt < now.reg(rs2).asSInt) {
+          when(addrAligned(getfetchSize(), now.pc + imm)) {
+            global_data.setpc := true.B;
+            next.pc           := now.pc + imm
+          }.otherwise {
+            next.privilege.csr.mtval := now.pc + imm;
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+        }
+        specWb.is_inst := BLT(inst);
+      case "BLTU" => 
+        decodeB; checkSrcReg(rs1, rs2);
+        when(now.reg(rs1) < now.reg(rs2)) {
+          when(addrAligned(getfetchSize(), now.pc + imm)) {
+            global_data.setpc := true.B;
+            next.pc           := now.pc + imm
+          }.otherwise {
+            next.privilege.csr.mtval := now.pc + imm;
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+        }
+        specWb.is_inst := BLTU(inst);
+      case "BGE" =>
+        decodeB; checkSrcReg(rs1, rs2);
+        when(now.reg(rs1).asSInt >= now.reg(rs2).asSInt) {
+          when(addrAligned(getfetchSize(), now.pc + imm)) {
+            global_data.setpc := true.B;
+            next.pc           := now.pc + imm
+          }.otherwise {
+            next.privilege.csr.mtval := now.pc + imm;
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+        }
+        specWb.is_inst := BGE(inst);
+      case "BGEU" =>
+        decodeB; checkSrcReg(rs1, rs2);
+        when(now.reg(rs1) >= now.reg(rs2)) {
+          when(addrAligned(getfetchSize(), now.pc + imm)) {
+            global_data.setpc := true.B;
+            next.pc           := now.pc + imm
+          }.otherwise {
+            next.privilege.csr.mtval := now.pc + imm;
+            raiseException(MExceptionCode.instructionAddressMisaligned)
+          }
+        }
+        specWb.is_inst := BGEU(inst);
+      case "LB" =>
+        decodeI; checkSrcImm(rs1);
+        when(addrAligned(SizeOp.b, now.reg(rs1) + imm)) {
+          next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN)
+        }.otherwise {
+          // TODO: LB doesn't seem to get an exception for unaligned access
+          mem.read.addr := now.reg(rs1) + imm
+          raiseException(MExceptionCode.loadAddressMisaligned)
+        }; updateNextWrite(rd)
+        specWb.is_inst := LB(inst);
+      case "LH" =>
+        decodeI; checkSrcImm(rs1);
+        when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
+          next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
+        }.otherwise {
+          mem.read.addr := now.reg(rs1) + imm
+          raiseException(MExceptionCode.loadAddressMisaligned)
+        }; updateNextWrite(rd)
+        specWb.is_inst := LH(inst);
+      case "LW" =>
+        decodeI; checkSrcImm(rs1);
+        when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
+          next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
+        }.otherwise {
+          mem.read.addr := now.reg(rs1) + imm
+          raiseException(MExceptionCode.loadAddressMisaligned)
+        }; updateNextWrite(rd)
+        specWb.is_inst := LW(inst);
+      case "LBU" =>
+        decodeI; checkSrcImm(rs1); alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN); updateNextWrite(rd)
+        specWb.is_inst := LBU(inst);
+      case "LHU" =>
+        decodeI; checkSrcImm(rs1);
+        when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
+          next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
+        }.otherwise {
+          mem.read.addr := now.reg(rs1) + imm
+          raiseException(MExceptionCode.loadAddressMisaligned)
+        }; updateNextWrite(rd)
+        specWb.is_inst := LHU(inst);
+      case "SB" =>
+        decodeS; checkSrcImm(rs1); alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0))
+        specWb.is_inst := SB(inst);
+      case "SH" =>
+        decodeS; checkSrcImm(rs1);
+        when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
+          memWrite(now.reg(rs1) + imm, 16.U, now.reg(rs2)(15, 0))
+        }.otherwise {
+          mem.write.addr := now.reg(rs1) + imm
+          raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+        }
+        specWb.is_inst := SH(inst);
+      case "SW" =>
+        decodeS; checkSrcImm(rs1);
+        when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
+          memWrite(now.reg(rs1) + imm, 32.U, now.reg(rs2)(31, 0))
+        }.otherwise {
+          mem.write.addr := now.reg(rs1) + imm
+          raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+        }
+        specWb.is_inst := SW(inst);
+      case "EBREAK" =>
+        decodeI;
+        raiseException(MExceptionCode.breakpoint)
+        specWb.is_inst := EBREAK(inst);
+      case "ECALL" =>
+        decodeI;
+        switch(now.privilege.internal.privilegeMode) {
+          is(0x3.U) { raiseException(MExceptionCode.environmentCallFromMmode) }
+          is(0x1.U) { raiseException(MExceptionCode.environmentCallFromSmode) }
+          is(0x0.U) { raiseException(MExceptionCode.environmentCallFromUmode) }
+        }
+        specWb.is_inst := ECALL(inst);
+      case "FENCE" =>
+        decodeI;
+        specWb.is_inst := FENCE(inst);
+      case "ADDIW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1) + imm)(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := ADDIW(inst);
+        }
+      case "SLLIW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1)(31, 0) << imm(4, 0))(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := SLLIW(inst);
+        }
+      case "SRLIW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> imm(4, 0))(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := SRLIW(inst);
+        }
+      case "SRAIW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeI; checkSrcImm(rs1); next.reg(rd) := signExt((now.reg(rs1)(31, 0).asSInt >> imm(4, 0)).asUInt, XLEN); updateNextWrite(rd)
+            specWb.is_inst := SRAIW(inst);
+        } 
+      case "ADDW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) + now.reg(rs2)(31, 0))(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := ADDW(inst);
+        }
+      case "SUBW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) - now.reg(rs2)(31, 0))(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := SUBW(inst);
+        }
+      case "SLLW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) << now.reg(rs2)(4, 0))(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := SLLW(inst);
+        }
+      case "SRLW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now.reg(rs1)(31, 0) >> now.reg(rs2)(4, 0))(31, 0), XLEN); updateNextWrite(rd)
+            specWb.is_inst := SRLW(inst);
+        }
+      case "SRAW" =>
+        config.XLEN match {
+          case 64 =>
+            decodeR; checkSrcReg(rs1, rs2); next.reg(rd) := signExt((now
+              .reg(rs1)(31, 0)
+              .asSInt >> now.reg(rs2)(4, 0))
+              .asUInt, XLEN); updateNextWrite(rd)
+            specWb.is_inst := SRAW(inst);
+        }
+      case "LWU" =>
+        config.XLEN match {
+          case 64 =>
+            decodeI; checkSrcImm(rs1);
+            when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
+              next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
+            }.otherwise {
+              mem.read.addr := now.reg(rs1) + imm
+              raiseException(MExceptionCode.loadAddressMisaligned)
+            }; updateNextWrite(rd)
+            specWb.is_inst := LWU(inst);
+        }
+      case "LD" =>
+        config.XLEN match {
+          case 64 =>
+            decodeI; checkSrcImm(rs1);
+            when(addrAligned(SizeOp.d, now.reg(rs1) + imm)) {
+              next.reg(rd) := memRead(now.reg(rs1) + imm, 64.U)
+            }.otherwise {
+              mem.read.addr := now.reg(rs1) + imm
+              raiseException(MExceptionCode.loadAddressMisaligned)
+            }; updateNextWrite(rd)
+            specWb.is_inst := LD(inst);
+        }
+      case "SD" =>
+        config.XLEN match {
+          case 64 =>
+            decodeS; checkSrcImm(rs1);
+            when(addrAligned(SizeOp.d, now.reg(rs1) + imm)) {
+              memWrite(now.reg(rs1) + imm, 64.U, now.reg(rs2)(63, 0))
+            }.otherwise {
+              mem.write.addr := now.reg(rs1) + imm
+              raiseException(MExceptionCode.storeOrAMOAddressMisaligned)
+            }
+            specWb.is_inst := SD(inst);
+        }
+      case _ =>
+    }
+  }
 }
 
 // scalafmt: { maxColumn = 120 } (back to defaults)
