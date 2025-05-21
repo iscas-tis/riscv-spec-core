@@ -289,11 +289,10 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true, che
           assert(regDelay(io.mem.get.write.data) === regDelay(specCore.io.mem.write.data))
           assert(regDelay(io.mem.get.write.memWidth) === regDelay(specCore.io.mem.write.memWidth))
         }
-        specCore.io.mem.read.data := io.mem.get.read.data
-      }.otherwise {
-        specCore.io.mem.read.data := 0.U
       }
+      specCore.io.mem.read.data := io.mem.get.read.data
     } else {
+      // TODO: for checkerwithwb, temporary ignore the verification with virtual memory and tlb unit
       specCore.io.mem.read.data := 0.U
     }
   } else {
