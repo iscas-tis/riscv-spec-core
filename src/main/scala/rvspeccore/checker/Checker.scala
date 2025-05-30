@@ -192,9 +192,11 @@ class CheckerWithResult(val checkMem: Boolean = true, enableReg: Boolean = false
     assert(regDelay(io.instCommit.pc) === regDelay(specCore.io.now.pc))
     // next pc: hard to get next pc in a pipeline, check it at next instruction
     // next csr:
-    io.result.privilege.csr.table.zip(specCore.io.next.privilege.csr.table).map {
-      case (result, next) => {
-        assert(regDelay(result.signal) === regDelay(next.signal))
+    if(config.formal.checkCSRs){
+      io.result.privilege.csr.table.zip(specCore.io.next.privilege.csr.table).map {
+        case (result, next) => {
+          assert(regDelay(result.signal) === regDelay(next.signal))
+        }
       }
     }
     // next reg
@@ -333,16 +335,18 @@ class CheckerWithWB(val checkMem: Boolean = true, enableReg: Boolean = true, che
       assert(regDelay(io.wb.r2Addr) === regDelay(specCore.io.specWb.rs2_addr))
     }
     // try to verify csr write and read
-    when(regDelay(specCoreCsrWr) || regDelay(io.wb.csrWr)) {
-      assert(regDelay(specCoreCsrWr) === regDelay(io.wb.csrWr))
-      assert(regDelay(specCoreCsrAddr) === regDelay(io.wb.csrAddr))
-      val specCoreCsrNdata = WireInit(0.U(64.W))
-      specCore.io.next.privilege.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
-        when(io.wb.csrAddr === info.addr) {
-          specCoreCsrNdata := nextCSR
+    if(config.formal.checkCSRs){
+      when(regDelay(specCoreCsrWr) || regDelay(io.wb.csrWr)) {
+        assert(regDelay(specCoreCsrWr) === regDelay(io.wb.csrWr))
+        assert(regDelay(specCoreCsrAddr) === regDelay(io.wb.csrAddr))
+        val specCoreCsrNdata = WireInit(0.U(64.W))
+        specCore.io.next.privilege.csr.table.foreach { case (CSRInfoSignal(info, nextCSR)) =>
+          when(io.wb.csrAddr === info.addr) {
+            specCoreCsrNdata := nextCSR
+          }
         }
+        assert(regDelay(specCoreCsrNdata) === regDelay(io.wb.csrNdata))
       }
-      assert(regDelay(specCoreCsrNdata) === regDelay(io.wb.csrNdata))
     }
   }
 }
