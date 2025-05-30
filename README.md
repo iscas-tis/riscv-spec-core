@@ -1,4 +1,4 @@
-# RISC-V Spec Core
+# χRVFormal
 
 This project is a framework for formal verification/testing the consistency
 between a Chisel-designed RISC-V processor and the instruction set
