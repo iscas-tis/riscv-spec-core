@@ -130,6 +130,7 @@ case class RVConfig(configs: (String, Any)*) {
     )
 
     val arbitraryRegFile: Boolean = raw.contains("ArbitraryRegFile")
+    val checkCSRs: Boolean        = raw.contains("CheckCSRs")
   }
 
   require(
