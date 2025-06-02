@@ -290,39 +290,43 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.b, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN)
+        updateNextWrite(rd)
       }.otherwise {
         // TODO: LB doesn't seem to get an exception for unaligned access
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
-      }; updateNextWrite(rd)
+      };
     }
     when(LH(inst)) {
       decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
+        updateNextWrite(rd)
       }.otherwise {
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
-      }; updateNextWrite(rd)
+      };
     }
     when(LW(inst)) {
       decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
+        updateNextWrite(rd)
       }.otherwise {
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
-      }; updateNextWrite(rd)
+      };
     }
     when(LBU(inst)) { decodeI; checkSrcImm(rs1); alignedException("Load", SizeOp.b, rs2); next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 8.U)(7, 0), XLEN); updateNextWrite(rd) }
     when(LHU(inst)) {
       decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.h, now.reg(rs1) + imm)) {
         next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 16.U)(15, 0), XLEN)
+        updateNextWrite(rd)
       }.otherwise {
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
-      }; updateNextWrite(rd)
+      };
     }
     // STORE
     when(SB(inst)) { decodeS; checkSrcImm(rs1); alignedException("Store", SizeOp.b, rs2); memWrite(now.reg(rs1) + imm, 8.U, now.reg(rs2)(7, 0)) }
@@ -411,19 +415,21 @@ trait IBase extends BaseCore with CommonDecode with IBaseInsts with ExceptionSup
       decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.w, now.reg(rs1) + imm)) {
         next.reg(rd) := zeroExt(memRead(now.reg(rs1) + imm, 32.U)(31, 0), XLEN)
+        updateNextWrite(rd)
       }.otherwise {
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
-      }; updateNextWrite(rd)
+      };
     }
     when(LD(inst)) {
       decodeI; checkSrcImm(rs1);
       when(addrAligned(SizeOp.d, now.reg(rs1) + imm)) {
         next.reg(rd) := signExt(memRead(now.reg(rs1) + imm, 64.U)(63, 0), XLEN)
+        updateNextWrite(rd)
       }.otherwise {
         mem.read.addr := now.reg(rs1) + imm
         raiseException(MExceptionCode.loadAddressMisaligned)
-      }; updateNextWrite(rd)
+      };
     }
     // - STORE
     when(SD(inst)) {
